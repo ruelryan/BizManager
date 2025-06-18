@@ -46,8 +46,10 @@ export const transformSupabaseData = {
     ...data,
     createdAt: new Date(data.created_at),
     updatedAt: new Date(data.updated_at),
-    currentStock: data.stock,
-    minStock: data.min_stock
+    currentStock: Number(data.stock) || 0,
+    minStock: Number(data.min_stock) || 0,
+    cost: Number(data.cost) || 0,
+    price: Number(data.price) || 0
   }),
   
   sale: (data: any) => ({
