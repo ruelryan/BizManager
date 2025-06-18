@@ -105,17 +105,17 @@ const InvoicePDF = ({ sale }: { sale: any }) => (
         </View>
         <View style={styles.invoiceInfo}>
           <Text style={styles.boldText}>INVOICE</Text>
-          <Text style={styles.text}>#{sale.invoiceNumber}</Text>
-          <Text style={styles.text}>Date: {format(sale.date, 'MMM dd, yyyy')}</Text>
+          <Text style={styles.text}>#{sale.invoiceNumber || sale.receipt_number || 'N/A'}</Text>
+          <Text style={styles.text}>Date: {format(new Date(sale.date || sale.created_at), 'MMM dd, yyyy')}</Text>
           {sale.dueDate && (
-            <Text style={styles.text}>Due: {format(sale.dueDate, 'MMM dd, yyyy')}</Text>
+            <Text style={styles.text}>Due: {format(new Date(sale.dueDate), 'MMM dd, yyyy')}</Text>
           )}
         </View>
       </View>
 
       <View style={styles.customerInfo}>
         <Text style={styles.boldText}>Bill To:</Text>
-        <Text style={styles.text}>{sale.customerName}</Text>
+        <Text style={styles.text}>{sale.customerName || sale.customer_name || 'Walk-in Customer'}</Text>
         {sale.customerEmail && <Text style={styles.text}>{sale.customerEmail}</Text>}
       </View>
 
@@ -127,12 +127,12 @@ const InvoicePDF = ({ sale }: { sale: any }) => (
           <Text style={[styles.boldText, styles.col4]}>Total</Text>
         </View>
         
-        {sale.items.map((item: any, index: number) => (
+        {(sale.items || []).map((item: any, index: number) => (
           <View key={index} style={styles.tableRow}>
-            <Text style={[styles.text, styles.col1]}>{item.productName}</Text>
-            <Text style={[styles.text, styles.col2]}>{item.quantity}</Text>
-            <Text style={[styles.text, styles.col3]}>₱{item.price.toLocaleString()}</Text>
-            <Text style={[styles.text, styles.col4]}>₱{item.total.toLocaleString()}</Text>
+            <Text style={[styles.text, styles.col1]}>{item.productName || item.name || 'Unknown Item'}</Text>
+            <Text style={[styles.text, styles.col2]}>{Number(item.quantity || 0)}</Text>
+            <Text style={[styles.text, styles.col3]}>₱{Number(item.price || 0).toLocaleString()}</Text>
+            <Text style={[styles.text, styles.col4]}>₱{Number(item.total || (item.price || 0) * (item.quantity || 0)).toLocaleString()}</Text>
           </View>
         ))}
       </View>
@@ -140,19 +140,31 @@ const InvoicePDF = ({ sale }: { sale: any }) => (
       <View style={styles.total}>
         <View style={styles.totalRow}>
           <Text style={styles.text}>Subtotal:</Text>
-          <Text style={styles.text}>₱{sale.total.toLocaleString()}</Text>
+          <Text style={styles.text}>₱{Number(sale.subtotal || sale.total || 0).toLocaleString()}</Text>
         </View>
+        {sale.tax && Number(sale.tax) > 0 && (
+          <View style={styles.totalRow}>
+            <Text style={styles.text}>Tax:</Text>
+            <Text style={styles.text}>₱{Number(sale.tax || 0).toLocaleString()}</Text>
+          </View>
+        )}
+        {sale.discount && Number(sale.discount) > 0 && (
+          <View style={styles.totalRow}>
+            <Text style={styles.text}>Discount:</Text>
+            <Text style={styles.text}>-₱{Number(sale.discount || 0).toLocaleString()}</Text>
+          </View>
+        )}
         <View style={styles.totalRow}>
           <Text style={styles.boldText}>Total:</Text>
-          <Text style={styles.boldText}>₱{sale.total.toLocaleString()}</Text>
+          <Text style={styles.boldText}>₱{Number(sale.total || 0).toLocaleString()}</Text>
         </View>
       </View>
 
       <View style={styles.section}>
         <Text style={styles.boldText}>Payment Method:</Text>
-        <Text style={styles.text}>{sale.paymentType.toUpperCase()}</Text>
+        <Text style={styles.text}>{(sale.paymentType || sale.payments?.[0]?.method || 'Cash').toUpperCase()}</Text>
         <Text style={styles.boldText}>Status:</Text>
-        <Text style={styles.text}>{sale.status.toUpperCase()}</Text>
+        <Text style={styles.text}>{(sale.status || 'completed').toUpperCase()}</Text>
       </View>
 
       <View style={styles.footer}>
@@ -170,15 +182,16 @@ export function Invoices() {
 
   // Filter invoices
   const filteredInvoices = sales.filter((sale) => {
-    const matchesSearch = (sale.customerName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (sale.invoiceNumber || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (sale.customer_name || sale.customerName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (sale.receipt_number || sale.invoiceNumber || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = filterStatus === 'all' || sale.status === filterStatus;
     return matchesSearch && matchesFilter;
   });
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'paid': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
+      case 'paid': 
+      case 'completed': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
       case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
       case 'overdue': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
       default: return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
@@ -256,25 +269,25 @@ export function Invoices() {
                 <tr key={invoice.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900 dark:text-white">
-                      {invoice.invoiceNumber}
+                      {invoice.receipt_number || invoice.invoiceNumber || 'N/A'}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900 dark:text-white">
-                      {invoice.customerName}
+                      {invoice.customer_name || invoice.customerName || 'Walk-in Customer'}
                     </div>
                     {invoice.customerEmail && (
                       <div className="text-sm text-gray-500 dark:text-gray-400">{invoice.customerEmail}</div>
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
-                    {format(invoice.date, 'MMM dd, yyyy')}
+                    {format(new Date(invoice.created_at || invoice.date), 'MMM dd, yyyy')}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
-                    {invoice.dueDate ? format(invoice.dueDate, 'MMM dd, yyyy') : '-'}
+                    {invoice.dueDate ? format(new Date(invoice.dueDate), 'MMM dd, yyyy') : '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                    ₱{invoice.total.toLocaleString()}
+                    ₱{Number(invoice.total || 0).toLocaleString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${getStatusColor(invoice.status)}`}>
@@ -290,14 +303,14 @@ export function Invoices() {
                       <FeatureGate feature="hasPdfInvoices">
                         <PDFDownloadLink
                           document={<InvoicePDF sale={invoice} />}
-                          fileName={`invoice-${invoice.invoiceNumber}.pdf`}
+                          fileName={`invoice-${invoice.receipt_number || invoice.invoiceNumber || invoice.id}.pdf`}
                           className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300"
                         >
                           <Download className="h-4 w-4" />
                         </PDFDownloadLink>
                       </FeatureGate>
                       
-                      {!['paid'].includes(invoice.status) && (
+                      {!['paid', 'completed'].includes(invoice.status) && (
                         <button className="text-purple-600 dark:text-purple-400 hover:text-purple-900 dark:hover:text-purple-300">
                           <Send className="h-4 w-4" />
                         </button>
