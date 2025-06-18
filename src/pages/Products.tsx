@@ -8,6 +8,7 @@ export function Products() {
   const [showAddForm, setShowAddForm] = React.useState(false);
   const [editingProduct, setEditingProduct] = React.useState<Product | null>(null);
   const [searchTerm, setSearchTerm] = React.useState('');
+  const [deleteConfirm, setDeleteConfirm] = React.useState<string | null>(null);
 
   const canAddMoreProducts = user?.plan !== 'free' || products.length < 10;
 
@@ -16,6 +17,17 @@ export function Products() {
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     product.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleDeleteProduct = (id: string) => {
+    if (deleteConfirm === id) {
+      deleteProduct(id);
+      setDeleteConfirm(null);
+    } else {
+      setDeleteConfirm(id);
+      // Auto-cancel confirmation after 3 seconds
+      setTimeout(() => setDeleteConfirm(null), 3000);
+    }
+  };
 
   const ProductForm = ({ product, onClose }: { product?: Product; onClose: () => void }) => {
     const [formData, setFormData] = React.useState({
@@ -320,8 +332,13 @@ export function Products() {
                     <Edit className="h-4 w-4" />
                   </button>
                   <button
-                    onClick={() => deleteProduct(product.id)}
-                    className="rounded-lg p-2 text-gray-600 dark:text-gray-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400"
+                    onClick={() => handleDeleteProduct(product.id)}
+                    className={`rounded-lg p-2 transition-colors ${
+                      deleteConfirm === product.id
+                        ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
+                        : 'text-gray-600 dark:text-gray-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400'
+                    }`}
+                    title={deleteConfirm === product.id ? 'Click again to confirm deletion' : 'Delete product'}
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>

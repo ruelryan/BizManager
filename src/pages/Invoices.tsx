@@ -176,7 +176,7 @@ const InvoicePDF = ({ sale }: { sale: any }) => (
 );
 
 export function Invoices() {
-  const { sales } = useStore();
+  const { sales, updateSale } = useStore();
   const [searchTerm, setSearchTerm] = React.useState('');
   const [filterStatus, setFilterStatus] = React.useState<'all' | 'paid' | 'pending' | 'overdue'>('all');
   const [viewingSale, setViewingSale] = React.useState<any>(null);
@@ -196,6 +196,24 @@ export function Invoices() {
       case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
       case 'overdue': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
       default: return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
+    }
+  };
+
+  // Send invoice reminder
+  const handleSendReminder = async (sale: any) => {
+    try {
+      // In a real app, this would send an email or SMS
+      alert(`Reminder sent to ${sale.customerName || 'customer'} for invoice ${sale.invoiceNumber || sale.receipt_number}`);
+      
+      // Update the sale to mark reminder sent
+      await updateSale(sale.id, {
+        ...sale,
+        reminderSent: true,
+        lastReminderDate: new Date(),
+      });
+    } catch (error) {
+      console.error('Failed to send reminder:', error);
+      alert('Failed to send reminder. Please try again.');
     }
   };
 
@@ -451,7 +469,11 @@ export function Invoices() {
                       </FeatureGate>
                       
                       {!['paid', 'completed'].includes(invoice.status) && (
-                        <button className="text-purple-600 dark:text-purple-400 hover:text-purple-900 dark:hover:text-purple-300">
+                        <button 
+                          onClick={() => handleSendReminder(invoice)}
+                          className="text-purple-600 dark:text-purple-400 hover:text-purple-900 dark:hover:text-purple-300"
+                          title="Send Reminder"
+                        >
                           <Send className="h-4 w-4" />
                         </button>
                       )}

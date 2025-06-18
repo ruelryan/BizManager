@@ -9,13 +9,16 @@ import {
   FileText,
   Target,
   Users,
+  Settings,
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { useStore } from '../store/useStore';
 import { FeatureGate } from '../components/FeatureGate';
 
 export function Dashboard() {
-  const { sales, products, monthlyGoal } = useStore();
+  const { sales, products, monthlyGoal, setMonthlyGoal } = useStore();
+  const [showGoalSetting, setShowGoalSetting] = React.useState(false);
+  const [newGoal, setNewGoal] = React.useState(monthlyGoal);
 
   // Calculate current month stats
   const currentMonth = new Date();
@@ -32,8 +35,13 @@ export function Dashboard() {
   );
   const todayRevenue = todaySales.reduce((sum, sale) => sum + sale.total, 0);
   
-  // Low stock products
-  const lowStockProducts = products.filter(product => product.currentStock <= product.minStock);
+  // Low stock products (excluding out of stock)
+  const lowStockProducts = products.filter(product => 
+    product.currentStock > 0 && product.currentStock <= product.minStock
+  );
+  
+  // Out of stock products
+  const outOfStockProducts = products.filter(product => product.currentStock === 0);
   
   // Unpaid invoices
   const unpaidInvoices = sales.filter(sale => sale.status === 'pending' || sale.status === 'overdue');
@@ -52,6 +60,11 @@ export function Dashboard() {
     const revenue = daySales.reduce((sum, sale) => sum + sale.total, 0);
     return { day: dayName, revenue, sales: daySales.length };
   });
+
+  const handleGoalUpdate = () => {
+    setMonthlyGoal(newGoal);
+    setShowGoalSetting(false);
+  };
 
   const StatCard = ({ title, value, change, icon: Icon, color = 'blue' }: any) => (
     <div className="rounded-xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-200 dark:border-gray-700 transition-all duration-200 hover:shadow-md">
@@ -133,7 +146,13 @@ export function Dashboard() {
         <div className="rounded-xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-200 dark:border-gray-700">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Monthly Revenue Goal</h2>
-            <Target className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+            <button
+              onClick={() => setShowGoalSetting(true)}
+              className="flex items-center space-x-1 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+            >
+              <Settings className="h-4 w-4" />
+              <span>Set Goal</span>
+            </button>
           </div>
           <div className="mb-2 flex items-center justify-between text-sm">
             <span className="text-gray-600 dark:text-gray-400">
@@ -149,6 +168,49 @@ export function Dashboard() {
           </div>
         </div>
       </FeatureGate>
+
+      {/* Goal Setting Modal */}
+      {showGoalSetting && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg max-w-md w-full border border-gray-200 dark:border-gray-700">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Set Monthly Revenue Goal</h2>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Monthly Goal (₱)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1000"
+                  value={newGoal}
+                  onChange={(e) => setNewGoal(parseInt(e.target.value) || 0)}
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  placeholder="Enter your monthly revenue goal"
+                />
+              </div>
+
+              <div className="flex space-x-3 pt-4">
+                <button
+                  onClick={handleGoalUpdate}
+                  className="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-white font-medium hover:bg-blue-700 transition-colors"
+                >
+                  Update Goal
+                </button>
+                <button
+                  onClick={() => setShowGoalSetting(false)}
+                  className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 px-4 py-2 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Charts */}
       <div className="grid gap-6 lg:grid-cols-2">
@@ -207,23 +269,48 @@ export function Dashboard() {
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Low Stock Alert */}
         {lowStockProducts.length > 0 && (
-          <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-6">
+          <div className="rounded-xl border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20 p-6">
             <div className="mb-4 flex items-center">
-              <AlertTriangle className="mr-2 h-5 w-5 text-red-600 dark:text-red-400" />
-              <h3 className="text-lg font-semibold text-red-800 dark:text-red-300">Low Stock Alert</h3>
+              <AlertTriangle className="mr-2 h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+              <h3 className="text-lg font-semibold text-yellow-800 dark:text-yellow-300">Low Stock Alert</h3>
             </div>
             <div className="space-y-2">
               {lowStockProducts.slice(0, 3).map((product) => (
                 <div key={product.id} className="flex items-center justify-between text-sm">
-                  <span className="text-red-700 dark:text-red-300">{product.name}</span>
-                  <span className="rounded-full bg-red-100 dark:bg-red-800 px-2 py-1 text-xs font-medium text-red-800 dark:text-red-200">
+                  <span className="text-yellow-700 dark:text-yellow-300">{product.name}</span>
+                  <span className="rounded-full bg-yellow-100 dark:bg-yellow-800 px-2 py-1 text-xs font-medium text-yellow-800 dark:text-yellow-200">
                     {product.currentStock} left
                   </span>
                 </div>
               ))}
               {lowStockProducts.length > 3 && (
-                <p className="text-sm text-red-600 dark:text-red-400">
+                <p className="text-sm text-yellow-600 dark:text-yellow-400">
                   +{lowStockProducts.length - 3} more items
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Out of Stock Alert */}
+        {outOfStockProducts.length > 0 && (
+          <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-6">
+            <div className="mb-4 flex items-center">
+              <Package className="mr-2 h-5 w-5 text-red-600 dark:text-red-400" />
+              <h3 className="text-lg font-semibold text-red-800 dark:text-red-300">Out of Stock</h3>
+            </div>
+            <div className="space-y-2">
+              {outOfStockProducts.slice(0, 3).map((product) => (
+                <div key={product.id} className="flex items-center justify-between text-sm">
+                  <span className="text-red-700 dark:text-red-300">{product.name}</span>
+                  <span className="rounded-full bg-red-100 dark:bg-red-800 px-2 py-1 text-xs font-medium text-red-800 dark:text-red-200">
+                    0 stock
+                  </span>
+                </div>
+              ))}
+              {outOfStockProducts.length > 3 && (
+                <p className="text-sm text-red-600 dark:text-red-400">
+                  +{outOfStockProducts.length - 3} more items
                 </p>
               )}
             </div>

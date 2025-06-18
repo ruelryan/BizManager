@@ -5,8 +5,10 @@ import { useStore } from '../store/useStore';
 import { Sale } from '../types';
 
 export function Sales() {
-  const { sales, products, addSale } = useStore();
+  const { sales, products, addSale, updateSale } = useStore();
   const [showAddForm, setShowAddForm] = React.useState(false);
+  const [editingSale, setEditingSale] = React.useState<Sale | null>(null);
+  const [viewingSale, setViewingSale] = React.useState<Sale | null>(null);
   const [searchTerm, setSearchTerm] = React.useState('');
   const [filterStatus, setFilterStatus] = React.useState<'all' | 'paid' | 'pending' | 'overdue'>('all');
 
@@ -27,6 +29,15 @@ export function Sales() {
     }
   };
 
+  // Calculate overdue status based on due date
+  const getCalculatedStatus = (sale: Sale): Sale['status'] => {
+    if (sale.status === 'paid') return 'paid';
+    if (sale.status === 'pending' && sale.dueDate && new Date() > sale.dueDate) {
+      return 'overdue';
+    }
+    return sale.status;
+  };
+
   const AddSaleForm = () => {
     const [formData, setFormData] = React.useState({
       customerName: '',
@@ -35,6 +46,13 @@ export function Sales() {
       paymentType: 'cash' as const,
       status: 'paid' as const,
     });
+    const [productSearchTerm, setProductSearchTerm] = React.useState('');
+
+    // Filter products for search
+    const filteredProducts = products.filter(product =>
+      product.name.toLowerCase().includes(productSearchTerm.toLowerCase()) ||
+      product.category.toLowerCase().includes(productSearchTerm.toLowerCase())
+    );
 
     const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault();
@@ -54,6 +72,24 @@ export function Sales() {
 
       const total = saleItems.reduce((sum, item) => sum + item.total, 0);
 
+      // Check stock availability
+      const stockErrors: string[] = [];
+      saleItems.forEach(item => {
+        const product = products.find(p => p.id === item.productId);
+        if (product && product.currentStock < item.quantity) {
+          stockErrors.push(`${product.name} has only ${product.currentStock} units in stock`);
+        }
+      });
+
+      if (stockErrors.length > 0) {
+        alert(`Stock Error:\n${stockErrors.join('\n')}`);
+        return;
+      }
+
+      const dueDate = formData.status === 'pending' 
+        ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days from now
+        : undefined;
+
       addSale({
         customerId: Date.now().toString(),
         customerName: formData.customerName,
@@ -63,7 +99,7 @@ export function Sales() {
         paymentType: formData.paymentType,
         status: formData.status,
         date: new Date(),
-        dueDate: formData.status === 'pending' ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) : undefined,
+        dueDate,
       });
 
       setShowAddForm(false);
@@ -146,6 +182,17 @@ export function Sales() {
                   + Add Item
                 </button>
               </div>
+
+              {/* Product Search */}
+              <div className="mb-3">
+                <input
+                  type="text"
+                  placeholder="Search products..."
+                  value={productSearchTerm}
+                  onChange={(e) => setProductSearchTerm(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
               
               <div className="space-y-3">
                 {formData.items.map((item, index) => (
@@ -164,9 +211,9 @@ export function Sales() {
                         required
                       >
                         <option value="">Select Product</option>
-                        {products.map((product) => (
+                        {filteredProducts.map((product) => (
                           <option key={product.id} value={product.id}>
-                            {product.name}
+                            {product.name} (Stock: {product.currentStock})
                           </option>
                         ))}
                       </select>
@@ -238,7 +285,7 @@ export function Sales() {
                   className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 >
                   <option value="paid">Paid</option>
-                  <option value="pending">Pending</option>
+                  <option value="pending">Pending (7 days due)</option>
                 </select>
               </div>
             </div>
@@ -272,6 +319,119 @@ export function Sales() {
       </div>
     );
   };
+
+  // Sale View Modal
+  const SaleViewModal = ({ sale, onClose }: { sale: Sale; onClose: () => void }) => (
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-700">
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+              Sale Details - {sale.invoiceNumber}
+            </h2>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+        
+        <div className="p-6 space-y-6">
+          {/* Sale Header */}
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Customer:</h3>
+              <p className="text-gray-900 dark:text-white font-medium">{sale.customerName}</p>
+              {sale.customerEmail && (
+                <p className="text-gray-600 dark:text-gray-400">{sale.customerEmail}</p>
+              )}
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Date: {format(sale.date, 'MMM dd, yyyy')}
+              </p>
+              {sale.dueDate && (
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Due: {format(sale.dueDate, 'MMM dd, yyyy')}
+                </p>
+              )}
+              <span className={`inline-flex rounded-full px-2 py-1 text-xs font-medium mt-2 ${getStatusColor(getCalculatedStatus(sale))}`}>
+                {getCalculatedStatus(sale)}
+              </span>
+            </div>
+          </div>
+
+          {/* Items */}
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-700/50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    Item
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    Qty
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    Price
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    Total
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
+                {sale.items.map((item, index) => (
+                  <tr key={index}>
+                    <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
+                      {item.productName}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-center text-gray-900 dark:text-gray-300">
+                      {item.quantity}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-300">
+                      ₱{item.price.toLocaleString()}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-right font-medium text-gray-900 dark:text-white">
+                      ₱{item.total.toLocaleString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Total */}
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+            <div className="flex justify-end">
+              <div className="w-64">
+                <div className="flex justify-between text-lg font-semibold">
+                  <span className="text-gray-900 dark:text-white">Total:</span>
+                  <span className="text-gray-900 dark:text-white">₱{sale.total.toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Payment Info */}
+          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+            <div className="grid gap-2 md:grid-cols-2">
+              <div>
+                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Payment Method:</span>
+                <p className="text-gray-900 dark:text-white capitalize">{sale.paymentType}</p>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Status:</span>
+                <p className="text-gray-900 dark:text-white capitalize">{getCalculatedStatus(sale)}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-6 p-6">
@@ -350,54 +510,71 @@ export function Sales() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
-              {filteredSales.map((sale) => (
-                <tr key={sale.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900 dark:text-white">
-                      {sale.invoiceNumber}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900 dark:text-white">
-                      {sale.customerName || 'Unknown Customer'}
-                    </div>
-                    {sale.customerEmail && (
-                      <div className="text-sm text-gray-500 dark:text-gray-400">{sale.customerEmail}</div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
-                    {format(sale.date, 'MMM dd, yyyy')}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                    ₱{sale.total.toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300 capitalize">
-                    {sale.paymentType}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${getStatusColor(sale.status)}`}>
-                      {sale.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex items-center space-x-2">
-                      <button className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300">
-                        <Eye className="h-4 w-4" />
-                      </button>
-                      <button className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300">
-                        <Edit className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {filteredSales.map((sale) => {
+                const calculatedStatus = getCalculatedStatus(sale);
+                return (
+                  <tr key={sale.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900 dark:text-white">
+                        {sale.invoiceNumber}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900 dark:text-white">
+                        {sale.customerName || 'Unknown Customer'}
+                      </div>
+                      {sale.customerEmail && (
+                        <div className="text-sm text-gray-500 dark:text-gray-400">{sale.customerEmail}</div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                      {format(sale.date, 'MMM dd, yyyy')}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                      ₱{sale.total.toLocaleString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300 capitalize">
+                      {sale.paymentType}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${getStatusColor(calculatedStatus)}`}>
+                        {calculatedStatus}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex items-center space-x-2">
+                        <button 
+                          onClick={() => setViewingSale(sale)}
+                          className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300"
+                          title="View Sale"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                        <button 
+                          onClick={() => setEditingSale(sale)}
+                          className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300"
+                          title="Edit Sale"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Add Sale Form Modal */}
+      {/* Modals */}
       {showAddForm && <AddSaleForm />}
+      {viewingSale && (
+        <SaleViewModal 
+          sale={viewingSale} 
+          onClose={() => setViewingSale(null)} 
+        />
+      )}
     </div>
   );
 }

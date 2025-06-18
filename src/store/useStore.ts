@@ -281,15 +281,28 @@ export const useStore = create<Store>()(
           invoiceNumber: `INV-${String(get().sales.length + 1).padStart(3, '0')}`,
         };
         
+        // Check stock availability and prevent negative stock
+        const stockErrors: string[] = [];
+        saleData.items.forEach((item) => {
+          const product = get().products.find((p) => p.id === item.productId);
+          if (product && product.currentStock < item.quantity) {
+            stockErrors.push(`${product.name} has only ${product.currentStock} units in stock`);
+          }
+        });
+
+        if (stockErrors.length > 0) {
+          throw new Error(`Stock Error:\n${stockErrors.join('\n')}`);
+        }
+        
         // Update local state immediately
         set((state) => ({ sales: [...state.sales, newSale] }));
         
-        // Update product stock
+        // Update product stock only if sufficient stock is available
         saleData.items.forEach((item) => {
           const product = get().products.find((p) => p.id === item.productId);
-          if (product) {
+          if (product && product.currentStock >= item.quantity) {
             get().updateProduct(item.productId, {
-              currentStock: product.currentStock - item.quantity,
+              currentStock: Math.max(0, product.currentStock - item.quantity),
             });
           }
         });
@@ -391,7 +404,7 @@ export const useStore = create<Store>()(
             ? transactionData.quantity 
             : -transactionData.quantity;
           get().updateProduct(transactionData.productId, {
-            currentStock: product.currentStock + stockChange,
+            currentStock: Math.max(0, product.currentStock + stockChange),
           });
         }
         
@@ -614,7 +627,7 @@ export const useStore = create<Store>()(
           'Invoice Number',
           'Customer Name',
           'Items',
-          'Total Amount',
+          'Total Amount (PHP)',
           'Payment Method',
           'Status'
         ];
@@ -724,8 +737,8 @@ export const useStore = create<Store>()(
             id: 'demo-product-1',
             name: 'Wireless Headphones',
             category: 'Electronics',
-            price: 99.99,
-            cost: 50.00,
+            price: 2499.99,
+            cost: 1250.00,
             currentStock: 25,
             minStock: 5,
             createdAt: new Date('2024-01-01'),
@@ -735,8 +748,8 @@ export const useStore = create<Store>()(
             id: 'demo-product-2',
             name: 'Coffee Beans',
             category: 'Food & Beverage',
-            price: 15.99,
-            cost: 8.00,
+            price: 399.99,
+            cost: 200.00,
             currentStock: 50,
             minStock: 10,
             createdAt: new Date('2024-01-02'),
@@ -746,8 +759,8 @@ export const useStore = create<Store>()(
             id: 'demo-product-3',
             name: 'Notebook',
             category: 'Stationery',
-            price: 4.99,
-            cost: 2.00,
+            price: 124.99,
+            cost: 50.00,
             currentStock: 100,
             minStock: 20,
             createdAt: new Date('2024-01-03'),
@@ -757,8 +770,8 @@ export const useStore = create<Store>()(
             id: 'demo-product-4',
             name: 'Smartphone Case',
             category: 'Electronics',
-            price: 24.99,
-            cost: 12.00,
+            price: 624.99,
+            cost: 300.00,
             currentStock: 30,
             minStock: 8,
             createdAt: new Date('2024-01-04'),
@@ -768,8 +781,8 @@ export const useStore = create<Store>()(
             id: 'demo-product-5',
             name: 'Organic Tea',
             category: 'Food & Beverage',
-            price: 12.99,
-            cost: 6.50,
+            price: 324.99,
+            cost: 162.50,
             currentStock: 40,
             minStock: 12,
             createdAt: new Date('2024-01-05'),
@@ -788,11 +801,11 @@ export const useStore = create<Store>()(
                 productId: 'demo-product-1',
                 productName: 'Wireless Headphones',
                 quantity: 1,
-                price: 99.99,
-                total: 99.99,
+                price: 2499.99,
+                total: 2499.99,
               },
             ],
-            total: 99.99,
+            total: 2499.99,
             paymentType: 'cash',
             status: 'paid',
             date: new Date('2024-01-15'),
@@ -808,18 +821,18 @@ export const useStore = create<Store>()(
                 productId: 'demo-product-2',
                 productName: 'Coffee Beans',
                 quantity: 2,
-                price: 15.99,
-                total: 31.98,
+                price: 399.99,
+                total: 799.98,
               },
               {
                 productId: 'demo-product-3',
                 productName: 'Notebook',
                 quantity: 3,
-                price: 4.99,
-                total: 14.97,
+                price: 124.99,
+                total: 374.97,
               },
             ],
-            total: 46.95,
+            total: 1174.95,
             paymentType: 'card',
             status: 'paid',
             date: new Date('2024-01-16'),
@@ -834,15 +847,17 @@ export const useStore = create<Store>()(
                 productId: 'demo-product-4',
                 productName: 'Smartphone Case',
                 quantity: 1,
-                price: 24.99,
-                total: 24.99,
+                price: 624.99,
+                total: 624.99,
               },
             ],
-            total: 24.99,
+            total: 624.99,
             paymentType: 'gcash',
             status: 'pending',
             date: new Date('2024-01-17'),
+            dueDate: new Date('2024-01-24'),
             invoiceNumber: 'INV-003',
+          
           },
         ];
         
