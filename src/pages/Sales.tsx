@@ -12,7 +12,7 @@ export function Sales() {
 
   // Filter sales
   const filteredSales = sales.filter((sale) => {
-    const matchesSearch = sale.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = (sale.customerName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       sale.invoiceNumber?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = filterStatus === 'all' || sale.status === filterStatus;
     return matchesSearch && matchesFilter;
@@ -359,7 +359,7 @@ export function Sales() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900 dark:text-white">
-                      {sale.customerName}
+                      {sale.customerName || 'Unknown Customer'}
                     </div>
                     {sale.customerEmail && (
                       <div className="text-sm text-gray-500 dark:text-gray-400">{sale.customerEmail}</div>

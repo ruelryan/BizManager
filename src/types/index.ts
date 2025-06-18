@@ -21,7 +21,7 @@ export interface Product {
 export interface Sale {
   id: string;
   customerId: string;
-  customerName: string;
+  customerName: string | null;
   customerEmail?: string;
   items: SaleItem[];
   total: number;
