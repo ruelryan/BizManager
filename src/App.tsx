@@ -1,0 +1,42 @@
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Layout } from './components/Layout';
+import { Dashboard } from './pages/Dashboard';
+import { Sales } from './pages/Sales';
+import { Products } from './pages/Products';
+import { Inventory } from './pages/Inventory';
+import { Reports } from './pages/Reports';
+import { Invoices } from './pages/Invoices';
+import { Pricing } from './pages/Pricing';
+import { Upgrade } from './pages/Upgrade';
+import { Login } from './pages/Login';
+import { useStore } from './store/useStore';
+import { ThemeProvider } from './contexts/ThemeContext';
+
+function App() {
+  const { user } = useStore();
+
+  return (
+    <ThemeProvider>
+      <Router>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/pricing" element={<Pricing />} />
+          <Route path="/upgrade" element={<Upgrade />} />
+          
+          {/* Protected Routes */}
+          <Route path="/" element={user ? <Layout /> : <Navigate to="/login" />}>
+            <Route index element={<Dashboard />} />
+            <Route path="sales" element={<Sales />} />
+            <Route path="products" element={<Products />} />
+            <Route path="inventory" element={<Inventory />} />
+            <Route path="reports" element={<Reports />} />
+            <Route path="invoices" element={<Invoices />} />
+          </Route>
+        </Routes>
+      </Router>
+    </ThemeProvider>
+  );
+}
+
+export default App;

@@ -1,0 +1,317 @@
+import React from 'react';
+import { Plus, Search, Edit, Trash2, Package } from 'lucide-react';
+import { useStore } from '../store/useStore';
+import { Product } from '../types';
+
+export function Products() {
+  const { products, addProduct, updateProduct, deleteProduct, user } = useStore();
+  const [showAddForm, setShowAddForm] = React.useState(false);
+  const [editingProduct, setEditingProduct] = React.useState<Product | null>(null);
+  const [searchTerm, setSearchTerm] = React.useState('');
+
+  const canAddMoreProducts = user?.plan !== 'free' || products.length < 10;
+
+  // Filter products
+  const filteredProducts = products.filter((product) =>
+    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.category.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const ProductForm = ({ product, onClose }: { product?: Product; onClose: () => void }) => {
+    const [formData, setFormData] = React.useState({
+      name: product?.name || '',
+      category: product?.category || '',
+      price: product?.price || 0,
+      cost: product?.cost || 0,
+      currentStock: product?.currentStock || 0,
+      minStock: product?.minStock || 10,
+    });
+
+    const handleSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      
+      if (product) {
+        updateProduct(product.id, formData);
+      } else {
+        addProduct(formData);
+      }
+      
+      onClose();
+    };
+
+    return (
+      <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg max-w-md w-full border border-gray-200 dark:border-gray-700">
+          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+              {product ? 'Edit Product' : 'Add New Product'}
+            </h2>
+          </div>
+          
+          <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Product Name *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Category *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.category}
+                onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                placeholder="e.g., Electronics, Clothing, Food"
+              />
+            </div>
+
+            <div className="grid gap-4 grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Selling Price (₱) *
+                </label>
+                <input
+                  type="number"
+                  required
+                  min="0"
+                  step="0.01"
+                  value={formData.price}
+                  onChange={(e) => setFormData(prev => ({ ...prev, price: parseFloat(e.target.value) }))}
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Cost Price (₱) *
+                </label>
+                <input
+                  type="number"
+                  required
+                  min="0"
+                  step="0.01"
+                  value={formData.cost}
+                  onChange={(e) => setFormData(prev => ({ ...prev, cost: parseFloat(e.target.value) }))}
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-4 grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Current Stock
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={formData.currentStock}
+                  onChange={(e) => setFormData(prev => ({ ...prev, currentStock: parseInt(e.target.value) }))}
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Min Stock Alert
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={formData.minStock}
+                  onChange={(e) => setFormData(prev => ({ ...prev, minStock: parseInt(e.target.value) }))}
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+
+            {/* Profit Margin Display */}
+            <div className="rounded-lg bg-gray-50 dark:bg-gray-700 p-3">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-600 dark:text-gray-400">Profit Margin:</span>
+                <span className="font-medium text-gray-900 dark:text-white">
+                  ₱{(formData.price - formData.cost).toFixed(2)} ({((formData.price - formData.cost) / formData.price * 100).toFixed(1)}%)
+                </span>
+              </div>
+            </div>
+
+            <div className="flex space-x-3 pt-4">
+              <button
+                type="submit"
+                className="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-white font-medium hover:bg-blue-700 transition-colors"
+              >
+                {product ? 'Update Product' : 'Add Product'}
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 px-4 py-2 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  };
+
+  const getStockStatus = (product: Product) => {
+    if (product.currentStock === 0) {
+      return { text: 'Out of Stock', color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' };
+    } else if (product.currentStock <= product.minStock) {
+      return { text: 'Low Stock', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' };
+    } else {
+      return { text: 'In Stock', color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' };
+    }
+  };
+
+  return (
+    <div className="space-y-6 p-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Products</h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            Manage your product catalog
+            {user?.plan === 'free' && (
+              <span className="ml-2 text-sm text-orange-600 dark:text-orange-400">
+                ({products.length}/10 products used)
+              </span>
+            )}
+          </p>
+        </div>
+        <button
+          onClick={() => setShowAddForm(true)}
+          disabled={!canAddMoreProducts}
+          className={`flex items-center space-x-2 rounded-lg px-4 py-2 text-white transition-colors ${
+            canAddMoreProducts
+              ? 'bg-blue-600 hover:bg-blue-700'
+              : 'bg-gray-400 cursor-not-allowed'
+          }`}
+        >
+          <Plus className="h-5 w-5" />
+          <span>Add Product</span>
+        </button>
+      </div>
+
+      {/* Plan Limit Warning */}
+      {!canAddMoreProducts && (
+        <div className="rounded-lg border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-900/20 p-4">
+          <div className="flex items-center">
+            <Package className="mr-2 h-5 w-5 text-orange-600 dark:text-orange-400" />
+            <p className="text-sm text-orange-800 dark:text-orange-300">
+              You've reached the 10 product limit for the Free plan.
+              <a href="/pricing" className="ml-1 font-medium underline">
+                Upgrade to add unlimited products
+              </a>
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+        <input
+          type="text"
+          placeholder="Search products..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full sm:w-80 rounded-lg border border-gray-300 dark:border-gray-600 pl-10 pr-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+        />
+      </div>
+
+      {/* Products Grid */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {filteredProducts.map((product) => {
+          const stockStatus = getStockStatus(product);
+          const profitMargin = product.price - product.cost;
+          const profitPercentage = (profitMargin / product.price) * 100;
+
+          return (
+            <div key={product.id} className="rounded-xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+                    {product.name}
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">{product.category}</p>
+                  <span className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${stockStatus.color}`}>
+                    {stockStatus.text}
+                  </span>
+                </div>
+                <div className="flex space-x-1">
+                  <button
+                    onClick={() => setEditingProduct(product)}
+                    className="rounded-lg p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-300"
+                  >
+                    <Edit className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => deleteProduct(product.id)}
+                    className="rounded-lg p-2 text-gray-600 dark:text-gray-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Selling Price:</span>
+                  <span className="font-semibold text-gray-900 dark:text-white">₱{product.price.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Cost Price:</span>
+                  <span className="text-gray-900 dark:text-gray-300">₱{product.cost.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Profit:</span>
+                  <span className="font-medium text-green-600 dark:text-green-400">
+                    ₱{profitMargin.toLocaleString()} ({profitPercentage.toFixed(1)}%)
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Current Stock:</span>
+                  <span className="font-medium text-gray-900 dark:text-white">{product.currentStock}</span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Empty State */}
+      {filteredProducts.length === 0 && (
+        <div className="rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 p-12 text-center">
+          <Package className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
+          <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-white">No products found</h3>
+          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+            {searchTerm ? 'Try adjusting your search terms.' : 'Get started by adding your first product.'}
+          </p>
+        </div>
+      )}
+
+      {/* Forms */}
+      {showAddForm && (
+        <ProductForm onClose={() => setShowAddForm(false)} />
+      )}
+      {editingProduct && (
+        <ProductForm
+          product={editingProduct}
+          onClose={() => setEditingProduct(null)}
+        />
+      )}
+    </div>
+  );
+}
