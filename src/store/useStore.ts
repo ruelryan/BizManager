@@ -61,7 +61,7 @@ interface Store {
   clearAllData: () => void;
   
   // Auth
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string, plan?: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -520,35 +520,186 @@ export const useStore = create<Store>()(
       },
       
       // Auth
-      signIn: async (email: string, password: string) => {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+      signIn: async (email: string, password: string, plan: string = 'free') => {
+        set({ isLoading: true });
         
-        if (error) throw error;
-        
-        if (data.user) {
-          set({
-            user: {
-              id: data.user.id,
-              email: data.user.email!,
-              name: data.user.user_metadata?.name || 'User',
-              plan: data.user.user_metadata?.plan || 'free',
+        try {
+          // Check if this is the demo account
+          if (email === 'demo@businessmanager.com' && password === 'demo123') {
+            // Demo authentication - bypass Supabase
+            const demoUser: User = {
+              id: 'demo-user-id',
+              email: email,
+              name: 'Demo User',
+              plan: plan as 'free' | 'starter' | 'pro',
+            };
+            
+            set({ user: demoUser, isLoading: false });
+            
+            // Load demo data if no products exist
+            if (get().products.length === 0) {
+              await get().loadDemoData();
             }
+            
+            return;
+          }
+          
+          // Try Supabase authentication for non-demo accounts
+          const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password,
           });
           
-          // Fetch initial data after login
-          await get().fetchInitialData();
+          if (error) throw error;
+          
+          if (data.user) {
+            set({
+              user: {
+                id: data.user.id,
+                email: data.user.email!,
+                name: data.user.user_metadata?.name || 'User',
+                plan: data.user.user_metadata?.plan || 'free',
+              },
+              isLoading: false,
+            });
+            
+            // Fetch initial data after login
+            await get().fetchInitialData();
+          }
+        } catch (error: any) {
+          set({ isLoading: false });
+          throw new Error(error.message || 'Failed to sign in');
         }
       },
       
       signOut: async () => {
+        const { user } = get();
+        
+        // If demo user, just clear local state
+        if (user?.id === 'demo-user-id') {
+          set({ user: null });
+          get().clearAllData();
+          return;
+        }
+        
+        // Otherwise, sign out from Supabase
         const { error } = await supabase.auth.signOut();
         if (error) throw error;
         
         set({ user: null });
         get().clearAllData();
+      },
+      
+      // Demo data loader
+      loadDemoData: async () => {
+        const demoProducts: Product[] = [
+          {
+            id: 'demo-product-1',
+            name: 'Wireless Headphones',
+            description: 'High-quality wireless headphones with noise cancellation',
+            barcode: '1234567890123',
+            category: 'Electronics',
+            costPrice: 50,
+            sellingPrice: 99.99,
+            currentStock: 25,
+            minStock: 5,
+            unit: 'piece',
+            isActive: true,
+            createdAt: new Date('2024-01-01'),
+            updatedAt: new Date('2024-01-01'),
+          },
+          {
+            id: 'demo-product-2',
+            name: 'Coffee Beans',
+            description: 'Premium arabica coffee beans',
+            barcode: '2345678901234',
+            category: 'Food & Beverage',
+            costPrice: 8,
+            sellingPrice: 15.99,
+            currentStock: 50,
+            minStock: 10,
+            unit: 'kg',
+            isActive: true,
+            createdAt: new Date('2024-01-02'),
+            updatedAt: new Date('2024-01-02'),
+          },
+          {
+            id: 'demo-product-3',
+            name: 'Notebook',
+            description: 'A5 lined notebook',
+            barcode: '3456789012345',
+            category: 'Stationery',
+            costPrice: 2,
+            sellingPrice: 4.99,
+            currentStock: 100,
+            minStock: 20,
+            unit: 'piece',
+            isActive: true,
+            createdAt: new Date('2024-01-03'),
+            updatedAt: new Date('2024-01-03'),
+          },
+        ];
+        
+        const demoSales: Sale[] = [
+          {
+            id: 'demo-sale-1',
+            invoiceNumber: 'INV-001',
+            items: [
+              {
+                productId: 'demo-product-1',
+                productName: 'Wireless Headphones',
+                quantity: 1,
+                unitPrice: 99.99,
+                total: 99.99,
+              },
+            ],
+            subtotal: 99.99,
+            tax: 9.99,
+            discount: 0,
+            total: 109.98,
+            paymentMethod: 'cash',
+            customerId: null,
+            customerName: null,
+            date: new Date('2024-01-15'),
+            status: 'completed',
+            notes: 'Demo sale',
+          },
+          {
+            id: 'demo-sale-2',
+            invoiceNumber: 'INV-002',
+            items: [
+              {
+                productId: 'demo-product-2',
+                productName: 'Coffee Beans',
+                quantity: 2,
+                unitPrice: 15.99,
+                total: 31.98,
+              },
+              {
+                productId: 'demo-product-3',
+                productName: 'Notebook',
+                quantity: 3,
+                unitPrice: 4.99,
+                total: 14.97,
+              },
+            ],
+            subtotal: 46.95,
+            tax: 4.70,
+            discount: 2.00,
+            total: 49.65,
+            paymentMethod: 'card',
+            customerId: null,
+            customerName: null,
+            date: new Date('2024-01-16'),
+            status: 'completed',
+            notes: 'Demo sale with multiple items',
+          },
+        ];
+        
+        set({
+          products: demoProducts,
+          sales: demoSales,
+        });
       },
     }),
     {

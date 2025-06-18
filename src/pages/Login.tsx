@@ -20,9 +20,7 @@ export function Login() {
     setError('');
     
     try {
-      // For demo purposes, we'll simulate different plans
-      // In a real app, you would authenticate with Supabase
-      await signIn(formData.email, formData.password);
+      await signIn(formData.email, formData.password, formData.plan);
       navigate('/');
     } catch (err: any) {
       setError(err.message || 'Failed to sign in');
@@ -202,11 +200,11 @@ export function Login() {
             </div>
           </div>
 
-          {/* Supabase Setup Notice */}
-          <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-            <h3 className="text-sm font-medium text-yellow-900 dark:text-yellow-300 mb-2">Supabase Setup Required</h3>
-            <div className="text-sm text-yellow-700 dark:text-yellow-400">
-              <p>To enable full functionality, please set up your Supabase project and add the environment variables to your .env file.</p>
+          {/* Demo Mode Notice */}
+          <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+            <h3 className="text-sm font-medium text-green-900 dark:text-green-300 mb-2">Demo Mode</h3>
+            <div className="text-sm text-green-700 dark:text-green-400">
+              <p>This demo works offline with sample data. For full functionality with Supabase integration, set up your environment variables.</p>
             </div>
           </div>
 
