@@ -1,10 +1,10 @@
 import React from 'react';
-import { Plus, Search, Edit, Trash2, Package } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Package, ChevronDown } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { Product } from '../types';
 
 export function Products() {
-  const { products, addProduct, updateProduct, deleteProduct, user } = useStore();
+  const { products, addProduct, updateProduct, deleteProduct, user, getProductCategories } = useStore();
   const [showAddForm, setShowAddForm] = React.useState(false);
   const [editingProduct, setEditingProduct] = React.useState<Product | null>(null);
   const [searchTerm, setSearchTerm] = React.useState('');
@@ -26,17 +26,29 @@ export function Products() {
       currentStock: product?.currentStock || 0,
       minStock: product?.minStock || 10,
     });
+    const [showCategoryDropdown, setShowCategoryDropdown] = React.useState(false);
+    const [customCategory, setCustomCategory] = React.useState('');
+
+    const existingCategories = getProductCategories();
 
     const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault();
       
+      const finalCategory = customCategory || formData.category;
+      
       if (product) {
-        updateProduct(product.id, formData);
+        updateProduct(product.id, { ...formData, category: finalCategory });
       } else {
-        addProduct(formData);
+        addProduct({ ...formData, category: finalCategory });
       }
       
       onClose();
+    };
+
+    const handleCategorySelect = (category: string) => {
+      setFormData(prev => ({ ...prev, category }));
+      setCustomCategory('');
+      setShowCategoryDropdown(false);
     };
 
     // Safe calculation for profit margin display
@@ -68,18 +80,46 @@ export function Products() {
               />
             </div>
 
-            <div>
+            <div className="relative">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Category *
               </label>
-              <input
-                type="text"
-                required
-                value={formData.category}
-                onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                placeholder="e.g., Electronics, Clothing, Food"
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  required
+                  value={customCategory || formData.category}
+                  onChange={(e) => {
+                    setCustomCategory(e.target.value);
+                    setFormData(prev => ({ ...prev, category: e.target.value }));
+                  }}
+                  onFocus={() => setShowCategoryDropdown(true)}
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 pr-10 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  placeholder="Type category or select from existing"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <ChevronDown className="h-4 w-4" />
+                </button>
+              </div>
+              
+              {showCategoryDropdown && existingCategories.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-40 overflow-y-auto">
+                  {existingCategories.map((category, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => handleCategorySelect(category)}
+                      className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-900 dark:text-white text-sm"
+                    >
+                      {category}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="grid gap-4 grid-cols-2">

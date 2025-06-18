@@ -27,8 +27,30 @@ import { useStore } from '../store/useStore';
 import { FeatureGate } from '../components/FeatureGate';
 
 export function Reports() {
-  const { sales, products } = useStore();
+  const { sales, products, exportReportData } = useStore();
   const [selectedMonth, setSelectedMonth] = React.useState(new Date());
+
+  // Export function
+  const handleExport = () => {
+    try {
+      const csvData = exportReportData();
+      const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      
+      if (link.download !== undefined) {
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `sales-report-${format(selectedMonth, 'yyyy-MM')}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('Export failed. Please try again.');
+    }
+  };
 
   // Calculate monthly data
   const getMonthlyData = (month: Date) => {
@@ -36,10 +58,10 @@ export function Reports() {
     const monthEnd = endOfMonth(month);
     
     const monthSales = sales.filter(sale => 
-      sale.date >= monthStart && sale.date <= monthEnd && sale.status === 'paid'
+      sale.date >= monthStart && sale.date <= monthEnd && (sale.status === 'paid' || sale.status === 'completed')
     );
     
-    const totalRevenue = monthSales.reduce((sum, sale) => sum + sale.total, 0);
+    const totalRevenue = monthSales.reduce((sum, sale) => sum + (sale.total || 0), 0);
     const totalCost = monthSales.reduce((sum, sale) => 
       sum + sale.items.reduce((itemSum, item) => {
         const product = products.find(p => p.id === item.productId);
@@ -77,9 +99,9 @@ export function Reports() {
     for (let date = new Date(monthStart); date <= monthEnd; date.setDate(date.getDate() + 1)) {
       const dayStr = format(date, 'dd');
       const daySales = sales.filter(sale => 
-        format(sale.date, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd') && sale.status === 'paid'
+        format(sale.date, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd') && (sale.status === 'paid' || sale.status === 'completed')
       );
-      const revenue = daySales.reduce((sum, sale) => sum + sale.total, 0);
+      const revenue = daySales.reduce((sum, sale) => sum + (sale.total || 0), 0);
       
       days.push({
         day: dayStr,
@@ -99,7 +121,7 @@ export function Reports() {
     const productSales = new Map();
     
     sales
-      .filter(sale => sale.date >= monthStart && sale.date <= monthEnd && sale.status === 'paid')
+      .filter(sale => sale.date >= monthStart && sale.date <= monthEnd && (sale.status === 'paid' || sale.status === 'completed'))
       .forEach(sale => {
         sale.items.forEach(item => {
           const existing = productSales.get(item.productId) || { 
@@ -126,7 +148,7 @@ export function Reports() {
     const methodCounts = new Map();
     
     sales
-      .filter(sale => sale.date >= monthStart && sale.date <= monthEnd && sale.status === 'paid')
+      .filter(sale => sale.date >= monthStart && sale.date <= monthEnd && (sale.status === 'paid' || sale.status === 'completed'))
       .forEach(sale => {
         const count = methodCounts.get(sale.paymentType) || 0;
         methodCounts.set(sale.paymentType, count + 1);
@@ -242,7 +264,10 @@ export function Reports() {
               </select>
             </div>
             
-            <button className="flex items-center space-x-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 transition-colors">
+            <button 
+              onClick={handleExport}
+              className="flex items-center space-x-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 transition-colors"
+            >
               <Download className="h-4 w-4" />
               <span>Export</span>
             </button>

@@ -34,6 +34,7 @@ interface Store {
   addProduct: (product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   updateProduct: (id: string, updates: Partial<Product>) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
+  getProductCategories: () => string[];
   
   // Sales
   sales: Sale[];
@@ -59,6 +60,10 @@ interface Store {
   fetchInitialData: () => Promise<void>;
   syncData: () => Promise<void>;
   clearAllData: () => void;
+  loadDemoData: () => Promise<void>;
+  shouldSkipSync: (item: SyncItem) => boolean;
+  syncItem: (item: SyncItem) => Promise<void>;
+  exportReportData: () => string;
   
   // Auth
   signIn: (email: string, password: string, plan?: string) => Promise<void>;
@@ -260,6 +265,11 @@ export const useStore = create<Store>()(
             timestamp: Date.now(),
           });
         }
+      },
+
+      getProductCategories: () => {
+        const categories = get().products.map(product => product.category);
+        return [...new Set(categories)].filter(Boolean).sort();
       },
       
       // Sales
@@ -595,6 +605,37 @@ export const useStore = create<Store>()(
         }
       },
       
+      exportReportData: () => {
+        const { sales, products } = get();
+        
+        // Create CSV data
+        const headers = [
+          'Date',
+          'Invoice Number',
+          'Customer Name',
+          'Items',
+          'Total Amount',
+          'Payment Method',
+          'Status'
+        ];
+        
+        const rows = sales.map(sale => [
+          new Date(sale.date).toLocaleDateString(),
+          sale.invoiceNumber || 'N/A',
+          sale.customerName || 'Walk-in Customer',
+          sale.items.map(item => `${item.productName} (${item.quantity})`).join('; '),
+          `₱${sale.total.toLocaleString()}`,
+          sale.paymentType,
+          sale.status
+        ]);
+        
+        const csvContent = [headers, ...rows]
+          .map(row => row.map(cell => `"${cell}"`).join(','))
+          .join('\n');
+        
+        return csvContent;
+      },
+      
       clearAllData: () => {
         set({
           products: [],
@@ -682,103 +723,126 @@ export const useStore = create<Store>()(
           {
             id: 'demo-product-1',
             name: 'Wireless Headphones',
-            description: 'High-quality wireless headphones with noise cancellation',
-            barcode: '1234567890123',
             category: 'Electronics',
-            costPrice: 50,
-            sellingPrice: 99.99,
+            price: 99.99,
+            cost: 50.00,
             currentStock: 25,
             minStock: 5,
-            unit: 'piece',
-            isActive: true,
             createdAt: new Date('2024-01-01'),
             updatedAt: new Date('2024-01-01'),
           },
           {
             id: 'demo-product-2',
             name: 'Coffee Beans',
-            description: 'Premium arabica coffee beans',
-            barcode: '2345678901234',
             category: 'Food & Beverage',
-            costPrice: 8,
-            sellingPrice: 15.99,
+            price: 15.99,
+            cost: 8.00,
             currentStock: 50,
             minStock: 10,
-            unit: 'kg',
-            isActive: true,
             createdAt: new Date('2024-01-02'),
             updatedAt: new Date('2024-01-02'),
           },
           {
             id: 'demo-product-3',
             name: 'Notebook',
-            description: 'A5 lined notebook',
-            barcode: '3456789012345',
             category: 'Stationery',
-            costPrice: 2,
-            sellingPrice: 4.99,
+            price: 4.99,
+            cost: 2.00,
             currentStock: 100,
             minStock: 20,
-            unit: 'piece',
-            isActive: true,
             createdAt: new Date('2024-01-03'),
             updatedAt: new Date('2024-01-03'),
+          },
+          {
+            id: 'demo-product-4',
+            name: 'Smartphone Case',
+            category: 'Electronics',
+            price: 24.99,
+            cost: 12.00,
+            currentStock: 30,
+            minStock: 8,
+            createdAt: new Date('2024-01-04'),
+            updatedAt: new Date('2024-01-04'),
+          },
+          {
+            id: 'demo-product-5',
+            name: 'Organic Tea',
+            category: 'Food & Beverage',
+            price: 12.99,
+            cost: 6.50,
+            currentStock: 40,
+            minStock: 12,
+            createdAt: new Date('2024-01-05'),
+            updatedAt: new Date('2024-01-05'),
           },
         ];
         
         const demoSales: Sale[] = [
           {
             id: 'demo-sale-1',
-            invoiceNumber: 'INV-001',
+            customerId: 'demo-customer-1',
+            customerName: 'John Doe',
+            customerEmail: 'john@example.com',
             items: [
               {
                 productId: 'demo-product-1',
                 productName: 'Wireless Headphones',
                 quantity: 1,
-                unitPrice: 99.99,
+                price: 99.99,
                 total: 99.99,
               },
             ],
-            subtotal: 99.99,
-            tax: 9.99,
-            discount: 0,
-            total: 109.98,
-            paymentMethod: 'cash',
-            customerId: null,
-            customerName: null,
+            total: 99.99,
+            paymentType: 'cash',
+            status: 'paid',
             date: new Date('2024-01-15'),
-            status: 'completed',
-            notes: 'Demo sale',
+            invoiceNumber: 'INV-001',
           },
           {
             id: 'demo-sale-2',
-            invoiceNumber: 'INV-002',
+            customerId: 'demo-customer-2',
+            customerName: 'Jane Smith',
+            customerEmail: 'jane@example.com',
             items: [
               {
                 productId: 'demo-product-2',
                 productName: 'Coffee Beans',
                 quantity: 2,
-                unitPrice: 15.99,
+                price: 15.99,
                 total: 31.98,
               },
               {
                 productId: 'demo-product-3',
                 productName: 'Notebook',
                 quantity: 3,
-                unitPrice: 4.99,
+                price: 4.99,
                 total: 14.97,
               },
             ],
-            subtotal: 46.95,
-            tax: 4.70,
-            discount: 2.00,
-            total: 49.65,
-            paymentMethod: 'card',
-            customerId: null,
-            customerName: null,
+            total: 46.95,
+            paymentType: 'card',
+            status: 'paid',
             date: new Date('2024-01-16'),
-            status: 'completed',
-            notes: 'Demo sale with multiple items',
+            invoiceNumber: 'INV-002',
+          },
+          {
+            id: 'demo-sale-3',
+            customerId: 'demo-customer-3',
+            customerName: 'Bob Johnson',
+            items: [
+              {
+                productId: 'demo-product-4',
+                productName: 'Smartphone Case',
+                quantity: 1,
+                price: 24.99,
+                total: 24.99,
+              },
+            ],
+            total: 24.99,
+            paymentType: 'gcash',
+            status: 'pending',
+            date: new Date('2024-01-17'),
+            invoiceNumber: 'INV-003',
           },
         ];
         
