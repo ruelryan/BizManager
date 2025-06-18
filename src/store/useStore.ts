@@ -65,6 +65,17 @@ interface Store {
   signOut: () => Promise<void>;
 }
 
+// UUID validation function
+const isValidUUID = (str: string): boolean => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(str);
+};
+
+// Check if an ID is a demo ID (starts with 'demo-')
+const isDemoId = (id: string): boolean => {
+  return id.startsWith('demo-');
+};
+
 // Date reviver function to convert ISO strings back to Date objects
 const dateReviver = (key: string, value: any) => {
   if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value)) {
@@ -173,8 +184,8 @@ export const useStore = create<Store>()(
           ),
         }));
         
-        // Skip Supabase operations for demo user
-        if (get().user?.id === 'demo-user-id') {
+        // Skip Supabase operations for demo user or demo data
+        if (get().user?.id === 'demo-user-id' || isDemoId(id)) {
           return;
         }
         
@@ -215,8 +226,8 @@ export const useStore = create<Store>()(
           products: state.products.filter((product) => product.id !== id),
         }));
         
-        // Skip Supabase operations for demo user
-        if (get().user?.id === 'demo-user-id') {
+        // Skip Supabase operations for demo user or demo data
+        if (get().user?.id === 'demo-user-id' || isDemoId(id)) {
           return;
         }
         
@@ -314,8 +325,8 @@ export const useStore = create<Store>()(
           sales: state.sales.map((sale) => (sale.id === id ? { ...sale, ...updates } : sale)),
         }));
         
-        // Skip Supabase operations for demo user
-        if (get().user?.id === 'demo-user-id') {
+        // Skip Supabase operations for demo user or demo data
+        if (get().user?.id === 'demo-user-id' || isDemoId(id)) {
           return;
         }
         
@@ -491,6 +502,15 @@ export const useStore = create<Store>()(
         
         for (const item of sortedItems) {
           try {
+            // Skip demo data from syncing
+            const shouldSkipSync = get().shouldSkipSync(item);
+            
+            if (shouldSkipSync) {
+              console.log('Skipping sync for demo data:', item.id);
+              removePendingSyncItem(item.id);
+              continue;
+            }
+            
             await get().syncItem(item);
             removePendingSyncItem(item.id);
           } catch (error) {
@@ -500,6 +520,37 @@ export const useStore = create<Store>()(
         }
         
         console.log('Sync completed');
+      },
+      
+      // Helper function to determine if sync should be skipped
+      shouldSkipSync: (item: SyncItem): boolean => {
+        // Skip if user is demo user
+        if (get().user?.id === 'demo-user-id') {
+          return true;
+        }
+        
+        // Skip if item involves demo data
+        if (item.type === 'product' || item.type === 'sale') {
+          if (item.action === 'create' && item.data?.id && isDemoId(item.data.id)) {
+            return true;
+          }
+          
+          if (item.action === 'update' && item.data?.id && isDemoId(item.data.id)) {
+            return true;
+          }
+          
+          if (item.action === 'delete' && item.data?.id && isDemoId(item.data.id)) {
+            return true;
+          }
+          
+          // Additional check for invalid UUIDs
+          const idToCheck = item.data?.id || (item.action === 'update' ? item.data?.id : null);
+          if (idToCheck && !isValidUUID(idToCheck)) {
+            return true;
+          }
+        }
+        
+        return false;
       },
       
       syncItem: async (item: SyncItem) => {
