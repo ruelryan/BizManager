@@ -128,6 +128,11 @@ export const useStore = create<Store>()(
         // Update local state immediately
         set((state) => ({ products: [...state.products, newProduct] }));
         
+        // Skip Supabase operations for demo user
+        if (get().user?.id === 'demo-user-id') {
+          return;
+        }
+        
         try {
           if (get().isOnline) {
             const { error } = await supabase
@@ -168,6 +173,11 @@ export const useStore = create<Store>()(
           ),
         }));
         
+        // Skip Supabase operations for demo user
+        if (get().user?.id === 'demo-user-id') {
+          return;
+        }
+        
         try {
           if (get().isOnline) {
             const { error } = await supabase
@@ -204,6 +214,11 @@ export const useStore = create<Store>()(
         set((state) => ({
           products: state.products.filter((product) => product.id !== id),
         }));
+        
+        // Skip Supabase operations for demo user
+        if (get().user?.id === 'demo-user-id') {
+          return;
+        }
         
         try {
           if (get().isOnline) {
@@ -258,6 +273,11 @@ export const useStore = create<Store>()(
           }
         });
         
+        // Skip Supabase operations for demo user
+        if (get().user?.id === 'demo-user-id') {
+          return;
+        }
+        
         try {
           if (get().isOnline) {
             const { error } = await supabase
@@ -293,6 +313,11 @@ export const useStore = create<Store>()(
         set((state) => ({
           sales: state.sales.map((sale) => (sale.id === id ? { ...sale, ...updates } : sale)),
         }));
+        
+        // Skip Supabase operations for demo user
+        if (get().user?.id === 'demo-user-id') {
+          return;
+        }
         
         try {
           if (get().isOnline) {
@@ -349,6 +374,11 @@ export const useStore = create<Store>()(
           });
         }
         
+        // Skip Supabase operations for demo user
+        if (get().user?.id === 'demo-user-id') {
+          return;
+        }
+        
         // Note: Inventory transactions would need their own table in Supabase
         // For now, we'll just store them locally
         if (!get().isOnline) {
@@ -366,6 +396,11 @@ export const useStore = create<Store>()(
       monthlyGoal: 50000,
       setMonthlyGoal: async (goal) => {
         set({ monthlyGoal: goal });
+        
+        // Skip Supabase operations for demo user
+        if (get().user?.id === 'demo-user-id') {
+          return;
+        }
         
         // Note: Settings would need their own table in Supabase
         if (!get().isOnline) {

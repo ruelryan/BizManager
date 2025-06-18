@@ -170,8 +170,8 @@ export function Invoices() {
 
   // Filter invoices
   const filteredInvoices = sales.filter((sale) => {
-    const matchesSearch = sale.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      sale.invoiceNumber?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (sale.customerName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (sale.invoiceNumber || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = filterStatus === 'all' || sale.status === filterStatus;
     return matchesSearch && matchesFilter;
   });
