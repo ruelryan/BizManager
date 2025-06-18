@@ -14,7 +14,8 @@ import {
   Crown,
   Wifi,
   WifiOff,
-  RefreshCw
+  RefreshCw,
+  Receipt
 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { ThemeToggle } from './ThemeToggle';
@@ -24,6 +25,7 @@ const navigation = [
   { name: 'Sales', href: '/sales', icon: ShoppingCart },
   { name: 'Products', href: '/products', icon: Package },
   { name: 'Inventory', href: '/inventory', icon: BarChart3 },
+  { name: 'Expenses', href: '/expenses', icon: Receipt },
   { name: 'Invoices', href: '/invoices', icon: FileText },
   { name: 'Reports', href: '/reports', icon: TrendingUp },
 ];

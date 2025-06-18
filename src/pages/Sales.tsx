@@ -38,13 +38,13 @@ export function Sales() {
     return sale.status;
   };
 
-  const AddSaleForm = () => {
+  const AddSaleForm = ({ sale, onClose }: { sale?: Sale; onClose: () => void }) => {
     const [formData, setFormData] = React.useState({
-      customerName: '',
-      customerEmail: '',
-      items: [{ productId: '', quantity: 1, price: 0 }],
-      paymentType: 'cash' as const,
-      status: 'paid' as const,
+      customerName: sale?.customerName || '',
+      customerEmail: sale?.customerEmail || '',
+      items: sale?.items || [{ productId: '', quantity: 1, price: 0 }],
+      paymentType: sale?.paymentType || 'cash' as const,
+      status: sale?.status || 'paid' as const,
     });
     const [productSearchTerm, setProductSearchTerm] = React.useState('');
 
@@ -56,6 +56,9 @@ export function Sales() {
 
     const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault();
+      
+      // Set default customer name if empty
+      const customerName = formData.customerName.trim() || 'Walk-in Customer';
       
       const saleItems = formData.items
         .filter(item => item.productId)
@@ -90,19 +93,25 @@ export function Sales() {
         ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days from now
         : undefined;
 
-      addSale({
-        customerId: Date.now().toString(),
-        customerName: formData.customerName,
+      const saleData = {
+        customerId: sale?.customerId || Date.now().toString(),
+        customerName,
         customerEmail: formData.customerEmail || undefined,
         items: saleItems,
         total,
         paymentType: formData.paymentType,
         status: formData.status,
-        date: new Date(),
+        date: sale?.date || new Date(),
         dueDate,
-      });
+      };
 
-      setShowAddForm(false);
+      if (sale) {
+        updateSale(sale.id, saleData);
+      } else {
+        addSale(saleData);
+      }
+
+      onClose();
       setFormData({
         customerName: '',
         customerEmail: '',
@@ -139,7 +148,9 @@ export function Sales() {
       <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-700">
           <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Add New Sale</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+              {sale ? 'Edit Sale' : 'Add New Sale'}
+            </h2>
           </div>
           
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
@@ -147,14 +158,14 @@ export function Sales() {
             <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Customer Name *
+                  Customer Name
                 </label>
                 <input
                   type="text"
-                  required
                   value={formData.customerName}
                   onChange={(e) => setFormData(prev => ({ ...prev, customerName: e.target.value }))}
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  placeholder="Walk-in Customer"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
               <div>
@@ -304,11 +315,11 @@ export function Sales() {
                 type="submit"
                 className="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-white font-medium hover:bg-blue-700 transition-colors"
               >
-                Create Sale
+                {sale ? 'Update Sale' : 'Create Sale'}
               </button>
               <button
                 type="button"
-                onClick={() => setShowAddForm(false)}
+                onClick={onClose}
                 className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 px-4 py-2 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
                 Cancel
@@ -343,7 +354,7 @@ export function Sales() {
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Customer:</h3>
-              <p className="text-gray-900 dark:text-white font-medium">{sale.customerName}</p>
+              <p className="text-gray-900 dark:text-white font-medium">{sale.customerName || 'Walk-in Customer'}</p>
               {sale.customerEmail && (
                 <p className="text-gray-600 dark:text-gray-400">{sale.customerEmail}</p>
               )}
@@ -521,7 +532,7 @@ export function Sales() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900 dark:text-white">
-                        {sale.customerName || 'Unknown Customer'}
+                        {sale.customerName || 'Walk-in Customer'}
                       </div>
                       {sale.customerEmail && (
                         <div className="text-sm text-gray-500 dark:text-gray-400">{sale.customerEmail}</div>
@@ -568,7 +579,13 @@ export function Sales() {
       </div>
 
       {/* Modals */}
-      {showAddForm && <AddSaleForm />}
+      {showAddForm && <AddSaleForm onClose={() => setShowAddForm(false)} />}
+      {editingSale && (
+        <AddSaleForm 
+          sale={editingSale} 
+          onClose={() => setEditingSale(null)} 
+        />
+      )}
       {viewingSale && (
         <SaleViewModal 
           sale={viewingSale} 

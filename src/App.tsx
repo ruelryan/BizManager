@@ -5,6 +5,7 @@ import { Dashboard } from './pages/Dashboard';
 import { Sales } from './pages/Sales';
 import { Products } from './pages/Products';
 import { Inventory } from './pages/Inventory';
+import { Expenses } from './pages/Expenses';
 import { Reports } from './pages/Reports';
 import { Invoices } from './pages/Invoices';
 import { Pricing } from './pages/Pricing';
@@ -30,8 +31,9 @@ function App() {
             <Route path="sales" element={<Sales />} />
             <Route path="products" element={<Products />} />
             <Route path="inventory" element={<Inventory />} />
-            <Route path="reports" element={<Reports />} />
+            <Route path="expenses" element={<Expenses />} />
             <Route path="invoices" element={<Invoices />} />
+            <Route path="reports" element={<Reports />} />
           </Route>
         </Routes>
       </Router>

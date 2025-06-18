@@ -13,6 +13,7 @@ export const plans: Plan[] = [
       hasPdfInvoices: false,
       hasGoalTracking: false,
       hasCashFlowReport: false,
+      hasExpenseTracking: false,
     },
   },
   {
@@ -28,6 +29,7 @@ export const plans: Plan[] = [
       hasPdfInvoices: false,
       hasGoalTracking: false,
       hasCashFlowReport: false,
+      hasExpenseTracking: true,
     },
   },
   {
@@ -42,6 +44,7 @@ export const plans: Plan[] = [
       hasPdfInvoices: true,
       hasGoalTracking: true,
       hasCashFlowReport: true,
+      hasExpenseTracking: true,
     },
   },
 ];

@@ -50,6 +50,17 @@ export interface InventoryTransaction {
   date: Date;
 }
 
+export interface Expense {
+  id: string;
+  description: string;
+  amount: number;
+  category: string;
+  date: Date;
+  paymentMethod: 'cash' | 'card' | 'transfer' | 'gcash';
+  receipt?: string;
+  notes?: string;
+}
+
 export interface PlanFeatures {
   maxProducts: number | null;
   maxSalesPerMonth: number | null;
@@ -57,6 +68,7 @@ export interface PlanFeatures {
   hasPdfInvoices: boolean;
   hasGoalTracking: boolean;
   hasCashFlowReport: boolean;
+  hasExpenseTracking: boolean;
 }
 
 export interface Plan {

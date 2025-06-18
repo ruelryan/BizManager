@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import localforage from 'localforage';
-import { User, Product, Sale, InventoryTransaction } from '../types';
+import { User, Product, Sale, InventoryTransaction, Expense } from '../types';
 import { supabase, handleSupabaseError, transformSupabaseData, transformToSupabaseData } from '../lib/supabase';
 
 // Configure localforage
@@ -13,7 +13,7 @@ localforage.config({
 
 interface SyncItem {
   id: string;
-  type: 'product' | 'sale' | 'inventory' | 'settings';
+  type: 'product' | 'sale' | 'inventory' | 'expense' | 'settings';
   action: 'create' | 'update' | 'delete';
   data: any;
   timestamp: number;
@@ -44,6 +44,12 @@ interface Store {
   // Inventory
   inventoryTransactions: InventoryTransaction[];
   addInventoryTransaction: (transaction: Omit<InventoryTransaction, 'id'>) => Promise<void>;
+  
+  // Expenses
+  expenses: Expense[];
+  addExpense: (expense: Omit<Expense, 'id'>) => Promise<void>;
+  updateExpense: (id: string, updates: Partial<Expense>) => Promise<void>;
+  deleteExpense: (id: string) => Promise<void>;
   
   // Settings
   monthlyGoal: number;
@@ -426,6 +432,78 @@ export const useStore = create<Store>()(
         }
       },
       
+      // Expenses
+      expenses: [],
+      addExpense: async (expenseData) => {
+        const newExpense: Expense = {
+          ...expenseData,
+          id: crypto.randomUUID(),
+        };
+        
+        // Update local state immediately
+        set((state) => ({ expenses: [...state.expenses, newExpense] }));
+        
+        // Skip Supabase operations for demo user
+        if (get().user?.id === 'demo-user-id') {
+          return;
+        }
+        
+        // Note: Expenses would need their own table in Supabase
+        if (!get().isOnline) {
+          get().addPendingSyncItem({
+            id: newExpense.id,
+            type: 'expense',
+            action: 'create',
+            data: newExpense,
+            timestamp: Date.now(),
+          });
+        }
+      },
+      
+      updateExpense: async (id, updates) => {
+        // Update local state immediately
+        set((state) => ({
+          expenses: state.expenses.map((expense) => (expense.id === id ? { ...expense, ...updates } : expense)),
+        }));
+        
+        // Skip Supabase operations for demo user or demo data
+        if (get().user?.id === 'demo-user-id' || isDemoId(id)) {
+          return;
+        }
+        
+        if (!get().isOnline) {
+          get().addPendingSyncItem({
+            id: `${id}-${Date.now()}`,
+            type: 'expense',
+            action: 'update',
+            data: { id, updates },
+            timestamp: Date.now(),
+          });
+        }
+      },
+      
+      deleteExpense: async (id) => {
+        // Update local state immediately
+        set((state) => ({
+          expenses: state.expenses.filter((expense) => expense.id !== id),
+        }));
+        
+        // Skip Supabase operations for demo user or demo data
+        if (get().user?.id === 'demo-user-id' || isDemoId(id)) {
+          return;
+        }
+        
+        if (!get().isOnline) {
+          get().addPendingSyncItem({
+            id: `${id}-delete-${Date.now()}`,
+            type: 'expense',
+            action: 'delete',
+            data: { id },
+            timestamp: Date.now(),
+          });
+        }
+      },
+      
       // Settings
       monthlyGoal: 50000,
       setMonthlyGoal: async (goal) => {
@@ -654,6 +732,7 @@ export const useStore = create<Store>()(
           products: [],
           sales: [],
           inventoryTransactions: [],
+          expenses: [],
           pendingSyncItems: [],
           monthlyGoal: 50000,
         });
@@ -860,10 +939,40 @@ export const useStore = create<Store>()(
           
           },
         ];
+
+        const demoExpenses: Expense[] = [
+          {
+            id: 'demo-expense-1',
+            description: 'Office Rent',
+            amount: 15000,
+            category: 'Rent',
+            date: new Date('2024-01-01'),
+            paymentMethod: 'transfer',
+            notes: 'Monthly office rent payment',
+          },
+          {
+            id: 'demo-expense-2',
+            description: 'Electricity Bill',
+            amount: 3500,
+            category: 'Utilities',
+            date: new Date('2024-01-05'),
+            paymentMethod: 'card',
+          },
+          {
+            id: 'demo-expense-3',
+            description: 'Office Supplies',
+            amount: 2500,
+            category: 'Supplies',
+            date: new Date('2024-01-10'),
+            paymentMethod: 'cash',
+            notes: 'Pens, papers, and other office supplies',
+          },
+        ];
         
         set({
           products: demoProducts,
           sales: demoSales,
+          expenses: demoExpenses,
         });
       },
     }),
@@ -875,6 +984,7 @@ export const useStore = create<Store>()(
         products: state.products,
         sales: state.sales,
         inventoryTransactions: state.inventoryTransactions,
+        expenses: state.expenses,
         monthlyGoal: state.monthlyGoal,
         pendingSyncItems: state.pendingSyncItems,
       }),
