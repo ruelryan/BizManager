@@ -39,6 +39,12 @@ export function Products() {
       onClose();
     };
 
+    // Safe calculation for profit margin display
+    const safePrice = isNaN(formData.price) ? 0 : formData.price;
+    const safeCost = isNaN(formData.cost) ? 0 : formData.cost;
+    const profitMargin = safePrice - safeCost;
+    const profitPercentage = safePrice > 0 ? (profitMargin / safePrice * 100) : 0;
+
     return (
       <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg max-w-md w-full border border-gray-200 dark:border-gray-700">
@@ -87,7 +93,10 @@ export function Products() {
                   min="0"
                   step="0.01"
                   value={formData.price}
-                  onChange={(e) => setFormData(prev => ({ ...prev, price: parseFloat(e.target.value) }))}
+                  onChange={(e) => {
+                    const value = parseFloat(e.target.value);
+                    setFormData(prev => ({ ...prev, price: isNaN(value) ? 0 : value }));
+                  }}
                   className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
@@ -101,7 +110,10 @@ export function Products() {
                   min="0"
                   step="0.01"
                   value={formData.cost}
-                  onChange={(e) => setFormData(prev => ({ ...prev, cost: parseFloat(e.target.value) }))}
+                  onChange={(e) => {
+                    const value = parseFloat(e.target.value);
+                    setFormData(prev => ({ ...prev, cost: isNaN(value) ? 0 : value }));
+                  }}
                   className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
@@ -116,7 +128,10 @@ export function Products() {
                   type="number"
                   min="0"
                   value={formData.currentStock}
-                  onChange={(e) => setFormData(prev => ({ ...prev, currentStock: parseInt(e.target.value) }))}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value);
+                    setFormData(prev => ({ ...prev, currentStock: isNaN(value) ? 0 : value }));
+                  }}
                   className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
@@ -128,7 +143,10 @@ export function Products() {
                   type="number"
                   min="0"
                   value={formData.minStock}
-                  onChange={(e) => setFormData(prev => ({ ...prev, minStock: parseInt(e.target.value) }))}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value);
+                    setFormData(prev => ({ ...prev, minStock: isNaN(value) ? 0 : value }));
+                  }}
                   className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
@@ -139,7 +157,7 @@ export function Products() {
               <div className="flex justify-between items-center text-sm">
                 <span className="text-gray-600 dark:text-gray-400">Profit Margin:</span>
                 <span className="font-medium text-gray-900 dark:text-white">
-                  ₱{(formData.price - formData.cost).toFixed(2)} ({((formData.price - formData.cost) / formData.price * 100).toFixed(1)}%)
+                  ₱{profitMargin.toFixed(2)} ({profitPercentage.toFixed(1)}%)
                 </span>
               </div>
             </div>
@@ -235,8 +253,12 @@ export function Products() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {filteredProducts.map((product) => {
           const stockStatus = getStockStatus(product);
-          const profitMargin = product.price - product.cost;
-          const profitPercentage = (profitMargin / product.price) * 100;
+          
+          // Safe calculations to prevent NaN errors
+          const safePrice = typeof product.price === 'number' && !isNaN(product.price) ? product.price : 0;
+          const safeCost = typeof product.cost === 'number' && !isNaN(product.cost) ? product.cost : 0;
+          const profitMargin = safePrice - safeCost;
+          const profitPercentage = safePrice > 0 ? (profitMargin / safePrice) * 100 : 0;
 
           return (
             <div key={product.id} className="rounded-xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
@@ -269,11 +291,11 @@ export function Products() {
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600 dark:text-gray-400">Selling Price:</span>
-                  <span className="font-semibold text-gray-900 dark:text-white">₱{product.price.toLocaleString()}</span>
+                  <span className="font-semibold text-gray-900 dark:text-white">₱{safePrice.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600 dark:text-gray-400">Cost Price:</span>
-                  <span className="text-gray-900 dark:text-gray-300">₱{product.cost.toLocaleString()}</span>
+                  <span className="text-gray-900 dark:text-gray-300">₱{safeCost.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600 dark:text-gray-400">Profit:</span>
@@ -283,7 +305,7 @@ export function Products() {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600 dark:text-gray-400">Current Stock:</span>
-                  <span className="font-medium text-gray-900 dark:text-white">{product.currentStock}</span>
+                  <span className="font-medium text-gray-900 dark:text-white">{product.currentStock || 0}</span>
                 </div>
               </div>
             </div>
