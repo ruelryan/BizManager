@@ -76,6 +76,7 @@ interface Store {
   signIn: (email: string, password: string, plan?: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signInWithFacebook: () => Promise<void>;
+  signUp: (email: string, password: string, name: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -784,7 +785,7 @@ export const useStore = create<Store>()(
               user: {
                 id: data.user.id,
                 email: data.user.email!,
-                name: data.user.user_metadata?.name || 'User',
+                name: data.user.user_metadata?.name || data.user.user_metadata?.full_name || 'User',
                 plan: data.user.user_metadata?.plan || 'free',
               },
               isLoading: false,
@@ -810,7 +811,13 @@ export const useStore = create<Store>()(
             },
           });
           
-          if (error) throw error;
+          if (error) {
+            // Handle specific OAuth errors
+            if (error.message.includes('provider is not enabled')) {
+              throw new Error('Google sign-in is not enabled. Please contact support or use email sign-in.');
+            }
+            throw error;
+          }
           
           // The redirect will handle the rest
         } catch (error: any) {
@@ -830,12 +837,58 @@ export const useStore = create<Store>()(
             },
           });
           
-          if (error) throw error;
+          if (error) {
+            // Handle specific OAuth errors
+            if (error.message.includes('provider is not enabled')) {
+              throw new Error('Facebook sign-in is not enabled. Please contact support or use email sign-in.');
+            }
+            throw error;
+          }
           
           // The redirect will handle the rest
         } catch (error: any) {
           set({ isLoading: false });
           throw new Error(error.message || 'Failed to sign in with Facebook');
+        }
+      },
+
+      signUp: async (email: string, password: string, name: string) => {
+        set({ isLoading: true });
+        
+        try {
+          const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              data: {
+                name: name,
+                plan: 'free',
+              },
+            },
+          });
+          
+          if (error) throw error;
+          
+          if (data.user) {
+            // Check if email confirmation is required
+            if (!data.session) {
+              set({ isLoading: false });
+              throw new Error('Please check your email to confirm your account.');
+            }
+            
+            set({
+              user: {
+                id: data.user.id,
+                email: data.user.email!,
+                name: name,
+                plan: 'free',
+              },
+              isLoading: false,
+            });
+          }
+        } catch (error: any) {
+          set({ isLoading: false });
+          throw new Error(error.message || 'Failed to create account');
         }
       },
       
