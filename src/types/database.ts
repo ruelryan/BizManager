@@ -60,6 +60,7 @@ export interface Database {
           payments: any;
           customer_id: string | null;
           customer_name: string | null;
+          customer_email: string | null;
           cashier_id: string;
           cashier_name: string;
           status: string;
@@ -78,6 +79,7 @@ export interface Database {
           payments: any;
           customer_id?: string | null;
           customer_name?: string | null;
+          customer_email?: string | null;
           cashier_id: string;
           cashier_name: string;
           status: string;
@@ -96,6 +98,7 @@ export interface Database {
           payments?: any;
           customer_id?: string | null;
           customer_name?: string | null;
+          customer_email?: string | null;
           cashier_id?: string;
           cashier_name?: string;
           status?: string;
