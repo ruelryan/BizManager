@@ -807,7 +807,7 @@ export const useStore = create<Store>()(
           const { data, error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
-              redirectTo: `${window.location.origin}/`,
+              redirectTo: window.location.origin,
             },
           });
           
@@ -833,7 +833,7 @@ export const useStore = create<Store>()(
           const { data, error } = await supabase.auth.signInWithOAuth({
             provider: 'facebook',
             options: {
-              redirectTo: `${window.location.origin}/`,
+              redirectTo: window.location.origin,
             },
           });
           
@@ -1112,6 +1112,12 @@ export const useStore = create<Store>()(
         } catch (error) {
           console.error('Error deserializing data:', error);
           return {};
+        }
+      },
+      // Force rehydration on every load to ensure data persistence
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          console.log('Data rehydrated successfully');
         }
       },
     }

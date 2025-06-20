@@ -324,7 +324,12 @@ export function Login() {
           <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
             <h3 className="text-sm font-medium text-yellow-900 dark:text-yellow-300 mb-2">OAuth Setup Required</h3>
             <div className="text-sm text-yellow-700 dark:text-yellow-400">
-              <p>To enable Google and Facebook sign-in, configure OAuth providers in your Supabase project settings.</p>
+              <p>To enable Google and Facebook sign-in:</p>
+              <ol className="list-decimal list-inside mt-2 space-y-1">
+                <li>Configure OAuth providers in your Supabase project settings</li>
+                <li>Add your domain to the allowed redirect URLs</li>
+                <li>For Facebook: Add a privacy policy URL in your Facebook app settings</li>
+              </ol>
             </div>
           </div>
         </div>
