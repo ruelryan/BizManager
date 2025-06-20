@@ -168,7 +168,7 @@ export const useStore = create<Store>()(
             
             if (error) throw error;
           } else {
-            // Add to pending sync
+            // Add to pending sync only when offline
             get().addPendingSyncItem({
               id: `user-profile-${Date.now()}`,
               type: 'settings',
@@ -382,6 +382,7 @@ export const useStore = create<Store>()(
               .insert(transformToSupabaseData.sale(newSale));
             
             if (error) throw error;
+            console.log('Sale successfully saved to database');
           } else {
             // Add to pending sync only when offline
             get().addPendingSyncItem({
@@ -704,6 +705,8 @@ export const useStore = create<Store>()(
             sales: transformedSales,
             isLoading: false,
           });
+          
+          console.log('Initial data fetched successfully');
           
         } catch (error) {
           console.error('Failed to fetch initial data:', error);
