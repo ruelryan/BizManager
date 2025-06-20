@@ -50,6 +50,7 @@ interface Store {
   addExpense: (expense: Omit<Expense, 'id'>) => Promise<void>;
   updateExpense: (id: string, updates: Partial<Expense>) => Promise<void>;
   deleteExpense: (id: string) => Promise<void>;
+  getExpenseCategories: () => string[];
   
   // Settings
   monthlyGoal: number;
@@ -73,6 +74,8 @@ interface Store {
   
   // Auth
   signIn: (email: string, password: string, plan?: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
+  signInWithFacebook: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -503,6 +506,11 @@ export const useStore = create<Store>()(
           });
         }
       },
+
+      getExpenseCategories: () => {
+        const categories = get().expenses.map(expense => expense.category);
+        return [...new Set(categories)].filter(Boolean).sort();
+      },
       
       // Settings
       monthlyGoal: 50000,
@@ -790,6 +798,46 @@ export const useStore = create<Store>()(
           throw new Error(error.message || 'Failed to sign in');
         }
       },
+
+      signInWithGoogle: async () => {
+        set({ isLoading: true });
+        
+        try {
+          const { data, error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+              redirectTo: `${window.location.origin}/`,
+            },
+          });
+          
+          if (error) throw error;
+          
+          // The redirect will handle the rest
+        } catch (error: any) {
+          set({ isLoading: false });
+          throw new Error(error.message || 'Failed to sign in with Google');
+        }
+      },
+
+      signInWithFacebook: async () => {
+        set({ isLoading: true });
+        
+        try {
+          const { data, error } = await supabase.auth.signInWithOAuth({
+            provider: 'facebook',
+            options: {
+              redirectTo: `${window.location.origin}/`,
+            },
+          });
+          
+          if (error) throw error;
+          
+          // The redirect will handle the rest
+        } catch (error: any) {
+          set({ isLoading: false });
+          throw new Error(error.message || 'Failed to sign in with Facebook');
+        }
+      },
       
       signOut: async () => {
         const { user } = get();
@@ -967,6 +1015,23 @@ export const useStore = create<Store>()(
             paymentMethod: 'cash',
             notes: 'Pens, papers, and other office supplies',
           },
+          {
+            id: 'demo-expense-4',
+            description: 'Marketing Campaign',
+            amount: 8000,
+            category: 'Marketing',
+            date: new Date('2024-01-12'),
+            paymentMethod: 'card',
+            notes: 'Social media advertising',
+          },
+          {
+            id: 'demo-expense-5',
+            description: 'Internet Bill',
+            amount: 2000,
+            category: 'Utilities',
+            date: new Date('2024-01-15'),
+            paymentMethod: 'transfer',
+          },
         ];
         
         set({
@@ -1008,7 +1073,7 @@ supabase.auth.onAuthStateChange((event, session) => {
     store.setUser({
       id: session.user.id,
       email: session.user.email!,
-      name: session.user.user_metadata?.name || 'User',
+      name: session.user.user_metadata?.name || session.user.user_metadata?.full_name || 'User',
       plan: session.user.user_metadata?.plan || 'free',
     });
     

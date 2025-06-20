@@ -27,7 +27,7 @@ import { useStore } from '../store/useStore';
 import { FeatureGate } from '../components/FeatureGate';
 
 export function Reports() {
-  const { sales, products, exportReportData } = useStore();
+  const { sales, products, expenses, exportReportData } = useStore();
   const [selectedMonth, setSelectedMonth] = React.useState(new Date());
 
   // Export function
@@ -61,20 +61,30 @@ export function Reports() {
       sale.date >= monthStart && sale.date <= monthEnd && (sale.status === 'paid' || sale.status === 'completed')
     );
     
+    const monthExpenses = expenses.filter(expense =>
+      expense.date >= monthStart && expense.date <= monthEnd
+    );
+    
     const totalRevenue = monthSales.reduce((sum, sale) => sum + (sale.total || 0), 0);
-    const totalCost = monthSales.reduce((sum, sale) => 
+    const totalCostOfSales = monthSales.reduce((sum, sale) => 
       sum + sale.items.reduce((itemSum, item) => {
         const product = products.find(p => p.id === item.productId);
         return itemSum + ((product?.cost || 0) * item.quantity);
       }, 0), 0
     );
     
+    const totalExpenses = monthExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+    const totalCashOutflow = totalCostOfSales + totalExpenses;
+    
     return {
       totalRevenue,
-      totalCost,
-      netIncome: totalRevenue - totalCost,
+      totalCostOfSales,
+      totalExpenses,
+      totalCashOutflow,
+      netIncome: totalRevenue - totalCashOutflow,
       salesCount: monthSales.length,
       sales: monthSales,
+      expenses: monthExpenses,
     };
   };
 
@@ -443,14 +453,14 @@ export function Reports() {
           )}
         </div>
 
-        {/* Cash Flow Report (Pro Feature) */}
+        {/* Enhanced Cash Flow Report (Pro Feature) */}
         <FeatureGate feature="hasCashFlowReport">
           <div className="rounded-xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-200 dark:border-gray-700">
             <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
               Cash Flow Analysis - {format(selectedMonth, 'MMMM yyyy')}
             </h2>
             
-            <div className="grid gap-6 md:grid-cols-3">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
               <div className="text-center p-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
                 <div className="text-3xl font-bold text-green-600 dark:text-green-400">
                   ₱{currentMonthData.totalRevenue.toLocaleString()}
@@ -458,11 +468,18 @@ export function Reports() {
                 <div className="text-sm text-green-700 dark:text-green-300 font-medium">Cash Inflow (Revenue)</div>
               </div>
               
+              <div className="text-center p-4 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800">
+                <div className="text-3xl font-bold text-orange-600 dark:text-orange-400">
+                  ₱{currentMonthData.totalCostOfSales.toLocaleString()}
+                </div>
+                <div className="text-sm text-orange-700 dark:text-orange-300 font-medium">Cost of Sales</div>
+              </div>
+              
               <div className="text-center p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
                 <div className="text-3xl font-bold text-red-600 dark:text-red-400">
-                  ₱{currentMonthData.totalCost.toLocaleString()}
+                  ₱{currentMonthData.totalExpenses.toLocaleString()}
                 </div>
-                <div className="text-sm text-red-700 dark:text-red-300 font-medium">Cash Outflow (Costs)</div>
+                <div className="text-sm text-red-700 dark:text-red-300 font-medium">Operating Expenses</div>
               </div>
               
               <div className={`text-center p-4 rounded-lg border ${
@@ -483,6 +500,37 @@ export function Reports() {
                     : 'text-red-700 dark:text-red-300'
                 }`}>
                   Net Cash Flow
+                </div>
+              </div>
+            </div>
+
+            {/* Cash Flow Breakdown */}
+            <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3">Cash Flow Breakdown</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600 dark:text-gray-400">Total Revenue:</span>
+                  <span className="font-medium text-green-600 dark:text-green-400">+₱{currentMonthData.totalRevenue.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600 dark:text-gray-400">Cost of Sales:</span>
+                  <span className="font-medium text-orange-600 dark:text-orange-400">-₱{currentMonthData.totalCostOfSales.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600 dark:text-gray-400">Operating Expenses:</span>
+                  <span className="font-medium text-red-600 dark:text-red-400">-₱{currentMonthData.totalExpenses.toLocaleString()}</span>
+                </div>
+                <div className="border-t border-gray-300 dark:border-gray-600 pt-2 mt-2">
+                  <div className="flex justify-between">
+                    <span className="font-medium text-gray-900 dark:text-white">Net Cash Flow:</span>
+                    <span className={`font-bold ${
+                      currentMonthData.netIncome >= 0 
+                        ? 'text-blue-600 dark:text-blue-400' 
+                        : 'text-red-600 dark:text-red-400'
+                    }`}>
+                      {currentMonthData.netIncome >= 0 ? '+' : ''}₱{currentMonthData.netIncome.toLocaleString()}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
