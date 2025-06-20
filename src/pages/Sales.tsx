@@ -1,6 +1,6 @@
 import React from 'react';
 import { format } from 'date-fns';
-import { Plus, Search, Filter, Eye, Edit, Trash2 } from 'lucide-react';
+import { Plus, Filter, Eye, Edit, Trash2, ChevronDown, X } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { Sale } from '../types';
 
@@ -9,15 +9,12 @@ export function Sales() {
   const [showAddForm, setShowAddForm] = React.useState(false);
   const [editingSale, setEditingSale] = React.useState<Sale | null>(null);
   const [viewingSale, setViewingSale] = React.useState<Sale | null>(null);
-  const [searchTerm, setSearchTerm] = React.useState('');
   const [filterStatus, setFilterStatus] = React.useState<'all' | 'paid' | 'pending' | 'overdue'>('all');
 
   // Filter sales
   const filteredSales = sales.filter((sale) => {
-    const matchesSearch = (sale.customerName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      sale.invoiceNumber?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = filterStatus === 'all' || sale.status === filterStatus;
-    return matchesSearch && matchesFilter;
+    return matchesFilter;
   });
 
   const getStatusColor = (status: Sale['status']) => {
@@ -38,6 +35,128 @@ export function Sales() {
     return sale.status;
   };
 
+  const SearchableProductSelect = ({ 
+    value, 
+    onChange, 
+    onPriceChange,
+    placeholder = "Search and select product...",
+    required = false 
+  }: {
+    value: string;
+    onChange: (productId: string) => void;
+    onPriceChange?: (price: number) => void;
+    placeholder?: string;
+    required?: boolean;
+  }) => {
+    const [isOpen, setIsOpen] = React.useState(false);
+    const [searchTerm, setSearchTerm] = React.useState('');
+    const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+    // Filter products based on search term
+    const filteredProducts = products.filter(product =>
+      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.category.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const selectedProduct = products.find(p => p.id === value);
+
+    // Close dropdown when clicking outside
+    React.useEffect(() => {
+      const handleClickOutside = (event: MouseEvent) => {
+        if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+          setIsOpen(false);
+        }
+      };
+
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const handleSelect = (product: any) => {
+      onChange(product.id);
+      if (onPriceChange) {
+        onPriceChange(product.price);
+      }
+      setIsOpen(false);
+      setSearchTerm('');
+    };
+
+    const handleClear = () => {
+      onChange('');
+      if (onPriceChange) {
+        onPriceChange(0);
+      }
+      setSearchTerm('');
+    };
+
+    return (
+      <div className="relative" ref={dropdownRef}>
+        <div className="relative">
+          <input
+            type="text"
+            value={isOpen ? searchTerm : (selectedProduct?.name || '')}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onFocus={() => setIsOpen(true)}
+            placeholder={placeholder}
+            required={required}
+            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 pr-20 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+          <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center space-x-1">
+            {selectedProduct && (
+              <button
+                type="button"
+                onClick={handleClear}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setIsOpen(!isOpen)}
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            >
+              <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            </button>
+          </div>
+        </div>
+
+        {isOpen && (
+          <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+            {filteredProducts.length > 0 ? (
+              filteredProducts.map((product) => (
+                <button
+                  key={product.id}
+                  type="button"
+                  onClick={() => handleSelect(product)}
+                  className="w-full text-left px-3 py-3 hover:bg-gray-100 dark:hover:bg-gray-600 border-b border-gray-100 dark:border-gray-600 last:border-b-0"
+                >
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="font-medium text-gray-900 dark:text-white text-sm">
+                        {product.name}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        {product.category} • Stock: {product.currentStock}
+                      </div>
+                    </div>
+                    <div className="text-sm font-medium text-gray-900 dark:text-white ml-2">
+                      ₱{product.price.toLocaleString()}
+                    </div>
+                  </div>
+                </button>
+              ))
+            ) : (
+              <div className="px-3 py-3 text-sm text-gray-500 dark:text-gray-400 text-center">
+                {searchTerm ? 'No products found' : 'No products available'}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const AddSaleForm = ({ sale, onClose }: { sale?: Sale; onClose: () => void }) => {
     const [formData, setFormData] = React.useState({
       customerName: sale?.customerName || '',
@@ -46,13 +165,6 @@ export function Sales() {
       paymentType: sale?.paymentType || 'cash' as const,
       status: sale?.status || 'paid' as const,
     });
-    const [productSearchTerm, setProductSearchTerm] = React.useState('');
-
-    // Filter products for search
-    const filteredProducts = products.filter(product =>
-      product.name.toLowerCase().includes(productSearchTerm.toLowerCase()) ||
-      product.category.toLowerCase().includes(productSearchTerm.toLowerCase())
-    );
 
     const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault();
@@ -193,41 +305,18 @@ export function Sales() {
                   + Add Item
                 </button>
               </div>
-
-              {/* Product Search */}
-              <div className="mb-3">
-                <input
-                  type="text"
-                  placeholder="Search products..."
-                  value={productSearchTerm}
-                  onChange={(e) => setProductSearchTerm(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                />
-              </div>
               
               <div className="space-y-3">
                 {formData.items.map((item, index) => (
                   <div key={index} className="grid gap-3 md:grid-cols-4 items-end">
                     <div>
-                      <select
+                      <SearchableProductSelect
                         value={item.productId}
-                        onChange={(e) => {
-                          const product = products.find(p => p.id === e.target.value);
-                          updateItem(index, 'productId', e.target.value);
-                          if (product) {
-                            updateItem(index, 'price', product.price);
-                          }
-                        }}
-                        className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        onChange={(productId) => updateItem(index, 'productId', productId)}
+                        onPriceChange={(price) => updateItem(index, 'price', price)}
+                        placeholder="Search products..."
                         required
-                      >
-                        <option value="">Select Product</option>
-                        {filteredProducts.map((product) => (
-                          <option key={product.id} value={product.id}>
-                            {product.name} (Stock: {product.currentStock})
-                          </option>
-                        ))}
-                      </select>
+                      />
                     </div>
                     <div>
                       <input
@@ -462,32 +551,19 @@ export function Sales() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
-          <input
-            type="text"
-            placeholder="Search customers or invoices..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full sm:w-80 rounded-lg border border-gray-300 dark:border-gray-600 pl-10 pr-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
-        </div>
-        
-        <div className="flex items-center space-x-3">
-          <div className="flex items-center space-x-2">
-            <Filter className="h-4 w-4 text-gray-400 dark:text-gray-500" />
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value as any)}
-              className="rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="all">All Status</option>
-              <option value="paid">Paid</option>
-              <option value="pending">Pending</option>
-              <option value="overdue">Overdue</option>
-            </select>
-          </div>
+      <div className="flex items-center justify-end">
+        <div className="flex items-center space-x-2">
+          <Filter className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value as any)}
+            className="rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          >
+            <option value="all">All Status</option>
+            <option value="paid">Paid</option>
+            <option value="pending">Pending</option>
+            <option value="overdue">Overdue</option>
+          </select>
         </div>
       </div>
 
