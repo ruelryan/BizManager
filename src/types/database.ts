@@ -14,6 +14,7 @@ export interface Database {
           min_stock: number;
           unit: string;
           is_active: boolean;
+          user_id: string;
           created_at: string;
           updated_at: string;
         };
@@ -29,6 +30,7 @@ export interface Database {
           min_stock?: number;
           unit: string;
           is_active?: boolean;
+          user_id: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -44,6 +46,7 @@ export interface Database {
           min_stock?: number;
           unit?: string;
           is_active?: boolean;
+          user_id?: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -64,6 +67,7 @@ export interface Database {
           cashier_id: string;
           cashier_name: string;
           status: string;
+          user_id: string;
           created_at: string;
           notes: string | null;
           installment_id: string | null;
@@ -83,6 +87,7 @@ export interface Database {
           cashier_id: string;
           cashier_name: string;
           status: string;
+          user_id: string;
           created_at?: string;
           notes?: string | null;
           installment_id?: string | null;
@@ -102,6 +107,7 @@ export interface Database {
           cashier_id?: string;
           cashier_name?: string;
           status?: string;
+          user_id?: string;
           created_at?: string;
           notes?: string | null;
           installment_id?: string | null;
@@ -117,6 +123,7 @@ export interface Database {
           balance: number;
           credit_limit: number;
           is_active: boolean;
+          user_id: string;
           created_at: string;
         };
         Insert: {
@@ -128,6 +135,7 @@ export interface Database {
           balance?: number;
           credit_limit?: number;
           is_active?: boolean;
+          user_id: string;
           created_at?: string;
         };
         Update: {
@@ -139,7 +147,43 @@ export interface Database {
           balance?: number;
           credit_limit?: number;
           is_active?: boolean;
+          user_id?: string;
           created_at?: string;
+        };
+      };
+      user_settings: {
+        Row: {
+          id: string;
+          user_id: string;
+          monthly_goal: number;
+          business_name: string | null;
+          business_address: string | null;
+          business_phone: string | null;
+          business_email: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          monthly_goal?: number;
+          business_name?: string | null;
+          business_address?: string | null;
+          business_phone?: string | null;
+          business_email?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          monthly_goal?: number;
+          business_name?: string | null;
+          business_address?: string | null;
+          business_phone?: string | null;
+          business_email?: string | null;
+          created_at?: string;
+          updated_at?: string;
         };
       };
     };

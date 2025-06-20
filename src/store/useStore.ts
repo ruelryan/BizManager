@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import localforage from 'localforage';
 import { User, Product, Sale, InventoryTransaction, Expense } from '../types';
-import { supabase, handleSupabaseError, transformSupabaseData, transformToSupabaseData } from '../lib/supabase';
+import { supabase, handleSupabaseError, transformSupabaseData, transformToSupabaseData, getCurrentUserId } from '../lib/supabase';
 
 // Configure localforage
 localforage.config({
@@ -214,11 +214,13 @@ export const useStore = create<Store>()(
         
         try {
           if (get().isOnline) {
+            const userId = await getCurrentUserId();
             const { error } = await supabase
               .from('products')
-              .insert(transformToSupabaseData.product(newProduct));
+              .insert(transformToSupabaseData.product(newProduct, userId));
             
             if (error) throw error;
+            console.log('Product successfully saved to database');
           } else {
             // Add to pending sync only when offline
             get().addPendingSyncItem({
@@ -259,9 +261,10 @@ export const useStore = create<Store>()(
         
         try {
           if (get().isOnline) {
+            const userId = await getCurrentUserId();
             const { error } = await supabase
               .from('products')
-              .update(transformToSupabaseData.product(updatedProduct))
+              .update(transformToSupabaseData.product(updatedProduct, userId))
               .eq('id', id);
             
             if (error) throw error;
@@ -377,9 +380,10 @@ export const useStore = create<Store>()(
         
         try {
           if (get().isOnline) {
+            const userId = await getCurrentUserId();
             const { error } = await supabase
               .from('sales')
-              .insert(transformToSupabaseData.sale(newSale));
+              .insert(transformToSupabaseData.sale(newSale, userId));
             
             if (error) throw error;
             console.log('Sale successfully saved to database');
@@ -419,9 +423,10 @@ export const useStore = create<Store>()(
         
         try {
           if (get().isOnline) {
+            const userId = await getCurrentUserId();
             const { error } = await supabase
               .from('sales')
-              .update(transformToSupabaseData.sale(updates))
+              .update(transformToSupabaseData.sale(updates, userId))
               .eq('id', id);
             
             if (error) throw error;
@@ -633,8 +638,25 @@ export const useStore = create<Store>()(
           return;
         }
         
-        // Note: Settings would need their own table in Supabase
-        if (!get().isOnline) {
+        try {
+          if (get().isOnline) {
+            const userId = await getCurrentUserId();
+            const { error } = await supabase
+              .from('user_settings')
+              .upsert(transformToSupabaseData.userSettings({ monthlyGoal: goal }, userId));
+            
+            if (error) throw error;
+          } else {
+            get().addPendingSyncItem({
+              id: `goal-${Date.now()}`,
+              type: 'settings',
+              action: 'update',
+              data: { monthlyGoal: goal },
+              timestamp: Date.now(),
+            });
+          }
+        } catch (error) {
+          console.error('Failed to update monthly goal:', error);
           get().addPendingSyncItem({
             id: `goal-${Date.now()}`,
             type: 'settings',
@@ -679,30 +701,49 @@ export const useStore = create<Store>()(
         set({ isLoading: true });
         
         try {
-          // Fetch products
+          const userId = await getCurrentUserId();
+          if (!userId) {
+            set({ isLoading: false });
+            return;
+          }
+
+          // Fetch user's products
           const { data: productsData, error: productsError } = await supabase
             .from('products')
             .select('*')
+            .eq('user_id', userId)
             .eq('is_active', true)
             .order('created_at', { ascending: false });
           
           if (productsError) throw productsError;
           
-          // Fetch sales
+          // Fetch user's sales
           const { data: salesData, error: salesError } = await supabase
             .from('sales')
             .select('*')
+            .eq('user_id', userId)
             .order('created_at', { ascending: false });
           
           if (salesError) throw salesError;
+
+          // Fetch user settings
+          const { data: settingsData, error: settingsError } = await supabase
+            .from('user_settings')
+            .select('*')
+            .eq('user_id', userId)
+            .single();
+          
+          // Don't throw error if settings don't exist, we'll create them
           
           // Transform and set data
           const transformedProducts = productsData?.map(transformSupabaseData.product) || [];
           const transformedSales = salesData?.map(transformSupabaseData.sale) || [];
+          const monthlyGoal = settingsData ? Number(settingsData.monthly_goal) : 50000;
           
           set({
             products: transformedProducts,
             sales: transformedSales,
+            monthlyGoal,
             isLoading: false,
           });
           
@@ -781,24 +822,29 @@ export const useStore = create<Store>()(
       },
       
       syncItem: async (item: SyncItem) => {
+        const userId = await getCurrentUserId();
+        if (!userId) return;
+
         switch (item.type) {
           case 'product':
             if (item.action === 'create') {
               const { error } = await supabase
                 .from('products')
-                .insert(transformToSupabaseData.product(item.data));
+                .insert(transformToSupabaseData.product(item.data, userId));
               if (error) throw error;
             } else if (item.action === 'update') {
               const { error } = await supabase
                 .from('products')
-                .update(transformToSupabaseData.product(item.data.updates))
-                .eq('id', item.data.id);
+                .update(transformToSupabaseData.product(item.data.updates, userId))
+                .eq('id', item.data.id)
+                .eq('user_id', userId);
               if (error) throw error;
             } else if (item.action === 'delete') {
               const { error } = await supabase
                 .from('products')
                 .delete()
-                .eq('id', item.data.id);
+                .eq('id', item.data.id)
+                .eq('user_id', userId);
               if (error) throw error;
             }
             break;
@@ -807,29 +853,39 @@ export const useStore = create<Store>()(
             if (item.action === 'create') {
               const { error } = await supabase
                 .from('sales')
-                .insert(transformToSupabaseData.sale(item.data));
+                .insert(transformToSupabaseData.sale(item.data, userId));
               if (error) throw error;
             } else if (item.action === 'update') {
               const { error } = await supabase
                 .from('sales')
-                .update(transformToSupabaseData.sale(item.data.updates))
-                .eq('id', item.data.id);
+                .update(transformToSupabaseData.sale(item.data.updates, userId))
+                .eq('id', item.data.id)
+                .eq('user_id', userId);
               if (error) throw error;
             } else if (item.action === 'delete') {
               const { error } = await supabase
                 .from('sales')
                 .delete()
-                .eq('id', item.data.id);
+                .eq('id', item.data.id)
+                .eq('user_id', userId);
               if (error) throw error;
             }
             break;
             
           case 'settings':
-            if (item.action === 'update' && item.data.userProfile) {
-              const { error } = await supabase.auth.updateUser({
-                data: item.data.userProfile
-              });
-              if (error) throw error;
+            if (item.action === 'update') {
+              if (item.data.userProfile) {
+                const { error } = await supabase.auth.updateUser({
+                  data: item.data.userProfile
+                });
+                if (error) throw error;
+              }
+              if (item.data.monthlyGoal !== undefined) {
+                const { error } = await supabase
+                  .from('user_settings')
+                  .upsert(transformToSupabaseData.userSettings(item.data, userId));
+                if (error) throw error;
+              }
             }
             break;
             

@@ -40,6 +40,12 @@ export const handleSupabaseError = (error: any) => {
   throw new Error('An unexpected error occurred');
 };
 
+// Helper function to get current user ID
+export const getCurrentUserId = async () => {
+  const { data: { user } } = await supabase.auth.getUser();
+  return user?.id;
+};
+
 // Helper function to transform Supabase data to app format
 export const transformSupabaseData = {
   product: (data: any) => ({
@@ -66,12 +72,19 @@ export const transformSupabaseData = {
   customer: (data: any) => ({
     ...data,
     createdAt: new Date(data.created_at)
+  }),
+
+  userSettings: (data: any) => ({
+    ...data,
+    monthlyGoal: Number(data.monthly_goal) || 50000,
+    createdAt: new Date(data.created_at),
+    updatedAt: new Date(data.updated_at)
   })
 };
 
 // Helper function to transform app data to Supabase format
 export const transformToSupabaseData = {
-  product: (data: any) => ({
+  product: (data: any, userId?: string) => ({
     name: data.name,
     description: data.description || null,
     category: data.category,
@@ -80,10 +93,11 @@ export const transformToSupabaseData = {
     stock: data.currentStock,
     min_stock: data.minStock,
     unit: data.unit || 'pcs',
-    is_active: true
+    is_active: true,
+    user_id: userId
   }),
   
-  sale: (data: any) => ({
+  sale: (data: any, userId?: string) => ({
     receipt_number: data.invoiceNumber,
     items: data.items,
     subtotal: data.total,
@@ -97,19 +111,30 @@ export const transformToSupabaseData = {
     customer_id: data.customerId ? parseInt(data.customerId) : null,
     customer_name: data.customerName,
     customer_email: data.customerEmail || null,
-    cashier_id: 'demo-user',
-    cashier_name: 'Demo User',
+    cashier_id: userId || 'unknown',
+    cashier_name: 'User',
     status: data.status,
-    notes: null
+    notes: null,
+    user_id: userId
   }),
   
-  customer: (data: any) => ({
+  customer: (data: any, userId?: string) => ({
     name: data.name,
     phone: data.phone || null,
     email: data.email || null,
     address: data.address || null,
     balance: data.balance || 0,
     credit_limit: data.creditLimit || 0,
-    is_active: true
+    is_active: true,
+    user_id: userId
+  }),
+
+  userSettings: (data: any, userId?: string) => ({
+    monthly_goal: data.monthlyGoal,
+    business_name: data.businessName || null,
+    business_address: data.businessAddress || null,
+    business_phone: data.businessPhone || null,
+    business_email: data.businessEmail || null,
+    user_id: userId
   })
 };
