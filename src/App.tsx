@@ -8,6 +8,7 @@ import { Inventory } from './pages/Inventory';
 import { Expenses } from './pages/Expenses';
 import { Reports } from './pages/Reports';
 import { Invoices } from './pages/Invoices';
+import { Profile } from './pages/Profile';
 import { Pricing } from './pages/Pricing';
 import { Upgrade } from './pages/Upgrade';
 import { Login } from './pages/Login';
@@ -34,6 +35,7 @@ function App() {
             <Route path="expenses" element={<Expenses />} />
             <Route path="invoices" element={<Invoices />} />
             <Route path="reports" element={<Reports />} />
+            <Route path="profile" element={<Profile />} />
           </Route>
         </Routes>
       </Router>

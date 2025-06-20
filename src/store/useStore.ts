@@ -24,6 +24,7 @@ interface Store {
   // User state
   user: User | null;
   setUser: (user: User | null) => void;
+  updateUserProfile: (updates: Partial<User>) => Promise<void>;
   
   // Loading states
   isLoading: boolean;
@@ -91,6 +92,11 @@ const isDemoId = (id: string): boolean => {
   return id.startsWith('demo-');
 };
 
+// Check if user is demo user
+const isDemoUser = (user: User | null): boolean => {
+  return user?.id === 'demo-user-id' || user?.email === 'demo@businessmanager.com';
+};
+
 // Date reviver function to convert ISO strings back to Date objects
 const dateReviver = (key: string, value: any) => {
   if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value)) {
@@ -137,6 +143,52 @@ export const useStore = create<Store>()(
       user: null,
       setUser: (user) => set({ user }),
       
+      updateUserProfile: async (updates) => {
+        const currentUser = get().user;
+        if (!currentUser) return;
+
+        // Update local state immediately
+        const updatedUser = { ...currentUser, ...updates };
+        set({ user: updatedUser });
+
+        // Skip Supabase operations for demo user
+        if (isDemoUser(currentUser)) {
+          return;
+        }
+
+        try {
+          if (get().isOnline) {
+            const { error } = await supabase.auth.updateUser({
+              data: {
+                name: updatedUser.name,
+                plan: updatedUser.plan,
+              }
+            });
+            
+            if (error) throw error;
+          } else {
+            // Add to pending sync
+            get().addPendingSyncItem({
+              id: `user-profile-${Date.now()}`,
+              type: 'settings',
+              action: 'update',
+              data: { userProfile: updates },
+              timestamp: Date.now(),
+            });
+          }
+        } catch (error) {
+          console.error('Failed to update user profile:', error);
+          // Add to pending sync for retry
+          get().addPendingSyncItem({
+            id: `user-profile-${Date.now()}`,
+            type: 'settings',
+            action: 'update',
+            data: { userProfile: updates },
+            timestamp: Date.now(),
+          });
+        }
+      },
+      
       // Loading states
       isLoading: false,
       setLoading: (loading) => set({ isLoading: loading }),
@@ -155,7 +207,7 @@ export const useStore = create<Store>()(
         set((state) => ({ products: [...state.products, newProduct] }));
         
         // Skip Supabase operations for demo user
-        if (get().user?.id === 'demo-user-id') {
+        if (isDemoUser(get().user)) {
           return;
         }
         
@@ -200,7 +252,7 @@ export const useStore = create<Store>()(
         }));
         
         // Skip Supabase operations for demo user or demo data
-        if (get().user?.id === 'demo-user-id' || isDemoId(id)) {
+        if (isDemoUser(get().user) || isDemoId(id)) {
           return;
         }
         
@@ -242,7 +294,7 @@ export const useStore = create<Store>()(
         }));
         
         // Skip Supabase operations for demo user or demo data
-        if (get().user?.id === 'demo-user-id' || isDemoId(id)) {
+        if (isDemoUser(get().user) || isDemoId(id)) {
           return;
         }
         
@@ -318,7 +370,7 @@ export const useStore = create<Store>()(
         });
         
         // Skip Supabase operations for demo user
-        if (get().user?.id === 'demo-user-id') {
+        if (isDemoUser(get().user)) {
           return;
         }
         
@@ -359,7 +411,7 @@ export const useStore = create<Store>()(
         }));
         
         // Skip Supabase operations for demo user or demo data
-        if (get().user?.id === 'demo-user-id' || isDemoId(id)) {
+        if (isDemoUser(get().user) || isDemoId(id)) {
           return;
         }
         
@@ -419,7 +471,7 @@ export const useStore = create<Store>()(
         }
         
         // Skip Supabase operations for demo user
-        if (get().user?.id === 'demo-user-id') {
+        if (isDemoUser(get().user)) {
           return;
         }
         
@@ -448,7 +500,7 @@ export const useStore = create<Store>()(
         set((state) => ({ expenses: [...state.expenses, newExpense] }));
         
         // Skip Supabase operations for demo user
-        if (get().user?.id === 'demo-user-id') {
+        if (isDemoUser(get().user)) {
           return;
         }
         
@@ -471,7 +523,7 @@ export const useStore = create<Store>()(
         }));
         
         // Skip Supabase operations for demo user or demo data
-        if (get().user?.id === 'demo-user-id' || isDemoId(id)) {
+        if (isDemoUser(get().user) || isDemoId(id)) {
           return;
         }
         
@@ -493,7 +545,7 @@ export const useStore = create<Store>()(
         }));
         
         // Skip Supabase operations for demo user or demo data
-        if (get().user?.id === 'demo-user-id' || isDemoId(id)) {
+        if (isDemoUser(get().user) || isDemoId(id)) {
           return;
         }
         
@@ -519,7 +571,7 @@ export const useStore = create<Store>()(
         set({ monthlyGoal: goal });
         
         // Skip Supabase operations for demo user
-        if (get().user?.id === 'demo-user-id') {
+        if (isDemoUser(get().user)) {
           return;
         }
         
@@ -547,6 +599,11 @@ export const useStore = create<Store>()(
       },
       pendingSyncItems: [],
       addPendingSyncItem: (item) => {
+        // Don't add to pending sync if user is demo user
+        if (isDemoUser(get().user)) {
+          return;
+        }
+        
         set((state) => ({
           pendingSyncItems: [...state.pendingSyncItems, item],
         }));
@@ -559,7 +616,7 @@ export const useStore = create<Store>()(
       
       // Data management
       fetchInitialData: async () => {
-        if (!get().isOnline) return;
+        if (!get().isOnline || isDemoUser(get().user)) return;
         
         set({ isLoading: true });
         
@@ -601,7 +658,7 @@ export const useStore = create<Store>()(
       syncData: async () => {
         const { pendingSyncItems, removePendingSyncItem } = get();
         
-        if (!navigator.onLine || pendingSyncItems.length === 0) {
+        if (!navigator.onLine || pendingSyncItems.length === 0 || isDemoUser(get().user)) {
           return;
         }
         
@@ -635,7 +692,7 @@ export const useStore = create<Store>()(
       // Helper function to determine if sync should be skipped
       shouldSkipSync: (item: SyncItem): boolean => {
         // Skip if user is demo user
-        if (get().user?.id === 'demo-user-id') {
+        if (isDemoUser(get().user)) {
           return true;
         }
         
@@ -697,6 +754,15 @@ export const useStore = create<Store>()(
                 .from('sales')
                 .update(transformToSupabaseData.sale(item.data.updates))
                 .eq('id', item.data.id);
+              if (error) throw error;
+            }
+            break;
+            
+          case 'settings':
+            if (item.action === 'update' && item.data.userProfile) {
+              const { error } = await supabase.auth.updateUser({
+                data: item.data.userProfile
+              });
               if (error) throw error;
             }
             break;
@@ -896,7 +962,7 @@ export const useStore = create<Store>()(
         const { user } = get();
         
         // If demo user, just clear local state
-        if (user?.id === 'demo-user-id') {
+        if (isDemoUser(user)) {
           set({ user: null });
           get().clearAllData();
           return;

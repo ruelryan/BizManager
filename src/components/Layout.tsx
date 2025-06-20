@@ -15,7 +15,8 @@ import {
   Wifi,
   WifiOff,
   RefreshCw,
-  Receipt
+  Receipt,
+  User
 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { ThemeToggle } from './ThemeToggle';
@@ -32,6 +33,7 @@ const navigation = [
 
 export function Layout() {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
+  const [showUserMenu, setShowUserMenu] = React.useState(false);
   const location = useLocation();
   const { user, signOut, isOnline, pendingSyncItems, syncData } = useStore();
   const [isSyncing, setIsSyncing] = React.useState(false);
@@ -156,34 +158,69 @@ export function Layout() {
               )}
             </div>
 
-            <div className="mb-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-900 dark:text-white">{user.name}</span>
-                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getPlanBadgeColor(user.plan)}`}>
+            {/* User Info with Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="w-full flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors"
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="rounded-full bg-blue-100 dark:bg-blue-900/30 p-2">
+                    <User className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div className="text-left">
+                    <div className="font-medium text-gray-900 dark:text-white">{user.name}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">{user.email}</div>
+                  </div>
+                </div>
+                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${getPlanBadgeColor(user.plan)}`}>
                   {user.plan === 'pro' && <Crown className="mr-1 h-3 w-3" />}
                   {user.plan.toUpperCase()}
                 </span>
-              </div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{user.email}</p>
+              </button>
+
+              {/* User Dropdown Menu */}
+              {showUserMenu && (
+                <div className="absolute bottom-full left-0 right-0 mb-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1">
+                  <Link
+                    to="/profile"
+                    className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      setSidebarOpen(false);
+                    }}
+                  >
+                    <Settings className="h-4 w-4" />
+                    <span>Profile Settings</span>
+                  </Link>
+                  
+                  {user.plan !== 'pro' && (
+                    <Link
+                      to="/pricing"
+                      className="flex items-center space-x-2 px-3 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        setSidebarOpen(false);
+                      }}
+                    >
+                      <Crown className="h-4 w-4" />
+                      <span>Upgrade Plan</span>
+                    </Link>
+                  )}
+                  
+                  <button
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      handleLogout();
+                    }}
+                    className="flex w-full items-center space-x-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span>Sign out</span>
+                  </button>
+                </div>
+              )}
             </div>
-            
-            {user.plan !== 'pro' && (
-              <Link
-                to="/pricing"
-                className="mb-3 flex w-full items-center justify-center rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 px-3 py-2 text-sm font-medium text-white transition-all duration-200 hover:from-blue-700 hover:to-purple-700 hover:shadow-md"
-              >
-                <Crown className="mr-2 h-4 w-4" />
-                Upgrade Plan
-              </Link>
-            )}
-            
-            <button
-              onClick={handleLogout}
-              className="flex w-full items-center space-x-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
-            >
-              <LogOut className="h-4 w-4" />
-              <span>Sign out</span>
-            </button>
           </div>
         </div>
       </div>
@@ -257,6 +294,14 @@ export function Layout() {
           <Outlet />
         </main>
       </div>
+
+      {/* Click outside to close user menu */}
+      {showUserMenu && (
+        <div
+          className="fixed inset-0 z-30"
+          onClick={() => setShowUserMenu(false)}
+        />
+      )}
     </div>
   );
 }
