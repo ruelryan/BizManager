@@ -156,6 +156,7 @@ export interface Database {
           id: string;
           user_id: string;
           monthly_goal: number;
+          currency: string;
           business_name: string | null;
           business_address: string | null;
           business_phone: string | null;
@@ -167,6 +168,7 @@ export interface Database {
           id?: string;
           user_id: string;
           monthly_goal?: number;
+          currency?: string;
           business_name?: string | null;
           business_address?: string | null;
           business_phone?: string | null;
@@ -178,12 +180,51 @@ export interface Database {
           id?: string;
           user_id?: string;
           monthly_goal?: number;
+          currency?: string;
           business_name?: string | null;
           business_address?: string | null;
           business_phone?: string | null;
           business_email?: string | null;
           created_at?: string;
           updated_at?: string;
+        };
+      };
+      expenses: {
+        Row: {
+          id: string;
+          description: string;
+          amount: number;
+          category: string;
+          date: string;
+          payment_method: string;
+          receipt: string | null;
+          notes: string | null;
+          user_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          description: string;
+          amount: number;
+          category: string;
+          date: string;
+          payment_method: string;
+          receipt?: string | null;
+          notes?: string | null;
+          user_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          description?: string;
+          amount?: number;
+          category?: string;
+          date?: string;
+          payment_method?: string;
+          receipt?: string | null;
+          notes?: string | null;
+          user_id?: string;
+          created_at?: string;
         };
       };
     };

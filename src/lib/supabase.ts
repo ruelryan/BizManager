@@ -74,9 +74,21 @@ export const transformSupabaseData = {
     createdAt: new Date(data.created_at)
   }),
 
+  expense: (data: any) => ({
+    ...data,
+    date: new Date(data.date),
+    paymentMethod: data.payment_method,
+    createdAt: new Date(data.created_at)
+  }),
+
   userSettings: (data: any) => ({
     ...data,
     monthlyGoal: Number(data.monthly_goal) || 50000,
+    currency: data.currency || 'PHP',
+    businessName: data.business_name,
+    businessAddress: data.business_address,
+    businessPhone: data.business_phone,
+    businessEmail: data.business_email,
     createdAt: new Date(data.created_at),
     updatedAt: new Date(data.updated_at)
   })
@@ -129,8 +141,20 @@ export const transformToSupabaseData = {
     user_id: userId
   }),
 
+  expense: (data: any, userId?: string) => ({
+    description: data.description,
+    amount: data.amount,
+    category: data.category,
+    date: data.date.toISOString().split('T')[0], // Format as YYYY-MM-DD
+    payment_method: data.paymentMethod,
+    receipt: data.receipt || null,
+    notes: data.notes || null,
+    user_id: userId
+  }),
+
   userSettings: (data: any, userId?: string) => ({
     monthly_goal: data.monthlyGoal,
+    currency: data.currency || 'PHP',
     business_name: data.businessName || null,
     business_address: data.businessAddress || null,
     business_phone: data.businessPhone || null,

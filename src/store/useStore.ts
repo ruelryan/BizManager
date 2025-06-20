@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import localforage from 'localforage';
-import { User, Product, Sale, InventoryTransaction, Expense } from '../types';
+import { User, Product, Sale, InventoryTransaction, Expense, UserSettings } from '../types';
 import { supabase, handleSupabaseError, transformSupabaseData, transformToSupabaseData, getCurrentUserId } from '../lib/supabase';
 
 // Configure localforage
@@ -55,6 +55,10 @@ interface Store {
   getExpenseCategories: () => string[];
   
   // Settings
+  userSettings: UserSettings | null;
+  updateUserSettings: (updates: Partial<UserSettings>) => Promise<void>;
+  
+  // Legacy settings for backward compatibility
   monthlyGoal: number;
   setMonthlyGoal: (goal: number) => Promise<void>;
   
@@ -567,8 +571,28 @@ export const useStore = create<Store>()(
           return;
         }
         
-        // Note: Expenses would need their own table in Supabase
-        if (!get().isOnline) {
+        try {
+          if (get().isOnline) {
+            const userId = await getCurrentUserId();
+            const { error } = await supabase
+              .from('expenses')
+              .insert(transformToSupabaseData.expense(newExpense, userId));
+            
+            if (error) throw error;
+            console.log('Expense successfully saved to database');
+          } else {
+            // Add to pending sync only when offline
+            get().addPendingSyncItem({
+              id: newExpense.id,
+              type: 'expense',
+              action: 'create',
+              data: newExpense,
+              timestamp: Date.now(),
+            });
+          }
+        } catch (error) {
+          console.error('Failed to add expense:', error);
+          // Add to pending sync for retry
           get().addPendingSyncItem({
             id: newExpense.id,
             type: 'expense',
@@ -590,7 +614,28 @@ export const useStore = create<Store>()(
           return;
         }
         
-        if (!get().isOnline) {
+        try {
+          if (get().isOnline) {
+            const userId = await getCurrentUserId();
+            const { error } = await supabase
+              .from('expenses')
+              .update(transformToSupabaseData.expense(updates, userId))
+              .eq('id', id);
+            
+            if (error) throw error;
+          } else {
+            // Add to pending sync only when offline
+            get().addPendingSyncItem({
+              id: `${id}-${Date.now()}`,
+              type: 'expense',
+              action: 'update',
+              data: { id, updates },
+              timestamp: Date.now(),
+            });
+          }
+        } catch (error) {
+          console.error('Failed to update expense:', error);
+          // Add to pending sync for retry
           get().addPendingSyncItem({
             id: `${id}-${Date.now()}`,
             type: 'expense',
@@ -612,7 +657,27 @@ export const useStore = create<Store>()(
           return;
         }
         
-        if (!get().isOnline) {
+        try {
+          if (get().isOnline) {
+            const { error } = await supabase
+              .from('expenses')
+              .delete()
+              .eq('id', id);
+            
+            if (error) throw error;
+          } else {
+            // Add to pending sync only when offline
+            get().addPendingSyncItem({
+              id: `${id}-delete-${Date.now()}`,
+              type: 'expense',
+              action: 'delete',
+              data: { id },
+              timestamp: Date.now(),
+            });
+          }
+        } catch (error) {
+          console.error('Failed to delete expense:', error);
+          // Add to pending sync for retry
           get().addPendingSyncItem({
             id: `${id}-delete-${Date.now()}`,
             type: 'expense',
@@ -629,42 +694,69 @@ export const useStore = create<Store>()(
       },
       
       // Settings
-      monthlyGoal: 50000,
-      setMonthlyGoal: async (goal) => {
-        set({ monthlyGoal: goal });
-        
+      userSettings: null,
+      updateUserSettings: async (updates) => {
+        const currentSettings = get().userSettings;
+        const updatedSettings = currentSettings 
+          ? { ...currentSettings, ...updates }
+          : { 
+              id: crypto.randomUUID(),
+              userId: get().user?.id || '',
+              monthlyGoal: 50000,
+              currency: 'PHP',
+              ...updates 
+            };
+
+        // Update local state immediately
+        set({ userSettings: updatedSettings });
+
+        // Also update legacy monthlyGoal for backward compatibility
+        if (updates.monthlyGoal !== undefined) {
+          set({ monthlyGoal: updates.monthlyGoal });
+        }
+
         // Skip Supabase operations for demo user
         if (isDemoUser(get().user)) {
           return;
         }
-        
+
         try {
           if (get().isOnline) {
             const userId = await getCurrentUserId();
             const { error } = await supabase
               .from('user_settings')
-              .upsert(transformToSupabaseData.userSettings({ monthlyGoal: goal }, userId));
+              .upsert(transformToSupabaseData.userSettings(updatedSettings, userId));
             
             if (error) throw error;
+            console.log('User settings successfully saved to database');
           } else {
+            // Add to pending sync only when offline
             get().addPendingSyncItem({
-              id: `goal-${Date.now()}`,
+              id: `settings-${Date.now()}`,
               type: 'settings',
               action: 'update',
-              data: { monthlyGoal: goal },
+              data: updatedSettings,
               timestamp: Date.now(),
             });
           }
         } catch (error) {
-          console.error('Failed to update monthly goal:', error);
+          console.error('Failed to update user settings:', error);
+          // Add to pending sync for retry
           get().addPendingSyncItem({
-            id: `goal-${Date.now()}`,
+            id: `settings-${Date.now()}`,
             type: 'settings',
             action: 'update',
-            data: { monthlyGoal: goal },
+            data: updatedSettings,
             timestamp: Date.now(),
           });
         }
+      },
+      
+      // Legacy settings for backward compatibility
+      monthlyGoal: 50000,
+      setMonthlyGoal: async (goal) => {
+        set({ monthlyGoal: goal });
+        await get().updateUserSettings({ monthlyGoal: goal });
       },
       
       // Offline state
@@ -726,6 +818,15 @@ export const useStore = create<Store>()(
           
           if (salesError) throw salesError;
 
+          // Fetch user's expenses
+          const { data: expensesData, error: expensesError } = await supabase
+            .from('expenses')
+            .select('*')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
+          
+          // Don't throw error if expenses table doesn't exist yet
+          
           // Fetch user settings
           const { data: settingsData, error: settingsError } = await supabase
             .from('user_settings')
@@ -738,11 +839,15 @@ export const useStore = create<Store>()(
           // Transform and set data
           const transformedProducts = productsData?.map(transformSupabaseData.product) || [];
           const transformedSales = salesData?.map(transformSupabaseData.sale) || [];
-          const monthlyGoal = settingsData ? Number(settingsData.monthly_goal) : 50000;
+          const transformedExpenses = expensesData?.map(transformSupabaseData.expense) || [];
+          const userSettings = settingsData ? transformSupabaseData.userSettings(settingsData) : null;
+          const monthlyGoal = userSettings?.monthlyGoal || 50000;
           
           set({
             products: transformedProducts,
             sales: transformedSales,
+            expenses: transformedExpenses,
+            userSettings,
             monthlyGoal,
             isLoading: false,
           });
@@ -798,7 +903,7 @@ export const useStore = create<Store>()(
         }
         
         // Skip if item involves demo data
-        if (item.type === 'product' || item.type === 'sale') {
+        if (item.type === 'product' || item.type === 'sale' || item.type === 'expense') {
           if (item.action === 'create' && item.data?.id && isDemoId(item.data.id)) {
             return true;
           }
@@ -871,6 +976,29 @@ export const useStore = create<Store>()(
               if (error) throw error;
             }
             break;
+
+          case 'expense':
+            if (item.action === 'create') {
+              const { error } = await supabase
+                .from('expenses')
+                .insert(transformToSupabaseData.expense(item.data, userId));
+              if (error) throw error;
+            } else if (item.action === 'update') {
+              const { error } = await supabase
+                .from('expenses')
+                .update(transformToSupabaseData.expense(item.data.updates, userId))
+                .eq('id', item.data.id)
+                .eq('user_id', userId);
+              if (error) throw error;
+            } else if (item.action === 'delete') {
+              const { error } = await supabase
+                .from('expenses')
+                .delete()
+                .eq('id', item.data.id)
+                .eq('user_id', userId);
+              if (error) throw error;
+            }
+            break;
             
           case 'settings':
             if (item.action === 'update') {
@@ -880,7 +1008,7 @@ export const useStore = create<Store>()(
                 });
                 if (error) throw error;
               }
-              if (item.data.monthlyGoal !== undefined) {
+              if (item.data.monthlyGoal !== undefined || item.data.currency || item.data.businessName) {
                 const { error } = await supabase
                   .from('user_settings')
                   .upsert(transformToSupabaseData.userSettings(item.data, userId));
@@ -895,6 +1023,8 @@ export const useStore = create<Store>()(
       
       exportReportData: () => {
         const { sales, products } = get();
+        const currency = get().userSettings?.currency || 'PHP';
+        const currencySymbol = currency === 'USD' ? '$' : currency === 'EUR' ? '€' : '₱';
         
         // Create CSV data
         const headers = [
@@ -902,7 +1032,7 @@ export const useStore = create<Store>()(
           'Invoice Number',
           'Customer Name',
           'Items',
-          'Total Amount (PHP)',
+          `Total Amount (${currency})`,
           'Payment Method',
           'Status'
         ];
@@ -912,7 +1042,7 @@ export const useStore = create<Store>()(
           sale.invoiceNumber || 'N/A',
           sale.customerName || 'Walk-in Customer',
           sale.items.map(item => `${item.productName} (${item.quantity})`).join('; '),
-          `₱${sale.total.toLocaleString()}`,
+          `${currencySymbol}${sale.total.toLocaleString()}`,
           sale.paymentType,
           sale.status
         ]);
@@ -931,6 +1061,7 @@ export const useStore = create<Store>()(
           inventoryTransactions: [],
           expenses: [],
           pendingSyncItems: [],
+          userSettings: null,
           monthlyGoal: 50000,
         });
       },
@@ -948,9 +1079,21 @@ export const useStore = create<Store>()(
               email: email,
               name: 'Demo User',
               plan: plan as 'free' | 'starter' | 'pro',
+              currency: 'PHP',
+              businessName: 'Demo Business',
             };
             
-            set({ user: demoUser, isLoading: false });
+            set({ 
+              user: demoUser, 
+              isLoading: false,
+              userSettings: {
+                id: 'demo-settings',
+                userId: 'demo-user-id',
+                monthlyGoal: 50000,
+                currency: 'PHP',
+                businessName: 'Demo Business',
+              }
+            });
             
             // Load demo data if no products exist
             if (get().products.length === 0) {
@@ -1076,6 +1219,7 @@ export const useStore = create<Store>()(
                 email: data.user.email!,
                 name: name,
                 plan: 'free',
+                currency: 'PHP',
               },
               isLoading: false,
             });
@@ -1297,6 +1441,7 @@ export const useStore = create<Store>()(
         sales: state.sales,
         inventoryTransactions: state.inventoryTransactions,
         expenses: state.expenses,
+        userSettings: state.userSettings,
         monthlyGoal: state.monthlyGoal,
         pendingSyncItems: state.pendingSyncItems,
       }),
@@ -1328,6 +1473,7 @@ supabase.auth.onAuthStateChange((event, session) => {
       email: session.user.email!,
       name: session.user.user_metadata?.name || session.user.user_metadata?.full_name || 'User',
       plan: session.user.user_metadata?.plan || 'free',
+      currency: 'PHP',
     });
     
     // Fetch initial data

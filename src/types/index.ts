@@ -4,6 +4,11 @@ export interface User {
   name: string;
   plan: 'free' | 'starter' | 'pro';
   subscriptionExpiry?: Date;
+  currency?: string;
+  businessName?: string;
+  businessAddress?: string;
+  businessPhone?: string;
+  businessEmail?: string;
 }
 
 export interface Product {
@@ -59,6 +64,19 @@ export interface Expense {
   paymentMethod: 'cash' | 'card' | 'transfer' | 'gcash';
   receipt?: string;
   notes?: string;
+}
+
+export interface UserSettings {
+  id?: string;
+  userId: string;
+  monthlyGoal: number;
+  currency: string;
+  businessName?: string;
+  businessAddress?: string;
+  businessPhone?: string;
+  businessEmail?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface PlanFeatures {

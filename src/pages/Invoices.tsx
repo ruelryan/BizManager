@@ -26,6 +26,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#1e40af',
   },
+  businessInfo: {
+    fontSize: 10,
+    color: '#374151',
+    marginTop: 5,
+  },
   invoiceInfo: {
     textAlign: 'right',
   },
@@ -95,91 +100,111 @@ const styles = StyleSheet.create({
 });
 
 // Invoice PDF Component
-const InvoicePDF = ({ sale }: { sale: any }) => (
-  <Document>
-    <Page size="A4" style={styles.page}>
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.logo}>BizManager</Text>
-          <Text style={styles.text}>Business Management System</Text>
+const InvoicePDF = ({ sale, userSettings }: { sale: any; userSettings: any }) => {
+  const currency = userSettings?.currency || 'PHP';
+  const currencySymbol = currency === 'USD' ? '$' : currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : currency === 'JPY' ? '¥' : '₱';
+  const businessName = userSettings?.businessName || 'BizManager';
+  const businessAddress = userSettings?.businessAddress;
+  const businessPhone = userSettings?.businessPhone;
+  const businessEmail = userSettings?.businessEmail;
+
+  return (
+    <Document>
+      <Page size="A4" style={styles.page}>
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.logo}>{businessName}</Text>
+            {businessAddress && (
+              <Text style={styles.businessInfo}>{businessAddress}</Text>
+            )}
+            {businessPhone && (
+              <Text style={styles.businessInfo}>Phone: {businessPhone}</Text>
+            )}
+            {businessEmail && (
+              <Text style={styles.businessInfo}>Email: {businessEmail}</Text>
+            )}
+          </View>
+          <View style={styles.invoiceInfo}>
+            <Text style={styles.boldText}>INVOICE</Text>
+            <Text style={styles.text}>#{sale.receipt_number || sale.invoiceNumber || 'N/A'}</Text>
+            <Text style={styles.text}>Date: {format(new Date(sale.date || sale.created_at), 'MMM dd, yyyy')}</Text>
+            {sale.dueDate && (
+              <Text style={styles.text}>Due: {format(new Date(sale.dueDate), 'MMM dd, yyyy')}</Text>
+            )}
+          </View>
         </View>
-        <View style={styles.invoiceInfo}>
-          <Text style={styles.boldText}>INVOICE</Text>
-          <Text style={styles.text}>#{sale.receipt_number || sale.invoiceNumber || 'N/A'}</Text>
-          <Text style={styles.text}>Date: {format(new Date(sale.date || sale.created_at), 'MMM dd, yyyy')}</Text>
-          {sale.dueDate && (
-            <Text style={styles.text}>Due: {format(new Date(sale.dueDate), 'MMM dd, yyyy')}</Text>
+
+        <View style={styles.customerInfo}>
+          <Text style={styles.boldText}>Bill To:</Text>
+          <Text style={styles.text}>{sale.customer_name || sale.customerName || 'Walk-in Customer'}</Text>
+          {sale.customerEmail && <Text style={styles.text}>{sale.customerEmail}</Text>}
+        </View>
+
+        <View style={styles.table}>
+          <View style={styles.tableHeader}>
+            <Text style={[styles.boldText, styles.col1]}>Item</Text>
+            <Text style={[styles.boldText, styles.col2]}>Qty</Text>
+            <Text style={[styles.boldText, styles.col3]}>Price</Text>
+            <Text style={[styles.boldText, styles.col4]}>Total</Text>
+          </View>
+          
+          {(sale.items || []).map((item: any, index: number) => (
+            <View key={index} style={styles.tableRow}>
+              <Text style={[styles.text, styles.col1]}>{item.productName || item.name || 'Unknown Item'}</Text>
+              <Text style={[styles.text, styles.col2]}>{Number(item.quantity || 0)}</Text>
+              <Text style={[styles.text, styles.col3]}>{currencySymbol}{Number(item.price || 0).toLocaleString()}</Text>
+              <Text style={[styles.text, styles.col4]}>{currencySymbol}{Number(item.total || (item.price || 0) * (item.quantity || 0)).toLocaleString()}</Text>
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.total}>
+          <View style={styles.totalRow}>
+            <Text style={styles.text}>Subtotal:</Text>
+            <Text style={styles.text}>{currencySymbol}{Number(sale.subtotal || sale.total || 0).toLocaleString()}</Text>
+          </View>
+          {sale.tax && Number(sale.tax) > 0 && (
+            <View style={styles.totalRow}>
+              <Text style={styles.text}>Tax:</Text>
+              <Text style={styles.text}>{currencySymbol}{Number(sale.tax || 0).toLocaleString()}</Text>
+            </View>
           )}
-        </View>
-      </View>
-
-      <View style={styles.customerInfo}>
-        <Text style={styles.boldText}>Bill To:</Text>
-        <Text style={styles.text}>{sale.customer_name || sale.customerName || 'Walk-in Customer'}</Text>
-        {sale.customerEmail && <Text style={styles.text}>{sale.customerEmail}</Text>}
-      </View>
-
-      <View style={styles.table}>
-        <View style={styles.tableHeader}>
-          <Text style={[styles.boldText, styles.col1]}>Item</Text>
-          <Text style={[styles.boldText, styles.col2]}>Qty</Text>
-          <Text style={[styles.boldText, styles.col3]}>Price</Text>
-          <Text style={[styles.boldText, styles.col4]}>Total</Text>
-        </View>
-        
-        {(sale.items || []).map((item: any, index: number) => (
-          <View key={index} style={styles.tableRow}>
-            <Text style={[styles.text, styles.col1]}>{item.productName || item.name || 'Unknown Item'}</Text>
-            <Text style={[styles.text, styles.col2]}>{Number(item.quantity || 0)}</Text>
-            <Text style={[styles.text, styles.col3]}>₱{Number(item.price || 0).toLocaleString()}</Text>
-            <Text style={[styles.text, styles.col4]}>₱{Number(item.total || (item.price || 0) * (item.quantity || 0)).toLocaleString()}</Text>
-          </View>
-        ))}
-      </View>
-
-      <View style={styles.total}>
-        <View style={styles.totalRow}>
-          <Text style={styles.text}>Subtotal:</Text>
-          <Text style={styles.text}>₱{Number(sale.subtotal || sale.total || 0).toLocaleString()}</Text>
-        </View>
-        {sale.tax && Number(sale.tax) > 0 && (
+          {sale.discount && Number(sale.discount) > 0 && (
+            <View style={styles.totalRow}>
+              <Text style={styles.text}>Discount:</Text>
+              <Text style={styles.text}>-{currencySymbol}{Number(sale.discount || 0).toLocaleString()}</Text>
+            </View>
+          )}
           <View style={styles.totalRow}>
-            <Text style={styles.text}>Tax:</Text>
-            <Text style={styles.text}>₱{Number(sale.tax || 0).toLocaleString()}</Text>
+            <Text style={styles.boldText}>Total:</Text>
+            <Text style={styles.boldText}>{currencySymbol}{Number(sale.total || 0).toLocaleString()}</Text>
           </View>
-        )}
-        {sale.discount && Number(sale.discount) > 0 && (
-          <View style={styles.totalRow}>
-            <Text style={styles.text}>Discount:</Text>
-            <Text style={styles.text}>-₱{Number(sale.discount || 0).toLocaleString()}</Text>
-          </View>
-        )}
-        <View style={styles.totalRow}>
-          <Text style={styles.boldText}>Total:</Text>
-          <Text style={styles.boldText}>₱{Number(sale.total || 0).toLocaleString()}</Text>
         </View>
-      </View>
 
-      <View style={styles.section}>
-        <Text style={styles.boldText}>Payment Method:</Text>
-        <Text style={styles.text}>{(sale.paymentType || sale.payments?.[0]?.method || 'Cash').toUpperCase()}</Text>
-        <Text style={styles.boldText}>Status:</Text>
-        <Text style={styles.text}>{(sale.status || 'completed').toUpperCase()}</Text>
-      </View>
+        <View style={styles.section}>
+          <Text style={styles.boldText}>Payment Method:</Text>
+          <Text style={styles.text}>{(sale.paymentType || sale.payments?.[0]?.method || 'Cash').toUpperCase()}</Text>
+          <Text style={styles.boldText}>Status:</Text>
+          <Text style={styles.text}>{(sale.status || 'completed').toUpperCase()}</Text>
+        </View>
 
-      <View style={styles.footer}>
-        <Text>Thank you for your business!</Text>
-        <Text>Generated by BizManager - Business Management System</Text>
-      </View>
-    </Page>
-  </Document>
-);
+        <View style={styles.footer}>
+          <Text>Thank you for your business!</Text>
+          <Text>Generated by {businessName}</Text>
+        </View>
+      </Page>
+    </Document>
+  );
+};
 
 export function Invoices() {
-  const { sales, updateSale } = useStore();
+  const { sales, updateSale, userSettings } = useStore();
   const [searchTerm, setSearchTerm] = React.useState('');
   const [filterStatus, setFilterStatus] = React.useState<'all' | 'paid' | 'pending' | 'overdue'>('all');
   const [viewingSale, setViewingSale] = React.useState<any>(null);
+
+  const currency = userSettings?.currency || 'PHP';
+  const currencySymbol = currency === 'USD' ? '$' : currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : currency === 'JPY' ? '¥' : '₱';
 
   // Filter invoices
   const filteredInvoices = sales.filter((sale) => {
@@ -291,10 +316,10 @@ export function Invoices() {
                       {Number(item.quantity || 0)}
                     </td>
                     <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-300">
-                      ₱{Number(item.price || 0).toLocaleString()}
+                      {currencySymbol}{Number(item.price || 0).toLocaleString()}
                     </td>
                     <td className="px-4 py-3 text-sm text-right font-medium text-gray-900 dark:text-white">
-                      ₱{Number(item.total || (item.price || 0) * (item.quantity || 0)).toLocaleString()}
+                      {currencySymbol}{Number(item.total || (item.price || 0) * (item.quantity || 0)).toLocaleString()}
                     </td>
                   </tr>
                 ))}
@@ -308,23 +333,23 @@ export function Invoices() {
               <div className="w-64 space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600 dark:text-gray-400">Subtotal:</span>
-                  <span className="text-gray-900 dark:text-white">₱{Number(sale.subtotal || sale.total || 0).toLocaleString()}</span>
+                  <span className="text-gray-900 dark:text-white">{currencySymbol}{Number(sale.subtotal || sale.total || 0).toLocaleString()}</span>
                 </div>
                 {sale.tax && Number(sale.tax) > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600 dark:text-gray-400">Tax:</span>
-                    <span className="text-gray-900 dark:text-white">₱{Number(sale.tax || 0).toLocaleString()}</span>
+                    <span className="text-gray-900 dark:text-white">{currencySymbol}{Number(sale.tax || 0).toLocaleString()}</span>
                   </div>
                 )}
                 {sale.discount && Number(sale.discount) > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600 dark:text-gray-400">Discount:</span>
-                    <span className="text-gray-900 dark:text-white">-₱{Number(sale.discount || 0).toLocaleString()}</span>
+                    <span className="text-gray-900 dark:text-white">-{currencySymbol}{Number(sale.discount || 0).toLocaleString()}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-lg font-semibold border-t border-gray-200 dark:border-gray-700 pt-2">
                   <span className="text-gray-900 dark:text-white">Total:</span>
-                  <span className="text-gray-900 dark:text-white">₱{Number(sale.total || 0).toLocaleString()}</span>
+                  <span className="text-gray-900 dark:text-white">{currencySymbol}{Number(sale.total || 0).toLocaleString()}</span>
                 </div>
               </div>
             </div>
@@ -441,7 +466,7 @@ export function Invoices() {
                     {invoice.dueDate ? format(new Date(invoice.dueDate), 'MMM dd, yyyy') : '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                    ₱{Number(invoice.total || 0).toLocaleString()}
+                    {currencySymbol}{Number(invoice.total || 0).toLocaleString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${getStatusColor(invoice.status)}`}>
@@ -460,7 +485,7 @@ export function Invoices() {
                       
                       <FeatureGate feature="hasPdfInvoices">
                         <PDFDownloadLink
-                          document={<InvoicePDF sale={invoice} />}
+                          document={<InvoicePDF sale={invoice} userSettings={userSettings} />}
                           fileName={`invoice-${invoice.receipt_number || invoice.invoiceNumber || invoice.id}.pdf`}
                           className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300"
                         >
