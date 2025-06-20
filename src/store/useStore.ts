@@ -870,10 +870,13 @@ export const useStore = create<Store>()(
         set({ isLoading: true });
         
         try {
+          // Get the current URL for proper redirect
+          const currentUrl = window.location.origin;
+          
           const { data, error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
-              redirectTo: window.location.origin,
+              redirectTo: currentUrl,
             },
           });
           
@@ -896,10 +899,13 @@ export const useStore = create<Store>()(
         set({ isLoading: true });
         
         try {
+          // Get the current URL for proper redirect
+          const currentUrl = window.location.origin;
+          
           const { data, error } = await supabase.auth.signInWithOAuth({
             provider: 'facebook',
             options: {
-              redirectTo: window.location.origin,
+              redirectTo: currentUrl,
             },
           });
           
