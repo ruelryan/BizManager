@@ -41,6 +41,7 @@ interface Store {
   sales: Sale[];
   addSale: (sale: Omit<Sale, 'id'>) => Promise<void>;
   updateSale: (id: string, updates: Partial<Sale>) => Promise<void>;
+  deleteSale: (id: string) => Promise<void>;
   
   // Inventory
   inventoryTransactions: InventoryTransaction[];
@@ -219,7 +220,7 @@ export const useStore = create<Store>()(
             
             if (error) throw error;
           } else {
-            // Add to pending sync
+            // Add to pending sync only when offline
             get().addPendingSyncItem({
               id: newProduct.id,
               type: 'product',
@@ -265,7 +266,7 @@ export const useStore = create<Store>()(
             
             if (error) throw error;
           } else {
-            // Add to pending sync
+            // Add to pending sync only when offline
             get().addPendingSyncItem({
               id: `${id}-${Date.now()}`,
               type: 'product',
@@ -307,7 +308,7 @@ export const useStore = create<Store>()(
             
             if (error) throw error;
           } else {
-            // Add to pending sync
+            // Add to pending sync only when offline
             get().addPendingSyncItem({
               id: `${id}-delete-${Date.now()}`,
               type: 'product',
@@ -382,7 +383,7 @@ export const useStore = create<Store>()(
             
             if (error) throw error;
           } else {
-            // Add to pending sync
+            // Add to pending sync only when offline
             get().addPendingSyncItem({
               id: newSale.id,
               type: 'sale',
@@ -424,7 +425,7 @@ export const useStore = create<Store>()(
             
             if (error) throw error;
           } else {
-            // Add to pending sync
+            // Add to pending sync only when offline
             get().addPendingSyncItem({
               id: `${id}-${Date.now()}`,
               type: 'sale',
@@ -441,6 +442,62 @@ export const useStore = create<Store>()(
             type: 'sale',
             action: 'update',
             data: { id, updates },
+            timestamp: Date.now(),
+          });
+        }
+      },
+
+      deleteSale: async (id) => {
+        const sale = get().sales.find(s => s.id === id);
+        
+        // Update local state immediately
+        set((state) => ({
+          sales: state.sales.filter((sale) => sale.id !== id),
+        }));
+        
+        // Restore product stock if sale is being deleted
+        if (sale) {
+          sale.items.forEach((item) => {
+            const product = get().products.find((p) => p.id === item.productId);
+            if (product) {
+              get().updateProduct(item.productId, {
+                currentStock: product.currentStock + item.quantity,
+              });
+            }
+          });
+        }
+        
+        // Skip Supabase operations for demo user or demo data
+        if (isDemoUser(get().user) || isDemoId(id)) {
+          return;
+        }
+        
+        try {
+          if (get().isOnline) {
+            const { error } = await supabase
+              .from('sales')
+              .delete()
+              .eq('id', id);
+            
+            if (error) throw error;
+          } else {
+            // Add to pending sync only when offline
+            get().addPendingSyncItem({
+              id: `${id}-delete-${Date.now()}`,
+              type: 'sale',
+              action: 'delete',
+              data: { id },
+              timestamp: Date.now(),
+            });
+          }
+        } catch (error) {
+          console.error('Failed to delete sale:', error);
+          // Add to pending sync for retry
+          get().addPendingSyncItem({
+            id: `${id}-delete-${Date.now()}`,
+            type: 'sale',
+            action: 'delete',
+            data: { id },
             timestamp: Date.now(),
           });
         }
@@ -753,6 +810,12 @@ export const useStore = create<Store>()(
               const { error } = await supabase
                 .from('sales')
                 .update(transformToSupabaseData.sale(item.data.updates))
+                .eq('id', item.data.id);
+              if (error) throw error;
+            } else if (item.action === 'delete') {
+              const { error } = await supabase
+                .from('sales')
+                .delete()
                 .eq('id', item.data.id);
               if (error) throw error;
             }

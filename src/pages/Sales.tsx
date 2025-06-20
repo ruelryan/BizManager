@@ -5,11 +5,12 @@ import { useStore } from '../store/useStore';
 import { Sale } from '../types';
 
 export function Sales() {
-  const { sales, products, addSale, updateSale } = useStore();
+  const { sales, products, addSale, updateSale, deleteSale } = useStore();
   const [showAddForm, setShowAddForm] = React.useState(false);
   const [editingSale, setEditingSale] = React.useState<Sale | null>(null);
   const [viewingSale, setViewingSale] = React.useState<Sale | null>(null);
   const [filterStatus, setFilterStatus] = React.useState<'all' | 'paid' | 'pending' | 'overdue'>('all');
+  const [deleteConfirm, setDeleteConfirm] = React.useState<string | null>(null);
 
   // Filter sales
   const filteredSales = sales.filter((sale) => {
@@ -33,6 +34,17 @@ export function Sales() {
       return 'overdue';
     }
     return sale.status;
+  };
+
+  const handleDeleteSale = (id: string) => {
+    if (deleteConfirm === id) {
+      deleteSale(id);
+      setDeleteConfirm(null);
+    } else {
+      setDeleteConfirm(id);
+      // Auto-cancel confirmation after 3 seconds
+      setTimeout(() => setDeleteConfirm(null), 3000);
+    }
   };
 
   const SearchableProductSelect = ({ 
@@ -644,6 +656,17 @@ export function Sales() {
                         >
                           <Edit className="h-4 w-4" />
                         </button>
+                        <button
+                          onClick={() => handleDeleteSale(sale.id)}
+                          className={`transition-colors ${
+                            deleteConfirm === sale.id
+                              ? 'text-red-600 dark:text-red-400'
+                              : 'text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400'
+                          }`}
+                          title={deleteConfirm === sale.id ? 'Click again to confirm deletion' : 'Delete sale'}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -653,6 +676,19 @@ export function Sales() {
           </table>
         </div>
       </div>
+
+      {/* Empty State */}
+      {filteredSales.length === 0 && (
+        <div className="rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 p-12 text-center">
+          <div className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500">
+            📊
+          </div>
+          <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-white">No sales found</h3>
+          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+            Get started by creating your first sale.
+          </p>
+        </div>
+      )}
 
       {/* Modals */}
       {showAddForm && <AddSaleForm onClose={() => setShowAddForm(false)} />}
