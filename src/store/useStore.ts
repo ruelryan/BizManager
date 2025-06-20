@@ -171,6 +171,7 @@ export const useStore = create<Store>()(
             });
             
             if (error) throw error;
+            console.log('User profile successfully updated');
           } else {
             // Add to pending sync only when offline
             get().addPendingSyncItem({
@@ -227,6 +228,7 @@ export const useStore = create<Store>()(
             console.log('Product successfully saved to database');
           } else {
             // Add to pending sync only when offline
+            console.log('Offline: Adding product to pending sync');
             get().addPendingSyncItem({
               id: newProduct.id,
               type: 'product',
@@ -272,8 +274,10 @@ export const useStore = create<Store>()(
               .eq('id', id);
             
             if (error) throw error;
+            console.log('Product successfully updated in database');
           } else {
             // Add to pending sync only when offline
+            console.log('Offline: Adding product update to pending sync');
             get().addPendingSyncItem({
               id: `${id}-${Date.now()}`,
               type: 'product',
@@ -314,8 +318,10 @@ export const useStore = create<Store>()(
               .eq('id', id);
             
             if (error) throw error;
+            console.log('Product successfully deleted from database');
           } else {
             // Add to pending sync only when offline
+            console.log('Offline: Adding product deletion to pending sync');
             get().addPendingSyncItem({
               id: `${id}-delete-${Date.now()}`,
               type: 'product',
@@ -393,6 +399,7 @@ export const useStore = create<Store>()(
             console.log('Sale successfully saved to database');
           } else {
             // Add to pending sync only when offline
+            console.log('Offline: Adding sale to pending sync');
             get().addPendingSyncItem({
               id: newSale.id,
               type: 'sale',
@@ -434,8 +441,10 @@ export const useStore = create<Store>()(
               .eq('id', id);
             
             if (error) throw error;
+            console.log('Sale successfully updated in database');
           } else {
             // Add to pending sync only when offline
+            console.log('Offline: Adding sale update to pending sync');
             get().addPendingSyncItem({
               id: `${id}-${Date.now()}`,
               type: 'sale',
@@ -490,8 +499,10 @@ export const useStore = create<Store>()(
               .eq('id', id);
             
             if (error) throw error;
+            console.log('Sale successfully deleted from database');
           } else {
             // Add to pending sync only when offline
+            console.log('Offline: Adding sale deletion to pending sync');
             get().addPendingSyncItem({
               id: `${id}-delete-${Date.now()}`,
               type: 'sale',
@@ -545,6 +556,7 @@ export const useStore = create<Store>()(
         // Note: Inventory transactions would need their own table in Supabase
         // For now, we'll just store them locally
         if (!get().isOnline) {
+          console.log('Offline: Adding inventory transaction to pending sync');
           get().addPendingSyncItem({
             id: newTransaction.id,
             type: 'inventory',
@@ -582,6 +594,7 @@ export const useStore = create<Store>()(
             console.log('Expense successfully saved to database');
           } else {
             // Add to pending sync only when offline
+            console.log('Offline: Adding expense to pending sync');
             get().addPendingSyncItem({
               id: newExpense.id,
               type: 'expense',
@@ -623,8 +636,10 @@ export const useStore = create<Store>()(
               .eq('id', id);
             
             if (error) throw error;
+            console.log('Expense successfully updated in database');
           } else {
             // Add to pending sync only when offline
+            console.log('Offline: Adding expense update to pending sync');
             get().addPendingSyncItem({
               id: `${id}-${Date.now()}`,
               type: 'expense',
@@ -665,8 +680,10 @@ export const useStore = create<Store>()(
               .eq('id', id);
             
             if (error) throw error;
+            console.log('Expense successfully deleted from database');
           } else {
             // Add to pending sync only when offline
+            console.log('Offline: Adding expense deletion to pending sync');
             get().addPendingSyncItem({
               id: `${id}-delete-${Date.now()}`,
               type: 'expense',
@@ -731,6 +748,7 @@ export const useStore = create<Store>()(
             console.log('User settings successfully saved to database');
           } else {
             // Add to pending sync only when offline
+            console.log('Offline: Adding settings update to pending sync');
             get().addPendingSyncItem({
               id: `settings-${Date.now()}`,
               type: 'settings',
@@ -762,25 +780,32 @@ export const useStore = create<Store>()(
       // Offline state
       isOnline: navigator.onLine,
       setOnlineStatus: (status) => {
+        const wasOffline = !get().isOnline;
         set({ isOnline: status });
         
         // Trigger sync when coming back online
-        if (status && get().pendingSyncItems.length > 0) {
-          get().syncData();
+        if (status && wasOffline && get().pendingSyncItems.length > 0) {
+          console.log('Coming back online, triggering sync...');
+          setTimeout(() => {
+            get().syncData();
+          }, 1000); // Small delay to ensure connection is stable
         }
       },
       pendingSyncItems: [],
       addPendingSyncItem: (item) => {
         // Don't add to pending sync if user is demo user
         if (isDemoUser(get().user)) {
+          console.log('Skipping pending sync for demo user');
           return;
         }
         
+        console.log('Adding item to pending sync:', item.type, item.action);
         set((state) => ({
           pendingSyncItems: [...state.pendingSyncItems, item],
         }));
       },
       removePendingSyncItem: (id) => {
+        console.log('Removing item from pending sync:', id);
         set((state) => ({
           pendingSyncItems: state.pendingSyncItems.filter((item) => item.id !== id),
         }));
@@ -798,6 +823,8 @@ export const useStore = create<Store>()(
             set({ isLoading: false });
             return;
           }
+
+          console.log('Fetching initial data for user:', userId);
 
           // Fetch user's products
           const { data: productsData, error: productsError } = await supabase
@@ -862,16 +889,20 @@ export const useStore = create<Store>()(
       
       // Sync functions
       syncData: async () => {
-        const { pendingSyncItems, removePendingSyncItem } = get();
+        const { pendingSyncItems, removePendingSyncItem, isOnline } = get();
         
-        if (!navigator.onLine || pendingSyncItems.length === 0 || isDemoUser(get().user)) {
+        if (!isOnline || pendingSyncItems.length === 0 || isDemoUser(get().user)) {
+          console.log('Sync skipped:', { isOnline, pendingItems: pendingSyncItems.length, isDemoUser: isDemoUser(get().user) });
           return;
         }
         
-        console.log(`Syncing ${pendingSyncItems.length} items...`);
+        console.log(`Starting sync of ${pendingSyncItems.length} items...`);
         
         // Sort by timestamp to maintain order
         const sortedItems = [...pendingSyncItems].sort((a, b) => a.timestamp - b.timestamp);
+        
+        let successCount = 0;
+        let failureCount = 0;
         
         for (const item of sortedItems) {
           try {
@@ -886,13 +917,16 @@ export const useStore = create<Store>()(
             
             await get().syncItem(item);
             removePendingSyncItem(item.id);
+            successCount++;
+            console.log(`Successfully synced ${item.type} ${item.action}:`, item.id);
           } catch (error) {
             console.error('Failed to sync item:', item, error);
+            failureCount++;
             // Keep item in pending sync for retry
           }
         }
         
-        console.log('Sync completed');
+        console.log(`Sync completed: ${successCount} successful, ${failureCount} failed`);
       },
       
       // Helper function to determine if sync should be skipped
@@ -1487,10 +1521,12 @@ supabase.auth.onAuthStateChange((event, session) => {
 // Set up online/offline event listeners
 if (typeof window !== 'undefined') {
   window.addEventListener('online', () => {
+    console.log('Network: Online');
     useStore.getState().setOnlineStatus(true);
   });
   
   window.addEventListener('offline', () => {
+    console.log('Network: Offline');
     useStore.getState().setOnlineStatus(false);
   });
 }
