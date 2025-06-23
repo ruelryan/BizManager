@@ -14,11 +14,10 @@ import {
   Crown,
   Wifi,
   WifiOff,
-  RefreshCw,
   Receipt,
   User
 } from 'lucide-react';
-import { useStore } from '../store/useStore';
+import { useStore, isInFreeTrial, getEffectivePlan } from '../store/useStore';
 import { ThemeToggle } from './ThemeToggle';
 
 const navigation = [
@@ -35,8 +34,7 @@ export function Layout() {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [showUserMenu, setShowUserMenu] = React.useState(false);
   const location = useLocation();
-  const { user, signOut, isOnline, pendingSyncItems, syncData } = useStore();
-  const [isSyncing, setIsSyncing] = React.useState(false);
+  const { user, signOut, isOnline } = useStore();
 
   if (!user) {
     return <Navigate to="/login" replace />;
@@ -47,19 +45,6 @@ export function Layout() {
       await signOut();
     } catch (error) {
       console.error('Logout failed:', error);
-    }
-  };
-
-  const handleSync = async () => {
-    if (!isOnline || isSyncing) return;
-    
-    setIsSyncing(true);
-    try {
-      await syncData();
-    } catch (error) {
-      console.error('Sync failed:', error);
-    } finally {
-      setIsSyncing(false);
     }
   };
 
@@ -78,6 +63,9 @@ export function Layout() {
       default: return 'Free';
     }
   };
+
+  const effectivePlan = getEffectivePlan(user);
+  const inFreeTrial = isInFreeTrial(user);
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
@@ -109,6 +97,21 @@ export function Layout() {
               <X className="h-6 w-6" />
             </button>
           </div>
+
+          {/* Free Trial Banner */}
+          {inFreeTrial && (
+            <div className="mx-4 mt-4 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 p-3 text-white">
+              <div className="flex items-center">
+                <Crown className="h-4 w-4 mr-2" />
+                <div className="text-xs">
+                  <div className="font-medium">Free Trial Active</div>
+                  <div className="opacity-90">
+                    All Pro features until {user.subscriptionExpiry?.toLocaleDateString()}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Navigation */}
           <nav className="flex-1 space-y-1 px-4 py-4">
@@ -148,22 +151,6 @@ export function Layout() {
                   {isOnline ? 'Online' : 'Offline'}
                 </span>
               </div>
-              
-              {/* Sync Status */}
-              {pendingSyncItems.length > 0 && (
-                <button
-                  onClick={handleSync}
-                  disabled={!isOnline || isSyncing}
-                  className={`flex items-center space-x-1 rounded-md px-2 py-1 text-xs transition-colors ${
-                    isOnline && !isSyncing
-                      ? 'bg-orange-100 text-orange-800 hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-300'
-                      : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
-                  }`}
-                >
-                  <RefreshCw className={`h-3 w-3 ${isSyncing ? 'animate-spin' : ''}`} />
-                  <span>{pendingSyncItems.length} pending</span>
-                </button>
-              )}
             </div>
 
             {/* User Info with Dropdown */}
@@ -181,9 +168,9 @@ export function Layout() {
                     <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</div>
                   </div>
                 </div>
-                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium flex-shrink-0 ml-2 ${getPlanBadgeColor(user.plan)}`}>
-                  {user.plan === 'pro' && <Crown className="mr-1 h-3 w-3" />}
-                  {getPlanDisplayName(user.plan)}
+                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium flex-shrink-0 ml-2 ${getPlanBadgeColor(effectivePlan)}`}>
+                  {effectivePlan === 'pro' && <Crown className="mr-1 h-3 w-3" />}
+                  {inFreeTrial ? 'Trial' : getPlanDisplayName(user.plan)}
                 </span>
               </button>
 
@@ -202,7 +189,7 @@ export function Layout() {
                     <span>Profile Settings</span>
                   </Link>
                   
-                  {user.plan !== 'pro' && (
+                  {!inFreeTrial && user.plan !== 'pro' && (
                     <Link
                       to="/pricing"
                       className="flex items-center space-x-2 px-3 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
@@ -245,20 +232,6 @@ export function Layout() {
           </button>
           <h1 className="text-lg font-semibold text-gray-900 dark:text-white">BizManager</h1>
           <div className="flex items-center space-x-2">
-            {/* Mobile sync indicator */}
-            {pendingSyncItems.length > 0 && (
-              <button
-                onClick={handleSync}
-                disabled={!isOnline || isSyncing}
-                className={`rounded-md p-1 ${
-                  isOnline && !isSyncing
-                    ? 'text-orange-600 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-900/20'
-                    : 'text-gray-400 dark:text-gray-500'
-                }`}
-              >
-                <RefreshCw className={`h-5 w-5 ${isSyncing ? 'animate-spin' : ''}`} />
-              </button>
-            )}
             <ThemeToggle />
           </div>
         </div>
@@ -266,21 +239,13 @@ export function Layout() {
         {/* Desktop header with theme toggle */}
         <div className="hidden lg:flex items-center justify-between border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-6 py-3">
           <div className="flex items-center space-x-4">
-            {/* Desktop sync status */}
-            {pendingSyncItems.length > 0 && (
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={handleSync}
-                  disabled={!isOnline || isSyncing}
-                  className={`flex items-center space-x-2 rounded-lg px-3 py-1.5 text-sm transition-colors ${
-                    isOnline && !isSyncing
-                      ? 'bg-orange-100 text-orange-800 hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-300'
-                      : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
-                  }`}
-                >
-                  <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
-                  <span>{pendingSyncItems.length} items pending sync</span>
-                </button>
+            {/* Trial expiry warning */}
+            {inFreeTrial && user.subscriptionExpiry && (
+              <div className="flex items-center space-x-2 text-sm text-orange-600 dark:text-orange-400">
+                <Crown className="h-4 w-4" />
+                <span>
+                  Trial expires {user.subscriptionExpiry.toLocaleDateString()}
+                </span>
               </div>
             )}
           </div>
@@ -292,7 +257,7 @@ export function Layout() {
           <div className="bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-200 dark:border-yellow-800 px-4 py-2">
             <div className="flex items-center justify-center space-x-2 text-sm text-yellow-800 dark:text-yellow-300">
               <WifiOff className="h-4 w-4" />
-              <span>You're offline. Changes will sync when connection is restored.</span>
+              <span>You're offline. Changes will be saved locally.</span>
             </div>
           </div>
         )}

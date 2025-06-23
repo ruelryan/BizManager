@@ -1,7 +1,7 @@
 import React from 'react';
-import { User, Mail, Crown, Save, ArrowLeft, Globe, Building } from 'lucide-react';
+import { User, Mail, Crown, Save, ArrowLeft, Globe, Building, Calendar, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useStore } from '../store/useStore';
+import { useStore, isInFreeTrial } from '../store/useStore';
 import { plans } from '../utils/plans';
 
 const currencies = [
@@ -66,6 +66,7 @@ export function Profile() {
 
   const currentPlan = plans.find(p => p.id === user?.plan);
   const selectedCurrency = currencies.find(c => c.code === formData.currency);
+  const inFreeTrial = user ? isInFreeTrial(user) : false;
 
   return (
     <div className="space-y-6 p-6">
@@ -247,6 +248,29 @@ export function Profile() {
 
         {/* Plan Information */}
         <div className="space-y-6">
+          {/* Free Trial Status */}
+          {inFreeTrial && (
+            <div className="rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 p-6 text-white">
+              <div className="flex items-center mb-3">
+                <Crown className="h-6 w-6 mr-2" />
+                <h3 className="text-lg font-semibold">Free Trial Active</h3>
+              </div>
+              <div className="space-y-2 text-sm opacity-90">
+                <div className="flex items-center">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  <span>Expires: {user?.subscriptionExpiry?.toLocaleDateString()}</span>
+                </div>
+                <p>You have access to all Pro features during your trial period.</p>
+              </div>
+              <button
+                onClick={() => navigate('/pricing')}
+                className="mt-4 w-full rounded-lg bg-white/20 px-4 py-2 text-white font-medium hover:bg-white/30 transition-colors"
+              >
+                Upgrade Before Trial Ends
+              </button>
+            </div>
+          )}
+
           {/* Current Plan */}
           <div className="rounded-xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-200 dark:border-gray-700">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Current Plan</h3>
@@ -291,7 +315,7 @@ export function Profile() {
               </div>
             </div>
 
-            {user?.plan !== 'pro' && (
+            {!inFreeTrial && user?.plan !== 'pro' && (
               <div className="mt-6">
                 <button
                   onClick={() => navigate('/pricing')}
@@ -372,6 +396,26 @@ export function Profile() {
                 className="mt-3 w-full rounded-lg bg-yellow-600 px-4 py-2 text-white text-sm font-medium hover:bg-yellow-700 transition-colors"
               >
                 Create Real Account
+              </button>
+            </div>
+          )}
+
+          {/* Trial Expiry Warning */}
+          {inFreeTrial && user?.subscriptionExpiry && (
+            <div className="rounded-xl bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 p-6">
+              <div className="flex items-center mb-2">
+                <AlertCircle className="h-5 w-5 text-orange-600 dark:text-orange-400 mr-2" />
+                <h3 className="text-sm font-semibold text-orange-800 dark:text-orange-300">Trial Ending Soon</h3>
+              </div>
+              <p className="text-xs text-orange-700 dark:text-orange-400 mb-3">
+                Your free trial will end on {user.subscriptionExpiry.toLocaleDateString()}. 
+                After that, you'll be moved to the Free plan with limited features.
+              </p>
+              <button
+                onClick={() => navigate('/pricing')}
+                className="w-full rounded-lg bg-orange-600 px-4 py-2 text-white text-sm font-medium hover:bg-orange-700 transition-colors"
+              >
+                Upgrade to Keep All Features
               </button>
             </div>
           )}

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Crown, Lock } from 'lucide-react';
-import { useStore } from '../store/useStore';
+import { useStore, getEffectivePlan } from '../store/useStore';
 import { canAccessFeature } from '../utils/plans';
 
 interface FeatureGateProps {
@@ -13,7 +13,14 @@ interface FeatureGateProps {
 export function FeatureGate({ feature, children, fallback }: FeatureGateProps) {
   const { user } = useStore();
   
-  if (!user || !canAccessFeature(user.plan, feature)) {
+  if (!user) {
+    return null;
+  }
+
+  const effectivePlan = getEffectivePlan(user);
+  const hasAccess = canAccessFeature(effectivePlan, feature);
+  
+  if (!hasAccess) {
     return (
       fallback || (
         <div className="rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 p-8 text-center">
