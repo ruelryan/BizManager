@@ -1,6 +1,6 @@
 import React from 'react';
 import { format } from 'date-fns';
-import { Plus, Search, Edit, Trash2, Receipt, DollarSign, ChevronDown } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Receipt, DollarSign, ChevronDown, AlertTriangle } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { Expense } from '../types';
 
@@ -10,6 +10,8 @@ export function Expenses() {
   const [editingExpense, setEditingExpense] = React.useState<Expense | null>(null);
   const [searchTerm, setSearchTerm] = React.useState('');
   const [filterCategory, setFilterCategory] = React.useState<string>('all');
+  const [deleteConfirm, setDeleteConfirm] = React.useState<string | null>(null);
+  const [deleteCountdown, setDeleteCountdown] = React.useState<number>(0);
 
   // Get unique categories
   const categories = getExpenseCategories();
@@ -21,6 +23,32 @@ export function Expenses() {
     const matchesFilter = filterCategory === 'all' || expense.category === filterCategory;
     return matchesSearch && matchesFilter;
   });
+
+  // Handle delete with confirmation and countdown
+  const handleDeleteExpense = (id: string) => {
+    if (deleteConfirm === id) {
+      // Second click - actually delete
+      deleteExpense(id);
+      setDeleteConfirm(null);
+      setDeleteCountdown(0);
+    } else {
+      // First click - start confirmation
+      setDeleteConfirm(id);
+      setDeleteCountdown(5);
+      
+      // Start countdown
+      const interval = setInterval(() => {
+        setDeleteCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            setDeleteConfirm(null);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+  };
 
   const ExpenseForm = ({ expense, onClose }: { expense?: Expense; onClose: () => void }) => {
     const [formData, setFormData] = React.useState({
@@ -329,11 +357,22 @@ export function Expenses() {
                         <Edit className="h-4 w-4" />
                       </button>
                       <button 
-                        onClick={() => deleteExpense(expense.id)}
-                        className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300"
-                        title="Delete Expense"
+                        onClick={() => handleDeleteExpense(expense.id)}
+                        className={`relative transition-colors ${
+                          deleteConfirm === expense.id
+                            ? 'text-red-600 dark:text-red-400'
+                            : 'text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400'
+                        }`}
+                        title={deleteConfirm === expense.id ? `Click again to confirm (${deleteCountdown}s)` : 'Delete Expense'}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        {deleteConfirm === expense.id ? (
+                          <div className="flex items-center space-x-1">
+                            <AlertTriangle className="h-4 w-4" />
+                            <span className="text-xs font-medium">{deleteCountdown}</span>
+                          </div>
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
                       </button>
                     </div>
                   </td>

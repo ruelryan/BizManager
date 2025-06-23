@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, Crown, Star, ArrowRight, AlertCircle } from 'lucide-react';
+import { Check, Crown, Star, ArrowRight, AlertCircle, Home } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { plans } from '../utils/plans';
 import { useStore } from '../store/useStore';
@@ -65,8 +65,15 @@ export function Pricing() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors duration-200">
-      {/* Theme Toggle */}
-      <div className="absolute top-4 right-4">
+      {/* Header with Navigation */}
+      <div className="flex items-center justify-between p-4">
+        <Link
+          to="/"
+          className="flex items-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300 transition-colors"
+        >
+          <Home className="mr-2 h-5 w-5" />
+          <span>Back to Dashboard</span>
+        </Link>
         <ThemeToggle />
       </div>
 
@@ -238,7 +245,7 @@ export function Pricing() {
             </div>
             
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-400 mb-2">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                 What payment methods do you accept?
               </h3>
               <p className="text-gray-600 dark:text-gray-400">

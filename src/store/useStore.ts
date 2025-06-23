@@ -1,1239 +1,176 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import localforage from 'localforage';
+import { supabase, handleSupabaseError, transformSupabaseData, transformToSupabaseData } from '../lib/supabase';
 import { User, Product, Sale, InventoryTransaction, Expense, UserSettings } from '../types';
-import { supabase, handleSupabaseError, transformSupabaseData, transformToSupabaseData, getCurrentUserId } from '../lib/supabase';
 
-// Configure localforage
-localforage.config({
-  name: 'BizManager',
-  storeName: 'bizmanager_data',
-  description: 'BizManager offline data storage'
-});
-
-interface SyncItem {
-  id: string;
-  type: 'product' | 'sale' | 'inventory' | 'expense' | 'settings';
-  action: 'create' | 'update' | 'delete';
-  data: any;
-  timestamp: number;
-  retryCount?: number;
-}
-
-interface Store {
-  // User state
+interface StoreState {
+  // Auth
   user: User | null;
-  setUser: (user: User | null) => void;
-  updateUserProfile: (updates: Partial<User>) => Promise<void>;
-  
-  // Loading states
   isLoading: boolean;
-  setLoading: (loading: boolean) => void;
   
-  // Products
+  // Data
   products: Product[];
-  addProduct: (product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
-  updateProduct: (id: string, updates: Partial<Product>) => Promise<void>;
-  deleteProduct: (id: string) => Promise<void>;
-  getProductCategories: () => string[];
-  
-  // Sales
   sales: Sale[];
-  addSale: (sale: Omit<Sale, 'id'>) => Promise<void>;
-  updateSale: (id: string, updates: Partial<Sale>) => Promise<void>;
-  deleteSale: (id: string) => Promise<void>;
-  
-  // Inventory
   inventoryTransactions: InventoryTransaction[];
-  addInventoryTransaction: (transaction: Omit<InventoryTransaction, 'id'>) => Promise<void>;
-  
-  // Expenses
   expenses: Expense[];
-  addExpense: (expense: Omit<Expense, 'id'>) => Promise<void>;
-  updateExpense: (id: string, updates: Partial<Expense>) => Promise<void>;
-  deleteExpense: (id: string) => Promise<void>;
-  getExpenseCategories: () => string[];
+  userSettings: UserSettings | null;
+  
+  // Offline sync
+  isOnline: boolean;
+  pendingSyncItems: any[];
   
   // Settings
-  userSettings: UserSettings | null;
-  updateUserSettings: (updates: Partial<UserSettings>) => Promise<void>;
-  
-  // Legacy settings for backward compatibility
   monthlyGoal: number;
-  setMonthlyGoal: (goal: number) => Promise<void>;
   
-  // Offline state
-  isOnline: boolean;
-  setOnlineStatus: (status: boolean) => void;
-  pendingSyncItems: SyncItem[];
-  addPendingSyncItem: (item: SyncItem) => void;
-  removePendingSyncItem: (id: string) => void;
-  
-  // Data management
-  fetchInitialData: () => Promise<void>;
-  syncData: () => Promise<void>;
-  clearAllData: () => void;
-  loadDemoData: () => Promise<void>;
-  shouldSkipSync: (item: SyncItem) => boolean;
-  syncItem: (item: SyncItem) => Promise<void>;
-  exportReportData: () => string;
-  
-  // Auth
+  // Actions
   signIn: (email: string, password: string, plan?: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signInWithFacebook: () => Promise<void>;
   signUp: (email: string, password: string, name: string) => Promise<void>;
   signOut: () => Promise<void>;
+  setUser: (user: User) => void;
+  
+  // Product actions
+  addProduct: (product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  updateProduct: (id: string, product: Partial<Product>) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
+  getProductCategories: () => string[];
+  
+  // Sale actions
+  addSale: (sale: Omit<Sale, 'id'>) => Promise<void>;
+  updateSale: (id: string, sale: Partial<Sale>) => Promise<void>;
+  deleteSale: (id: string) => Promise<void>;
+  
+  // Inventory actions
+  addInventoryTransaction: (transaction: Omit<InventoryTransaction, 'id'>) => Promise<void>;
+  
+  // Expense actions
+  addExpense: (expense: Omit<Expense, 'id'>) => Promise<void>;
+  updateExpense: (id: string, expense: Partial<Expense>) => Promise<void>;
+  deleteExpense: (id: string) => Promise<void>;
+  getExpenseCategories: () => string[];
+  
+  // Settings actions
+  setMonthlyGoal: (goal: number) => void;
+  updateUserProfile: (data: Partial<User>) => Promise<void>;
+  updateUserSettings: (settings: Partial<UserSettings>) => Promise<void>;
+  
+  // Sync actions
+  syncData: () => Promise<void>;
+  setOnlineStatus: (status: boolean) => void;
+  
+  // Utility actions
+  exportReportData: () => string;
+  loadData: () => Promise<void>;
 }
 
-// UUID validation function
-const isValidUUID = (str: string): boolean => {
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  return uuidRegex.test(str);
-};
+// Configure localforage for offline storage
+localforage.config({
+  name: 'BizManager',
+  storeName: 'offline_data',
+});
 
-// Check if an ID is a demo ID (starts with 'demo-')
-const isDemoId = (id: string): boolean => {
-  return id.startsWith('demo-');
-};
-
-// Check if user is demo user
-const isDemoUser = (user: User | null): boolean => {
-  return user?.id === 'demo-user-id' || user?.email === 'demo@businessmanager.com';
-};
-
-// Date reviver function to convert ISO strings back to Date objects
-const dateReviver = (key: string, value: any) => {
-  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value)) {
-    return new Date(value);
-  }
-  return value;
-};
-
-// Custom storage implementation using localforage with proper date handling
-const localforageStorage = {
-  getItem: async (name: string) => {
-    try {
-      const value = await localforage.getItem(name);
-      if (value) {
-        return JSON.stringify(value, null, 0);
-      }
-      return null;
-    } catch (error) {
-      console.error('Error getting item from localforage:', error);
-      return null;
-    }
-  },
-  setItem: async (name: string, value: string) => {
-    try {
-      const parsedValue = JSON.parse(value, dateReviver);
-      await localforage.setItem(name, parsedValue);
-    } catch (error) {
-      console.error('Error setting item in localforage:', error);
-    }
-  },
-  removeItem: async (name: string) => {
-    try {
-      await localforage.removeItem(name);
-    } catch (error) {
-      console.error('Error removing item from localforage:', error);
-    }
-  },
-};
-
-export const useStore = create<Store>()(
+const useStore = create<StoreState>()(
   persist(
     (set, get) => ({
-      // User state
+      // Initial state
       user: null,
-      setUser: (user) => set({ user }),
-      
-      updateUserProfile: async (updates) => {
-        const currentUser = get().user;
-        if (!currentUser) return;
-
-        // Update local state immediately
-        const updatedUser = { ...currentUser, ...updates };
-        set({ user: updatedUser });
-
-        // Skip Supabase operations for demo user
-        if (isDemoUser(currentUser)) {
-          return;
-        }
-
-        try {
-          if (get().isOnline) {
-            const { error } = await supabase.auth.updateUser({
-              data: {
-                name: updatedUser.name,
-                plan: updatedUser.plan,
-              }
-            });
-            
-            if (error) throw error;
-            console.log('User profile successfully updated');
-          } else {
-            // Add to pending sync only when offline
-            get().addPendingSyncItem({
-              id: `user-profile-${Date.now()}`,
-              type: 'settings',
-              action: 'update',
-              data: { userProfile: updates },
-              timestamp: Date.now(),
-            });
-          }
-        } catch (error) {
-          console.error('Failed to update user profile:', error);
-          // Add to pending sync for retry
-          get().addPendingSyncItem({
-            id: `user-profile-${Date.now()}`,
-            type: 'settings',
-            action: 'update',
-            data: { userProfile: updates },
-            timestamp: Date.now(),
-          });
-        }
-      },
-      
-      // Loading states
       isLoading: false,
-      setLoading: (loading) => set({ isLoading: loading }),
-      
-      // Products
       products: [],
-      addProduct: async (productData) => {
-        const newProduct: Product = {
-          ...productData,
-          id: crypto.randomUUID(),
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-        
-        // Update local state immediately
-        set((state) => ({ products: [...state.products, newProduct] }));
-        
-        // Skip Supabase operations for demo user
-        if (isDemoUser(get().user)) {
-          return;
-        }
-        
-        try {
-          if (get().isOnline) {
-            const userId = await getCurrentUserId();
-            const { error } = await supabase
-              .from('products')
-              .insert(transformToSupabaseData.product(newProduct, userId));
-            
-            if (error) throw error;
-            console.log('Product successfully saved to database');
-          } else {
-            // Add to pending sync only when offline
-            console.log('Offline: Adding product to pending sync');
-            get().addPendingSyncItem({
-              id: newProduct.id,
-              type: 'product',
-              action: 'create',
-              data: newProduct,
-              timestamp: Date.now(),
-            });
-          }
-        } catch (error) {
-          console.error('Failed to add product:', error);
-          // Add to pending sync for retry
-          get().addPendingSyncItem({
-            id: newProduct.id,
-            type: 'product',
-            action: 'create',
-            data: newProduct,
-            timestamp: Date.now(),
-          });
-        }
-      },
-      
-      updateProduct: async (id, updates) => {
-        const updatedProduct = { ...updates, updatedAt: new Date() };
-        
-        // Update local state immediately
-        set((state) => ({
-          products: state.products.map((product) =>
-            product.id === id ? { ...product, ...updatedProduct } : product
-          ),
-        }));
-        
-        // Skip Supabase operations for demo user or demo data
-        if (isDemoUser(get().user) || isDemoId(id)) {
-          return;
-        }
-        
-        try {
-          if (get().isOnline) {
-            const userId = await getCurrentUserId();
-            const { error } = await supabase
-              .from('products')
-              .update(transformToSupabaseData.product(updatedProduct, userId))
-              .eq('id', id);
-            
-            if (error) throw error;
-            console.log('Product successfully updated in database');
-          } else {
-            // Add to pending sync only when offline
-            console.log('Offline: Adding product update to pending sync');
-            get().addPendingSyncItem({
-              id: `${id}-${Date.now()}`,
-              type: 'product',
-              action: 'update',
-              data: { id, updates: updatedProduct },
-              timestamp: Date.now(),
-            });
-          }
-        } catch (error) {
-          console.error('Failed to update product:', error);
-          // Add to pending sync for retry
-          get().addPendingSyncItem({
-            id: `${id}-${Date.now()}`,
-            type: 'product',
-            action: 'update',
-            data: { id, updates: updatedProduct },
-            timestamp: Date.now(),
-          });
-        }
-      },
-      
-      deleteProduct: async (id) => {
-        // Update local state immediately
-        set((state) => ({
-          products: state.products.filter((product) => product.id !== id),
-        }));
-        
-        // Skip Supabase operations for demo user or demo data
-        if (isDemoUser(get().user) || isDemoId(id)) {
-          return;
-        }
-        
-        try {
-          if (get().isOnline) {
-            const { error } = await supabase
-              .from('products')
-              .delete()
-              .eq('id', id);
-            
-            if (error) throw error;
-            console.log('Product successfully deleted from database');
-          } else {
-            // Add to pending sync only when offline
-            console.log('Offline: Adding product deletion to pending sync');
-            get().addPendingSyncItem({
-              id: `${id}-delete-${Date.now()}`,
-              type: 'product',
-              action: 'delete',
-              data: { id },
-              timestamp: Date.now(),
-            });
-          }
-        } catch (error) {
-          console.error('Failed to delete product:', error);
-          // Add to pending sync for retry
-          get().addPendingSyncItem({
-            id: `${id}-delete-${Date.now()}`,
-            type: 'product',
-            action: 'delete',
-            data: { id },
-            timestamp: Date.now(),
-          });
-        }
-      },
-
-      getProductCategories: () => {
-        const categories = get().products.map(product => product.category);
-        return [...new Set(categories)].filter(Boolean).sort();
-      },
-      
-      // Sales
       sales: [],
-      addSale: async (saleData) => {
-        const newSale: Sale = {
-          ...saleData,
-          id: crypto.randomUUID(),
-          invoiceNumber: `INV-${String(get().sales.length + 1).padStart(3, '0')}`,
-        };
-        
-        // Check stock availability and prevent negative stock
-        const stockErrors: string[] = [];
-        saleData.items.forEach((item) => {
-          const product = get().products.find((p) => p.id === item.productId);
-          if (product && product.currentStock < item.quantity) {
-            stockErrors.push(`${product.name} has only ${product.currentStock} units in stock`);
-          }
-        });
-
-        if (stockErrors.length > 0) {
-          throw new Error(`Stock Error:\n${stockErrors.join('\n')}`);
-        }
-        
-        // Update local state immediately
-        set((state) => ({ sales: [...state.sales, newSale] }));
-        
-        // Update product stock only if sufficient stock is available
-        saleData.items.forEach((item) => {
-          const product = get().products.find((p) => p.id === item.productId);
-          if (product && product.currentStock >= item.quantity) {
-            get().updateProduct(item.productId, {
-              currentStock: Math.max(0, product.currentStock - item.quantity),
-            });
-          }
-        });
-        
-        // Skip Supabase operations for demo user
-        if (isDemoUser(get().user)) {
-          return;
-        }
-        
-        try {
-          if (get().isOnline) {
-            const userId = await getCurrentUserId();
-            const { error } = await supabase
-              .from('sales')
-              .insert(transformToSupabaseData.sale(newSale, userId));
-            
-            if (error) throw error;
-            console.log('Sale successfully saved to database');
-          } else {
-            // Add to pending sync only when offline
-            console.log('Offline: Adding sale to pending sync');
-            get().addPendingSyncItem({
-              id: newSale.id,
-              type: 'sale',
-              action: 'create',
-              data: newSale,
-              timestamp: Date.now(),
-            });
-          }
-        } catch (error) {
-          console.error('Failed to add sale:', error);
-          // Add to pending sync for retry
-          get().addPendingSyncItem({
-            id: newSale.id,
-            type: 'sale',
-            action: 'create',
-            data: newSale,
-            timestamp: Date.now(),
-          });
-        }
-      },
-      
-      updateSale: async (id, updates) => {
-        // Update local state immediately
-        set((state) => ({
-          sales: state.sales.map((sale) => (sale.id === id ? { ...sale, ...updates } : sale)),
-        }));
-        
-        // Skip Supabase operations for demo user or demo data
-        if (isDemoUser(get().user) || isDemoId(id)) {
-          return;
-        }
-        
-        try {
-          if (get().isOnline) {
-            const userId = await getCurrentUserId();
-            const { error } = await supabase
-              .from('sales')
-              .update(transformToSupabaseData.sale(updates, userId))
-              .eq('id', id);
-            
-            if (error) throw error;
-            console.log('Sale successfully updated in database');
-          } else {
-            // Add to pending sync only when offline
-            console.log('Offline: Adding sale update to pending sync');
-            get().addPendingSyncItem({
-              id: `${id}-${Date.now()}`,
-              type: 'sale',
-              action: 'update',
-              data: { id, updates },
-              timestamp: Date.now(),
-            });
-          }
-        } catch (error) {
-          console.error('Failed to update sale:', error);
-          // Add to pending sync for retry
-          get().addPendingSyncItem({
-            id: `${id}-${Date.now()}`,
-            type: 'sale',
-            action: 'update',
-            data: { id, updates },
-            timestamp: Date.now(),
-          });
-        }
-      },
-
-      deleteSale: async (id) => {
-        const sale = get().sales.find(s => s.id === id);
-        
-        // Update local state immediately
-        set((state) => ({
-          sales: state.sales.filter((sale) => sale.id !== id),
-        }));
-        
-        // Restore product stock if sale is being deleted
-        if (sale) {
-          sale.items.forEach((item) => {
-            const product = get().products.find((p) => p.id === item.productId);
-            if (product) {
-              get().updateProduct(item.productId, {
-                currentStock: product.currentStock + item.quantity,
-              });
-            }
-          });
-        }
-        
-        // Skip Supabase operations for demo user or demo data
-        if (isDemoUser(get().user) || isDemoId(id)) {
-          return;
-        }
-        
-        try {
-          if (get().isOnline) {
-            const { error } = await supabase
-              .from('sales')
-              .delete()
-              .eq('id', id);
-            
-            if (error) throw error;
-            console.log('Sale successfully deleted from database');
-          } else {
-            // Add to pending sync only when offline
-            console.log('Offline: Adding sale deletion to pending sync');
-            get().addPendingSyncItem({
-              id: `${id}-delete-${Date.now()}`,
-              type: 'sale',
-              action: 'delete',
-              data: { id },
-              timestamp: Date.now(),
-            });
-          }
-        } catch (error) {
-          console.error('Failed to delete sale:', error);
-          // Add to pending sync for retry
-          get().addPendingSyncItem({
-            id: `${id}-delete-${Date.now()}`,
-            type: 'sale',
-            action: 'delete',
-            data: { id },
-            timestamp: Date.now(),
-          });
-        }
-      },
-      
-      // Inventory
       inventoryTransactions: [],
-      addInventoryTransaction: async (transactionData) => {
-        const newTransaction: InventoryTransaction = {
-          ...transactionData,
-          id: crypto.randomUUID(),
-        };
-        
-        // Update local state immediately
-        set((state) => ({
-          inventoryTransactions: [...state.inventoryTransactions, newTransaction],
-        }));
-        
-        // Update product stock
-        const product = get().products.find((p) => p.id === transactionData.productId);
-        if (product) {
-          const stockChange = transactionData.type === 'stock-in' 
-            ? transactionData.quantity 
-            : -transactionData.quantity;
-          get().updateProduct(transactionData.productId, {
-            currentStock: Math.max(0, product.currentStock + stockChange),
-          });
-        }
-        
-        // Skip Supabase operations for demo user
-        if (isDemoUser(get().user)) {
-          return;
-        }
-        
-        // Note: Inventory transactions would need their own table in Supabase
-        // For now, we'll just store them locally
-        if (!get().isOnline) {
-          console.log('Offline: Adding inventory transaction to pending sync');
-          get().addPendingSyncItem({
-            id: newTransaction.id,
-            type: 'inventory',
-            action: 'create',
-            data: newTransaction,
-            timestamp: Date.now(),
-          });
-        }
-      },
-      
-      // Expenses
       expenses: [],
-      addExpense: async (expenseData) => {
-        const newExpense: Expense = {
-          ...expenseData,
-          id: crypto.randomUUID(),
-        };
-        
-        // Update local state immediately
-        set((state) => ({ expenses: [...state.expenses, newExpense] }));
-        
-        // Skip Supabase operations for demo user
-        if (isDemoUser(get().user)) {
-          return;
-        }
-        
-        try {
-          if (get().isOnline) {
-            const userId = await getCurrentUserId();
-            const { error } = await supabase
-              .from('expenses')
-              .insert(transformToSupabaseData.expense(newExpense, userId));
-            
-            if (error) throw error;
-            console.log('Expense successfully saved to database');
-          } else {
-            // Add to pending sync only when offline
-            console.log('Offline: Adding expense to pending sync');
-            get().addPendingSyncItem({
-              id: newExpense.id,
-              type: 'expense',
-              action: 'create',
-              data: newExpense,
-              timestamp: Date.now(),
-            });
-          }
-        } catch (error) {
-          console.error('Failed to add expense:', error);
-          // Add to pending sync for retry
-          get().addPendingSyncItem({
-            id: newExpense.id,
-            type: 'expense',
-            action: 'create',
-            data: newExpense,
-            timestamp: Date.now(),
-          });
-        }
-      },
-      
-      updateExpense: async (id, updates) => {
-        // Update local state immediately
-        set((state) => ({
-          expenses: state.expenses.map((expense) => (expense.id === id ? { ...expense, ...updates } : expense)),
-        }));
-        
-        // Skip Supabase operations for demo user or demo data
-        if (isDemoUser(get().user) || isDemoId(id)) {
-          return;
-        }
-        
-        try {
-          if (get().isOnline) {
-            const userId = await getCurrentUserId();
-            const { error } = await supabase
-              .from('expenses')
-              .update(transformToSupabaseData.expense(updates, userId))
-              .eq('id', id);
-            
-            if (error) throw error;
-            console.log('Expense successfully updated in database');
-          } else {
-            // Add to pending sync only when offline
-            console.log('Offline: Adding expense update to pending sync');
-            get().addPendingSyncItem({
-              id: `${id}-${Date.now()}`,
-              type: 'expense',
-              action: 'update',
-              data: { id, updates },
-              timestamp: Date.now(),
-            });
-          }
-        } catch (error) {
-          console.error('Failed to update expense:', error);
-          // Add to pending sync for retry
-          get().addPendingSyncItem({
-            id: `${id}-${Date.now()}`,
-            type: 'expense',
-            action: 'update',
-            data: { id, updates },
-            timestamp: Date.now(),
-          });
-        }
-      },
-      
-      deleteExpense: async (id) => {
-        // Update local state immediately
-        set((state) => ({
-          expenses: state.expenses.filter((expense) => expense.id !== id),
-        }));
-        
-        // Skip Supabase operations for demo user or demo data
-        if (isDemoUser(get().user) || isDemoId(id)) {
-          return;
-        }
-        
-        try {
-          if (get().isOnline) {
-            const { error } = await supabase
-              .from('expenses')
-              .delete()
-              .eq('id', id);
-            
-            if (error) throw error;
-            console.log('Expense successfully deleted from database');
-          } else {
-            // Add to pending sync only when offline
-            console.log('Offline: Adding expense deletion to pending sync');
-            get().addPendingSyncItem({
-              id: `${id}-delete-${Date.now()}`,
-              type: 'expense',
-              action: 'delete',
-              data: { id },
-              timestamp: Date.now(),
-            });
-          }
-        } catch (error) {
-          console.error('Failed to delete expense:', error);
-          // Add to pending sync for retry
-          get().addPendingSyncItem({
-            id: `${id}-delete-${Date.now()}`,
-            type: 'expense',
-            action: 'delete',
-            data: { id },
-            timestamp: Date.now(),
-          });
-        }
-      },
-
-      getExpenseCategories: () => {
-        const categories = get().expenses.map(expense => expense.category);
-        return [...new Set(categories)].filter(Boolean).sort();
-      },
-      
-      // Settings
       userSettings: null,
-      updateUserSettings: async (updates) => {
-        const currentSettings = get().userSettings;
-        const updatedSettings = currentSettings 
-          ? { ...currentSettings, ...updates }
-          : { 
-              id: crypto.randomUUID(),
-              userId: get().user?.id || '',
-              monthlyGoal: 50000,
-              currency: 'PHP',
-              ...updates 
-            };
-
-        // Update local state immediately
-        set({ userSettings: updatedSettings });
-
-        // Also update legacy monthlyGoal for backward compatibility
-        if (updates.monthlyGoal !== undefined) {
-          set({ monthlyGoal: updates.monthlyGoal });
-        }
-
-        // Skip Supabase operations for demo user
-        if (isDemoUser(get().user)) {
-          return;
-        }
-
-        try {
-          if (get().isOnline) {
-            const userId = await getCurrentUserId();
-            const { error } = await supabase
-              .from('user_settings')
-              .upsert(transformToSupabaseData.userSettings(updatedSettings, userId));
-            
-            if (error) throw error;
-            console.log('User settings successfully saved to database');
-          } else {
-            // Add to pending sync only when offline
-            console.log('Offline: Adding settings update to pending sync');
-            get().addPendingSyncItem({
-              id: `settings-${Date.now()}`,
-              type: 'settings',
-              action: 'update',
-              data: updatedSettings,
-              timestamp: Date.now(),
-            });
-          }
-        } catch (error) {
-          console.error('Failed to update user settings:', error);
-          // Add to pending sync for retry
-          get().addPendingSyncItem({
-            id: `settings-${Date.now()}`,
-            type: 'settings',
-            action: 'update',
-            data: updatedSettings,
-            timestamp: Date.now(),
-          });
-        }
-      },
-      
-      // Legacy settings for backward compatibility
-      monthlyGoal: 50000,
-      setMonthlyGoal: async (goal) => {
-        set({ monthlyGoal: goal });
-        await get().updateUserSettings({ monthlyGoal: goal });
-      },
-      
-      // Offline state
       isOnline: navigator.onLine,
-      setOnlineStatus: (status) => {
-        const wasOffline = !get().isOnline;
-        set({ isOnline: status });
-        
-        // Trigger sync when coming back online
-        if (status && wasOffline && get().pendingSyncItems.length > 0) {
-          console.log('Coming back online, triggering sync...');
-          setTimeout(() => {
-            get().syncData();
-          }, 1000); // Small delay to ensure connection is stable
-        }
-      },
       pendingSyncItems: [],
-      addPendingSyncItem: (item) => {
-        // Don't add to pending sync if user is demo user
-        if (isDemoUser(get().user)) {
-          console.log('Skipping pending sync for demo user');
-          return;
-        }
-        
-        console.log('Adding item to pending sync:', item.type, item.action);
-        set((state) => ({
-          pendingSyncItems: [...state.pendingSyncItems, item],
-        }));
-      },
-      removePendingSyncItem: (id) => {
-        console.log('Removing item from pending sync:', id);
-        set((state) => ({
-          pendingSyncItems: state.pendingSyncItems.filter((item) => item.id !== id),
-        }));
-      },
-      
-      // Data management
-      fetchInitialData: async () => {
-        if (!get().isOnline || isDemoUser(get().user)) return;
-        
+      monthlyGoal: 50000,
+
+      // Auth actions
+      signIn: async (email: string, password: string, plan = 'free') => {
         set({ isLoading: true });
-        
         try {
-          const userId = await getCurrentUserId();
-          if (!userId) {
-            set({ isLoading: false });
-            return;
-          }
-
-          console.log('Fetching initial data for user:', userId);
-
-          // Fetch user's products
-          const { data: productsData, error: productsError } = await supabase
-            .from('products')
-            .select('*')
-            .eq('user_id', userId)
-            .eq('is_active', true)
-            .order('created_at', { ascending: false });
-          
-          if (productsError) throw productsError;
-          
-          // Fetch user's sales
-          const { data: salesData, error: salesError } = await supabase
-            .from('sales')
-            .select('*')
-            .eq('user_id', userId)
-            .order('created_at', { ascending: false });
-          
-          if (salesError) throw salesError;
-
-          // Fetch user's expenses
-          const { data: expensesData, error: expensesError } = await supabase
-            .from('expenses')
-            .select('*')
-            .eq('user_id', userId)
-            .order('created_at', { ascending: false });
-          
-          // Don't throw error if expenses table doesn't exist yet
-          
-          // Fetch user settings
-          const { data: settingsData, error: settingsError } = await supabase
-            .from('user_settings')
-            .select('*')
-            .eq('user_id', userId)
-            .single();
-          
-          // Don't throw error if settings don't exist, we'll create them
-          
-          // Transform and set data
-          const transformedProducts = productsData?.map(transformSupabaseData.product) || [];
-          const transformedSales = salesData?.map(transformSupabaseData.sale) || [];
-          const transformedExpenses = expensesData?.map(transformSupabaseData.expense) || [];
-          const userSettings = settingsData ? transformSupabaseData.userSettings(settingsData) : null;
-          const monthlyGoal = userSettings?.monthlyGoal || 50000;
-          
-          set({
-            products: transformedProducts,
-            sales: transformedSales,
-            expenses: transformedExpenses,
-            userSettings,
-            monthlyGoal,
-            isLoading: false,
-          });
-          
-          console.log('Initial data fetched successfully');
-          
-        } catch (error) {
-          console.error('Failed to fetch initial data:', error);
-          set({ isLoading: false });
-        }
-      },
-      
-      // Sync functions
-      syncData: async () => {
-        const { pendingSyncItems, removePendingSyncItem, isOnline } = get();
-        
-        if (!isOnline || pendingSyncItems.length === 0 || isDemoUser(get().user)) {
-          console.log('Sync skipped:', { isOnline, pendingItems: pendingSyncItems.length, isDemoUser: isDemoUser(get().user) });
-          return;
-        }
-        
-        console.log(`Starting sync of ${pendingSyncItems.length} items...`);
-        
-        // Sort by timestamp to maintain order
-        const sortedItems = [...pendingSyncItems].sort((a, b) => a.timestamp - b.timestamp);
-        
-        let successCount = 0;
-        let failureCount = 0;
-        
-        for (const item of sortedItems) {
-          try {
-            // Skip demo data from syncing
-            const shouldSkipSync = get().shouldSkipSync(item);
-            
-            if (shouldSkipSync) {
-              console.log('Skipping sync for demo data:', item.id);
-              removePendingSyncItem(item.id);
-              continue;
-            }
-            
-            await get().syncItem(item);
-            removePendingSyncItem(item.id);
-            successCount++;
-            console.log(`Successfully synced ${item.type} ${item.action}:`, item.id);
-          } catch (error) {
-            console.error('Failed to sync item:', item, error);
-            failureCount++;
-            // Keep item in pending sync for retry
-          }
-        }
-        
-        console.log(`Sync completed: ${successCount} successful, ${failureCount} failed`);
-      },
-      
-      // Helper function to determine if sync should be skipped
-      shouldSkipSync: (item: SyncItem): boolean => {
-        // Skip if user is demo user
-        if (isDemoUser(get().user)) {
-          return true;
-        }
-        
-        // Skip if item involves demo data
-        if (item.type === 'product' || item.type === 'sale' || item.type === 'expense') {
-          if (item.action === 'create' && item.data?.id && isDemoId(item.data.id)) {
-            return true;
-          }
-          
-          if (item.action === 'update' && item.data?.id && isDemoId(item.data.id)) {
-            return true;
-          }
-          
-          if (item.action === 'delete' && item.data?.id && isDemoId(item.data.id)) {
-            return true;
-          }
-          
-          // Additional check for invalid UUIDs
-          const idToCheck = item.data?.id || (item.action === 'update' ? item.data?.id : null);
-          if (idToCheck && !isValidUUID(idToCheck)) {
-            return true;
-          }
-        }
-        
-        return false;
-      },
-      
-      syncItem: async (item: SyncItem) => {
-        const userId = await getCurrentUserId();
-        if (!userId) return;
-
-        switch (item.type) {
-          case 'product':
-            if (item.action === 'create') {
-              const { error } = await supabase
-                .from('products')
-                .insert(transformToSupabaseData.product(item.data, userId));
-              if (error) throw error;
-            } else if (item.action === 'update') {
-              const { error } = await supabase
-                .from('products')
-                .update(transformToSupabaseData.product(item.data.updates, userId))
-                .eq('id', item.data.id)
-                .eq('user_id', userId);
-              if (error) throw error;
-            } else if (item.action === 'delete') {
-              const { error } = await supabase
-                .from('products')
-                .delete()
-                .eq('id', item.data.id)
-                .eq('user_id', userId);
-              if (error) throw error;
-            }
-            break;
-            
-          case 'sale':
-            if (item.action === 'create') {
-              const { error } = await supabase
-                .from('sales')
-                .insert(transformToSupabaseData.sale(item.data, userId));
-              if (error) throw error;
-            } else if (item.action === 'update') {
-              const { error } = await supabase
-                .from('sales')
-                .update(transformToSupabaseData.sale(item.data.updates, userId))
-                .eq('id', item.data.id)
-                .eq('user_id', userId);
-              if (error) throw error;
-            } else if (item.action === 'delete') {
-              const { error } = await supabase
-                .from('sales')
-                .delete()
-                .eq('id', item.data.id)
-                .eq('user_id', userId);
-              if (error) throw error;
-            }
-            break;
-
-          case 'expense':
-            if (item.action === 'create') {
-              const { error } = await supabase
-                .from('expenses')
-                .insert(transformToSupabaseData.expense(item.data, userId));
-              if (error) throw error;
-            } else if (item.action === 'update') {
-              const { error } = await supabase
-                .from('expenses')
-                .update(transformToSupabaseData.expense(item.data.updates, userId))
-                .eq('id', item.data.id)
-                .eq('user_id', userId);
-              if (error) throw error;
-            } else if (item.action === 'delete') {
-              const { error } = await supabase
-                .from('expenses')
-                .delete()
-                .eq('id', item.data.id)
-                .eq('user_id', userId);
-              if (error) throw error;
-            }
-            break;
-            
-          case 'settings':
-            if (item.action === 'update') {
-              if (item.data.userProfile) {
-                const { error } = await supabase.auth.updateUser({
-                  data: item.data.userProfile
-                });
-                if (error) throw error;
-              }
-              if (item.data.monthlyGoal !== undefined || item.data.currency || item.data.businessName) {
-                const { error } = await supabase
-                  .from('user_settings')
-                  .upsert(transformToSupabaseData.userSettings(item.data, userId));
-                if (error) throw error;
-              }
-            }
-            break;
-            
-          // Add other sync cases as needed
-        }
-      },
-      
-      exportReportData: () => {
-        const { sales, products } = get();
-        const currency = get().userSettings?.currency || 'PHP';
-        const currencySymbol = currency === 'USD' ? '$' : currency === 'EUR' ? '€' : '₱';
-        
-        // Create CSV data
-        const headers = [
-          'Date',
-          'Invoice Number',
-          'Customer Name',
-          'Items',
-          `Total Amount (${currency})`,
-          'Payment Method',
-          'Status'
-        ];
-        
-        const rows = sales.map(sale => [
-          new Date(sale.date).toLocaleDateString(),
-          sale.invoiceNumber || 'N/A',
-          sale.customerName || 'Walk-in Customer',
-          sale.items.map(item => `${item.productName} (${item.quantity})`).join('; '),
-          `${currencySymbol}${sale.total.toLocaleString()}`,
-          sale.paymentType,
-          sale.status
-        ]);
-        
-        const csvContent = [headers, ...rows]
-          .map(row => row.map(cell => `"${cell}"`).join(','))
-          .join('\n');
-        
-        return csvContent;
-      },
-      
-      clearAllData: () => {
-        set({
-          products: [],
-          sales: [],
-          inventoryTransactions: [],
-          expenses: [],
-          pendingSyncItems: [],
-          userSettings: null,
-          monthlyGoal: 50000,
-        });
-      },
-      
-      // Auth
-      signIn: async (email: string, password: string, plan: string = 'free') => {
-        set({ isLoading: true });
-        
-        try {
-          // Check if this is the demo account
           if (email === 'demo@businessmanager.com' && password === 'demo123') {
-            // Demo authentication - bypass Supabase
+            // Demo user login
             const demoUser: User = {
               id: 'demo-user-id',
-              email: email,
+              email: 'demo@businessmanager.com',
               name: 'Demo User',
-              plan: plan as 'free' | 'starter' | 'pro',
+              plan: plan as any,
               currency: 'PHP',
               businessName: 'Demo Business',
             };
-            
-            set({ 
-              user: demoUser, 
-              isLoading: false,
-              userSettings: {
-                id: 'demo-settings',
-                userId: 'demo-user-id',
-                monthlyGoal: 50000,
-                currency: 'PHP',
-                businessName: 'Demo Business',
-              }
+            set({ user: demoUser });
+            await get().loadData();
+          } else {
+            // Real Supabase authentication
+            const { data, error } = await supabase.auth.signInWithPassword({
+              email,
+              password,
             });
             
-            // Load demo data if no products exist
-            if (get().products.length === 0) {
-              await get().loadDemoData();
-            }
+            if (error) throw error;
             
-            return;
-          }
-          
-          // Try Supabase authentication for non-demo accounts
-          const { data, error } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-          });
-          
-          if (error) throw error;
-          
-          if (data.user) {
-            set({
-              user: {
+            if (data.user) {
+              const user: User = {
                 id: data.user.id,
                 email: data.user.email!,
-                name: data.user.user_metadata?.name || data.user.user_metadata?.full_name || 'User',
-                plan: data.user.user_metadata?.plan || 'free',
-              },
-              isLoading: false,
-            });
-            
-            // Fetch initial data after login
-            await get().fetchInitialData();
+                name: data.user.user_metadata?.name || 'User',
+                plan: 'free',
+                currency: 'PHP',
+              };
+              set({ user });
+              await get().loadData();
+            }
           }
         } catch (error: any) {
+          throw new Error(error.message || 'Sign in failed');
+        } finally {
           set({ isLoading: false });
-          throw new Error(error.message || 'Failed to sign in');
         }
       },
 
       signInWithGoogle: async () => {
         set({ isLoading: true });
-        
         try {
-          // Get the current URL for proper redirect
-          const currentUrl = window.location.origin;
-          
-          const { data, error } = await supabase.auth.signInWithOAuth({
+          const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
-              redirectTo: currentUrl,
+              redirectTo: `${window.location.origin}/`,
             },
           });
-          
-          if (error) {
-            // Handle specific OAuth errors
-            if (error.message.includes('provider is not enabled')) {
-              throw new Error('Google sign-in is not enabled. Please contact support or use email sign-in.');
-            }
-            throw error;
-          }
-          
-          // The redirect will handle the rest
+          if (error) throw error;
         } catch (error: any) {
           set({ isLoading: false });
-          throw new Error(error.message || 'Failed to sign in with Google');
+          throw new Error(error.message || 'Google sign in failed');
         }
       },
 
       signInWithFacebook: async () => {
         set({ isLoading: true });
-        
         try {
-          // Get the current URL for proper redirect
-          const currentUrl = window.location.origin;
-          
-          const { data, error } = await supabase.auth.signInWithOAuth({
+          const { error } = await supabase.auth.signInWithOAuth({
             provider: 'facebook',
             options: {
-              redirectTo: currentUrl,
+              redirectTo: `${window.location.origin}/`,
             },
           });
-          
-          if (error) {
-            // Handle specific OAuth errors
-            if (error.message.includes('provider is not enabled')) {
-              throw new Error('Facebook sign-in is not enabled. Please contact support or use email sign-in.');
-            }
-            throw error;
-          }
-          
-          // The redirect will handle the rest
+          if (error) throw error;
         } catch (error: any) {
           set({ isLoading: false });
-          throw new Error(error.message || 'Failed to sign in with Facebook');
+          throw new Error(error.message || 'Facebook sign in failed');
         }
       },
 
       signUp: async (email: string, password: string, name: string) => {
         set({ isLoading: true });
-        
         try {
           const { data, error } = await supabase.auth.signUp({
             email,
             password,
             options: {
               data: {
-                name: name,
-                plan: 'free',
+                name,
               },
             },
           });
@@ -1241,234 +178,800 @@ export const useStore = create<Store>()(
           if (error) throw error;
           
           if (data.user) {
-            // Check if email confirmation is required
-            if (!data.session) {
-              set({ isLoading: false });
-              throw new Error('Please check your email to confirm your account.');
-            }
-            
-            set({
-              user: {
-                id: data.user.id,
-                email: data.user.email!,
-                name: name,
-                plan: 'free',
-                currency: 'PHP',
-              },
-              isLoading: false,
-            });
+            const user: User = {
+              id: data.user.id,
+              email: data.user.email!,
+              name,
+              plan: 'free',
+              currency: 'PHP',
+            };
+            set({ user });
           }
         } catch (error: any) {
+          throw new Error(error.message || 'Sign up failed');
+        } finally {
           set({ isLoading: false });
-          throw new Error(error.message || 'Failed to create account');
         }
       },
-      
-      signOut: async () => {
-        const { user } = get();
-        
-        // If demo user, just clear local state
-        if (isDemoUser(user)) {
-          set({ user: null });
-          get().clearAllData();
-          return;
-        }
-        
-        // Otherwise, sign out from Supabase
-        const { error } = await supabase.auth.signOut();
-        if (error) throw error;
-        
-        set({ user: null });
-        get().clearAllData();
-      },
-      
-      // Demo data loader
-      loadDemoData: async () => {
-        const demoProducts: Product[] = [
-          {
-            id: 'demo-product-1',
-            name: 'Wireless Headphones',
-            category: 'Electronics',
-            price: 2499.99,
-            cost: 1250.00,
-            currentStock: 25,
-            minStock: 5,
-            createdAt: new Date('2024-01-01'),
-            updatedAt: new Date('2024-01-01'),
-          },
-          {
-            id: 'demo-product-2',
-            name: 'Coffee Beans',
-            category: 'Food & Beverage',
-            price: 399.99,
-            cost: 200.00,
-            currentStock: 50,
-            minStock: 10,
-            createdAt: new Date('2024-01-02'),
-            updatedAt: new Date('2024-01-02'),
-          },
-          {
-            id: 'demo-product-3',
-            name: 'Notebook',
-            category: 'Stationery',
-            price: 124.99,
-            cost: 50.00,
-            currentStock: 100,
-            minStock: 20,
-            createdAt: new Date('2024-01-03'),
-            updatedAt: new Date('2024-01-03'),
-          },
-          {
-            id: 'demo-product-4',
-            name: 'Smartphone Case',
-            category: 'Electronics',
-            price: 624.99,
-            cost: 300.00,
-            currentStock: 30,
-            minStock: 8,
-            createdAt: new Date('2024-01-04'),
-            updatedAt: new Date('2024-01-04'),
-          },
-          {
-            id: 'demo-product-5',
-            name: 'Organic Tea',
-            category: 'Food & Beverage',
-            price: 324.99,
-            cost: 162.50,
-            currentStock: 40,
-            minStock: 12,
-            createdAt: new Date('2024-01-05'),
-            updatedAt: new Date('2024-01-05'),
-          },
-        ];
-        
-        const demoSales: Sale[] = [
-          {
-            id: 'demo-sale-1',
-            customerId: 'demo-customer-1',
-            customerName: 'John Doe',
-            customerEmail: 'john@example.com',
-            items: [
-              {
-                productId: 'demo-product-1',
-                productName: 'Wireless Headphones',
-                quantity: 1,
-                price: 2499.99,
-                total: 2499.99,
-              },
-            ],
-            total: 2499.99,
-            paymentType: 'cash',
-            status: 'paid',
-            date: new Date('2024-01-15'),
-            invoiceNumber: 'INV-001',
-          },
-          {
-            id: 'demo-sale-2',
-            customerId: 'demo-customer-2',
-            customerName: 'Jane Smith',
-            customerEmail: 'jane@example.com',
-            items: [
-              {
-                productId: 'demo-product-2',
-                productName: 'Coffee Beans',
-                quantity: 2,
-                price: 399.99,
-                total: 799.98,
-              },
-              {
-                productId: 'demo-product-3',
-                productName: 'Notebook',
-                quantity: 3,
-                price: 124.99,
-                total: 374.97,
-              },
-            ],
-            total: 1174.95,
-            paymentType: 'card',
-            status: 'paid',
-            date: new Date('2024-01-16'),
-            invoiceNumber: 'INV-002',
-          },
-          {
-            id: 'demo-sale-3',
-            customerId: 'demo-customer-3',
-            customerName: 'Bob Johnson',
-            items: [
-              {
-                productId: 'demo-product-4',
-                productName: 'Smartphone Case',
-                quantity: 1,
-                price: 624.99,
-                total: 624.99,
-              },
-            ],
-            total: 624.99,
-            paymentType: 'gcash',
-            status: 'pending',
-            date: new Date('2024-01-17'),
-            dueDate: new Date('2024-01-24'),
-            invoiceNumber: 'INV-003',
-          
-          },
-        ];
 
-        const demoExpenses: Expense[] = [
-          {
-            id: 'demo-expense-1',
-            description: 'Office Rent',
-            amount: 15000,
-            category: 'Rent',
-            date: new Date('2024-01-01'),
-            paymentMethod: 'transfer',
-            notes: 'Monthly office rent payment',
-          },
-          {
-            id: 'demo-expense-2',
-            description: 'Electricity Bill',
-            amount: 3500,
-            category: 'Utilities',
-            date: new Date('2024-01-05'),
-            paymentMethod: 'card',
-          },
-          {
-            id: 'demo-expense-3',
-            description: 'Office Supplies',
-            amount: 2500,
-            category: 'Supplies',
-            date: new Date('2024-01-10'),
-            paymentMethod: 'cash',
-            notes: 'Pens, papers, and other office supplies',
-          },
-          {
-            id: 'demo-expense-4',
-            description: 'Marketing Campaign',
-            amount: 8000,
-            category: 'Marketing',
-            date: new Date('2024-01-12'),
-            paymentMethod: 'card',
-            notes: 'Social media advertising',
-          },
-          {
-            id: 'demo-expense-5',
-            description: 'Internet Bill',
-            amount: 2000,
-            category: 'Utilities',
-            date: new Date('2024-01-15'),
-            paymentMethod: 'transfer',
-          },
-        ];
-        
-        set({
-          products: demoProducts,
-          sales: demoSales,
-          expenses: demoExpenses,
+      signOut: async () => {
+        try {
+          await supabase.auth.signOut();
+          set({
+            user: null,
+            products: [],
+            sales: [],
+            inventoryTransactions: [],
+            expenses: [],
+            userSettings: null,
+            pendingSyncItems: [],
+          });
+        } catch (error: any) {
+          throw new Error(error.message || 'Sign out failed');
+        }
+      },
+
+      setUser: (user: User) => {
+        set({ user });
+      },
+
+      // Product actions
+      addProduct: async (productData) => {
+        const { user, isOnline } = get();
+        if (!user) throw new Error('User not authenticated');
+
+        const product: Product = {
+          id: crypto.randomUUID(),
+          ...productData,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        // Always update local state immediately (optimistic update)
+        set(state => ({
+          products: [...state.products, product]
+        }));
+
+        if (isOnline && user.id !== 'demo-user-id') {
+          try {
+            const supabaseData = transformToSupabaseData.product(product, user.id);
+            const { error } = await supabase
+              .from('products')
+              .insert(supabaseData);
+            
+            if (error) {
+              handleSupabaseError(error);
+            }
+          } catch (error) {
+            // Add to pending sync if online sync fails
+            set(state => ({
+              pendingSyncItems: [...state.pendingSyncItems, {
+                id: crypto.randomUUID(),
+                type: 'product',
+                action: 'create',
+                data: product,
+                timestamp: new Date(),
+              }]
+            }));
+            console.error('Failed to sync product to server:', error);
+          }
+        } else {
+          // Add to pending sync for offline or demo users
+          set(state => ({
+            pendingSyncItems: [...state.pendingSyncItems, {
+              id: crypto.randomUUID(),
+              type: 'product',
+              action: 'create',
+              data: product,
+              timestamp: new Date(),
+            }]
+          }));
+        }
+      },
+
+      updateProduct: async (id: string, updates) => {
+        const { user, isOnline } = get();
+        if (!user) throw new Error('User not authenticated');
+
+        const updatedProduct = { ...updates, updatedAt: new Date() };
+
+        // Always update local state immediately (optimistic update)
+        set(state => ({
+          products: state.products.map(p => 
+            p.id === id ? { ...p, ...updatedProduct } : p
+          )
+        }));
+
+        if (isOnline && user.id !== 'demo-user-id') {
+          try {
+            const supabaseData = transformToSupabaseData.product(updatedProduct, user.id);
+            const { error } = await supabase
+              .from('products')
+              .update(supabaseData)
+              .eq('id', id);
+            
+            if (error) {
+              handleSupabaseError(error);
+            }
+          } catch (error) {
+            // Add to pending sync if online sync fails
+            set(state => ({
+              pendingSyncItems: [...state.pendingSyncItems, {
+                id: crypto.randomUUID(),
+                type: 'product',
+                action: 'update',
+                data: { id, ...updatedProduct },
+                timestamp: new Date(),
+              }]
+            }));
+            console.error('Failed to sync product update to server:', error);
+          }
+        } else {
+          // Add to pending sync for offline or demo users
+          set(state => ({
+            pendingSyncItems: [...state.pendingSyncItems, {
+              id: crypto.randomUUID(),
+              type: 'product',
+              action: 'update',
+              data: { id, ...updatedProduct },
+              timestamp: new Date(),
+            }]
+          }));
+        }
+      },
+
+      deleteProduct: async (id: string) => {
+        const { user, isOnline } = get();
+        if (!user) throw new Error('User not authenticated');
+
+        // Always update local state immediately (optimistic update)
+        set(state => ({
+          products: state.products.filter(p => p.id !== id)
+        }));
+
+        if (isOnline && user.id !== 'demo-user-id') {
+          try {
+            const { error } = await supabase
+              .from('products')
+              .delete()
+              .eq('id', id);
+            
+            if (error) {
+              handleSupabaseError(error);
+            }
+          } catch (error) {
+            // Add to pending sync if online sync fails
+            set(state => ({
+              pendingSyncItems: [...state.pendingSyncItems, {
+                id: crypto.randomUUID(),
+                type: 'product',
+                action: 'delete',
+                data: { id },
+                timestamp: new Date(),
+              }]
+            }));
+            console.error('Failed to sync product deletion to server:', error);
+          }
+        } else {
+          // Add to pending sync for offline or demo users
+          set(state => ({
+            pendingSyncItems: [...state.pendingSyncItems, {
+              id: crypto.randomUUID(),
+              type: 'product',
+              action: 'delete',
+              data: { id },
+              timestamp: new Date(),
+            }]
+          }));
+        }
+      },
+
+      getProductCategories: () => {
+        const { products } = get();
+        const categories = [...new Set(products.map(p => p.category))];
+        return categories.sort();
+      },
+
+      // Sale actions
+      addSale: async (saleData) => {
+        const { user, isOnline, products } = get();
+        if (!user) throw new Error('User not authenticated');
+
+        const sale: Sale = {
+          id: crypto.randomUUID(),
+          ...saleData,
+          invoiceNumber: saleData.invoiceNumber || `INV-${Date.now()}`,
+        };
+
+        // Always update local state immediately (optimistic update)
+        set(state => ({
+          sales: [...state.sales, sale]
+        }));
+
+        // Update product stock locally
+        const updatedProducts = products.map(product => {
+          const saleItem = sale.items.find(item => item.productId === product.id);
+          if (saleItem) {
+            return {
+              ...product,
+              currentStock: Math.max(0, product.currentStock - saleItem.quantity),
+              updatedAt: new Date(),
+            };
+          }
+          return product;
         });
+
+        set({ products: updatedProducts });
+
+        // Add inventory transactions for stock changes
+        const inventoryTransactions = sale.items.map(item => ({
+          id: crypto.randomUUID(),
+          productId: item.productId,
+          productName: item.productName,
+          type: 'stock-out' as const,
+          quantity: item.quantity,
+          reason: `Sale: ${sale.invoiceNumber}`,
+          date: sale.date,
+        }));
+
+        set(state => ({
+          inventoryTransactions: [...state.inventoryTransactions, ...inventoryTransactions]
+        }));
+
+        if (isOnline && user.id !== 'demo-user-id') {
+          try {
+            const supabaseData = transformToSupabaseData.sale(sale, user.id);
+            const { error } = await supabase
+              .from('sales')
+              .insert(supabaseData);
+            
+            if (error) {
+              handleSupabaseError(error);
+            }
+
+            // Update product stock in database
+            for (const item of sale.items) {
+              const product = products.find(p => p.id === item.productId);
+              if (product) {
+                const newStock = Math.max(0, product.currentStock - item.quantity);
+                await supabase
+                  .from('products')
+                  .update({ stock: newStock, updated_at: new Date().toISOString() })
+                  .eq('id', item.productId);
+              }
+            }
+          } catch (error) {
+            // Add to pending sync if online sync fails
+            set(state => ({
+              pendingSyncItems: [...state.pendingSyncItems, {
+                id: crypto.randomUUID(),
+                type: 'sale',
+                action: 'create',
+                data: sale,
+                timestamp: new Date(),
+              }]
+            }));
+            console.error('Failed to sync sale to server:', error);
+          }
+        } else {
+          // Add to pending sync for offline or demo users
+          set(state => ({
+            pendingSyncItems: [...state.pendingSyncItems, {
+              id: crypto.randomUUID(),
+              type: 'sale',
+              action: 'create',
+              data: sale,
+              timestamp: new Date(),
+            }]
+          }));
+        }
+      },
+
+      updateSale: async (id: string, updates) => {
+        const { user, isOnline } = get();
+        if (!user) throw new Error('User not authenticated');
+
+        // Always update local state immediately (optimistic update)
+        set(state => ({
+          sales: state.sales.map(s => 
+            s.id === id ? { ...s, ...updates } : s
+          )
+        }));
+
+        if (isOnline && user.id !== 'demo-user-id') {
+          try {
+            const supabaseData = transformToSupabaseData.sale(updates, user.id);
+            const { error } = await supabase
+              .from('sales')
+              .update(supabaseData)
+              .eq('id', id);
+            
+            if (error) {
+              handleSupabaseError(error);
+            }
+          } catch (error) {
+            // Add to pending sync if online sync fails
+            set(state => ({
+              pendingSyncItems: [...state.pendingSyncItems, {
+                id: crypto.randomUUID(),
+                type: 'sale',
+                action: 'update',
+                data: { id, ...updates },
+                timestamp: new Date(),
+              }]
+            }));
+            console.error('Failed to sync sale update to server:', error);
+          }
+        } else {
+          // Add to pending sync for offline or demo users
+          set(state => ({
+            pendingSyncItems: [...state.pendingSyncItems, {
+              id: crypto.randomUUID(),
+              type: 'sale',
+              action: 'update',
+              data: { id, ...updates },
+              timestamp: new Date(),
+            }]
+          }));
+        }
+      },
+
+      deleteSale: async (id: string) => {
+        const { user, isOnline } = get();
+        if (!user) throw new Error('User not authenticated');
+
+        // Always update local state immediately (optimistic update)
+        set(state => ({
+          sales: state.sales.filter(s => s.id !== id)
+        }));
+
+        if (isOnline && user.id !== 'demo-user-id') {
+          try {
+            const { error } = await supabase
+              .from('sales')
+              .delete()
+              .eq('id', id);
+            
+            if (error) {
+              handleSupabaseError(error);
+            }
+          } catch (error) {
+            // Add to pending sync if online sync fails
+            set(state => ({
+              pendingSyncItems: [...state.pendingSyncItems, {
+                id: crypto.randomUUID(),
+                type: 'sale',
+                action: 'delete',
+                data: { id },
+                timestamp: new Date(),
+              }]
+            }));
+            console.error('Failed to sync sale deletion to server:', error);
+          }
+        } else {
+          // Add to pending sync for offline or demo users
+          set(state => ({
+            pendingSyncItems: [...state.pendingSyncItems, {
+              id: crypto.randomUUID(),
+              type: 'sale',
+              action: 'delete',
+              data: { id },
+              timestamp: new Date(),
+            }]
+          }));
+        }
+      },
+
+      // Inventory actions
+      addInventoryTransaction: async (transactionData) => {
+        const { user, products } = get();
+        if (!user) throw new Error('User not authenticated');
+
+        const transaction: InventoryTransaction = {
+          id: crypto.randomUUID(),
+          ...transactionData,
+        };
+
+        // Update local state
+        set(state => ({
+          inventoryTransactions: [...state.inventoryTransactions, transaction]
+        }));
+
+        // Update product stock
+        const updatedProducts = products.map(product => {
+          if (product.id === transaction.productId) {
+            const stockChange = transaction.type === 'stock-in' 
+              ? transaction.quantity 
+              : -transaction.quantity;
+            return {
+              ...product,
+              currentStock: Math.max(0, product.currentStock + stockChange),
+              updatedAt: new Date(),
+            };
+          }
+          return product;
+        });
+
+        set({ products: updatedProducts });
+      },
+
+      // Expense actions
+      addExpense: async (expenseData) => {
+        const { user, isOnline } = get();
+        if (!user) throw new Error('User not authenticated');
+
+        const expense: Expense = {
+          id: crypto.randomUUID(),
+          ...expenseData,
+        };
+
+        // Always update local state immediately (optimistic update)
+        set(state => ({
+          expenses: [...state.expenses, expense]
+        }));
+
+        if (isOnline && user.id !== 'demo-user-id') {
+          try {
+            const supabaseData = transformToSupabaseData.expense(expense, user.id);
+            const { error } = await supabase
+              .from('expenses')
+              .insert(supabaseData);
+            
+            if (error) {
+              handleSupabaseError(error);
+            }
+          } catch (error) {
+            // Add to pending sync if online sync fails
+            set(state => ({
+              pendingSyncItems: [...state.pendingSyncItems, {
+                id: crypto.randomUUID(),
+                type: 'expense',
+                action: 'create',
+                data: expense,
+                timestamp: new Date(),
+              }]
+            }));
+            console.error('Failed to sync expense to server:', error);
+          }
+        } else {
+          // Add to pending sync for offline or demo users
+          set(state => ({
+            pendingSyncItems: [...state.pendingSyncItems, {
+              id: crypto.randomUUID(),
+              type: 'expense',
+              action: 'create',
+              data: expense,
+              timestamp: new Date(),
+            }]
+          }));
+        }
+      },
+
+      updateExpense: async (id: string, updates) => {
+        const { user, isOnline } = get();
+        if (!user) throw new Error('User not authenticated');
+
+        // Always update local state immediately (optimistic update)
+        set(state => ({
+          expenses: state.expenses.map(e => 
+            e.id === id ? { ...e, ...updates } : e
+          )
+        }));
+
+        if (isOnline && user.id !== 'demo-user-id') {
+          try {
+            const supabaseData = transformToSupabaseData.expense(updates, user.id);
+            const { error } = await supabase
+              .from('expenses')
+              .update(supabaseData)
+              .eq('id', id);
+            
+            if (error) {
+              handleSupabaseError(error);
+            }
+          } catch (error) {
+            // Add to pending sync if online sync fails
+            set(state => ({
+              pendingSyncItems: [...state.pendingSyncItems, {
+                id: crypto.randomUUID(),
+                type: 'expense',
+                action: 'update',
+                data: { id, ...updates },
+                timestamp: new Date(),
+              }]
+            }));
+            console.error('Failed to sync expense update to server:', error);
+          }
+        } else {
+          // Add to pending sync for offline or demo users
+          set(state => ({
+            pendingSyncItems: [...state.pendingSyncItems, {
+              id: crypto.randomUUID(),
+              type: 'expense',
+              action: 'update',
+              data: { id, ...updates },
+              timestamp: new Date(),
+            }]
+          }));
+        }
+      },
+
+      deleteExpense: async (id: string) => {
+        const { user, isOnline } = get();
+        if (!user) throw new Error('User not authenticated');
+
+        // Always update local state immediately (optimistic update)
+        set(state => ({
+          expenses: state.expenses.filter(e => e.id !== id)
+        }));
+
+        if (isOnline && user.id !== 'demo-user-id') {
+          try {
+            const { error } = await supabase
+              .from('expenses')
+              .delete()
+              .eq('id', id);
+            
+            if (error) {
+              handleSupabaseError(error);
+            }
+          } catch (error) {
+            // Add to pending sync if online sync fails
+            set(state => ({
+              pendingSyncItems: [...state.pendingSyncItems, {
+                id: crypto.randomUUID(),
+                type: 'expense',
+                action: 'delete',
+                data: { id },
+                timestamp: new Date(),
+              }]
+            }));
+            console.error('Failed to sync expense deletion to server:', error);
+          }
+        } else {
+          // Add to pending sync for offline or demo users
+          set(state => ({
+            pendingSyncItems: [...state.pendingSyncItems, {
+              id: crypto.randomUUID(),
+              type: 'expense',
+              action: 'delete',
+              data: { id },
+              timestamp: new Date(),
+            }]
+          }));
+        }
+      },
+
+      getExpenseCategories: () => {
+        const { expenses } = get();
+        const categories = [...new Set(expenses.map(e => e.category))];
+        return categories.sort();
+      },
+
+      // Settings actions
+      setMonthlyGoal: (goal: number) => {
+        set({ monthlyGoal: goal });
+      },
+
+      updateUserProfile: async (data) => {
+        const { user } = get();
+        if (!user) throw new Error('User not authenticated');
+
+        const updatedUser = { ...user, ...data };
+        set({ user: updatedUser });
+
+        if (user.id !== 'demo-user-id') {
+          try {
+            const { error } = await supabase.auth.updateUser({
+              data: data,
+            });
+            
+            if (error) {
+              handleSupabaseError(error);
+            }
+          } catch (error) {
+            console.error('Failed to update user profile:', error);
+          }
+        }
+      },
+
+      updateUserSettings: async (settings) => {
+        const { user, userSettings } = get();
+        if (!user) throw new Error('User not authenticated');
+
+        const updatedSettings = { ...userSettings, ...settings };
+        set({ userSettings: updatedSettings });
+
+        if (user.id !== 'demo-user-id') {
+          try {
+            const supabaseData = transformToSupabaseData.userSettings(settings, user.id);
+            const { error } = await supabase
+              .from('user_settings')
+              .upsert(supabaseData);
+            
+            if (error) {
+              handleSupabaseError(error);
+            }
+          } catch (error) {
+            console.error('Failed to update user settings:', error);
+          }
+        }
+      },
+
+      // Sync actions
+      syncData: async () => {
+        const { user, pendingSyncItems, isOnline } = get();
+        if (!user || !isOnline || user.id === 'demo-user-id') return;
+
+        try {
+          // Process pending sync items
+          for (const item of pendingSyncItems) {
+            try {
+              switch (item.type) {
+                case 'product':
+                  if (item.action === 'create') {
+                    const supabaseData = transformToSupabaseData.product(item.data, user.id);
+                    await supabase.from('products').insert(supabaseData);
+                  } else if (item.action === 'update') {
+                    const supabaseData = transformToSupabaseData.product(item.data, user.id);
+                    await supabase.from('products').update(supabaseData).eq('id', item.data.id);
+                  } else if (item.action === 'delete') {
+                    await supabase.from('products').delete().eq('id', item.data.id);
+                  }
+                  break;
+                case 'sale':
+                  if (item.action === 'create') {
+                    const supabaseData = transformToSupabaseData.sale(item.data, user.id);
+                    await supabase.from('sales').insert(supabaseData);
+                  } else if (item.action === 'update') {
+                    const supabaseData = transformToSupabaseData.sale(item.data, user.id);
+                    await supabase.from('sales').update(supabaseData).eq('id', item.data.id);
+                  } else if (item.action === 'delete') {
+                    await supabase.from('sales').delete().eq('id', item.data.id);
+                  }
+                  break;
+                case 'expense':
+                  if (item.action === 'create') {
+                    const supabaseData = transformToSupabaseData.expense(item.data, user.id);
+                    await supabase.from('expenses').insert(supabaseData);
+                  } else if (item.action === 'update') {
+                    const supabaseData = transformToSupabaseData.expense(item.data, user.id);
+                    await supabase.from('expenses').update(supabaseData).eq('id', item.data.id);
+                  } else if (item.action === 'delete') {
+                    await supabase.from('expenses').delete().eq('id', item.data.id);
+                  }
+                  break;
+              }
+            } catch (error) {
+              console.error(`Failed to sync ${item.type} ${item.action}:`, error);
+            }
+          }
+
+          // Clear pending sync items after successful sync
+          set({ pendingSyncItems: [] });
+        } catch (error) {
+          console.error('Sync failed:', error);
+        }
+      },
+
+      setOnlineStatus: (status: boolean) => {
+        set({ isOnline: status });
+        if (status) {
+          // Auto-sync when coming back online
+          get().syncData();
+        }
+      },
+
+      // Utility actions
+      exportReportData: () => {
+        const { sales } = get();
+        const headers = ['Date', 'Invoice', 'Customer', 'Amount', 'Payment', 'Status'];
+        const rows = sales.map(sale => [
+          sale.date.toISOString().split('T')[0],
+          sale.invoiceNumber || '',
+          sale.customerName || 'Walk-in Customer',
+          sale.total.toString(),
+          sale.paymentType,
+          sale.status,
+        ]);
+        
+        const csvContent = [headers, ...rows]
+          .map(row => row.map(field => `"${field}"`).join(','))
+          .join('\n');
+        
+        return csvContent;
+      },
+
+      loadData: async () => {
+        const { user } = get();
+        if (!user) return;
+
+        if (user.id === 'demo-user-id') {
+          // Load demo data
+          const demoProducts: Product[] = [
+            {
+              id: '1',
+              name: 'Premium Coffee Beans',
+              category: 'Food & Beverage',
+              price: 250,
+              cost: 150,
+              currentStock: 100,
+              minStock: 20,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+            {
+              id: '2',
+              name: 'Artisan Pastry',
+              category: 'Food & Beverage',
+              price: 120,
+              cost: 80,
+              currentStock: 50,
+              minStock: 10,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+          ];
+
+          const demoSales: Sale[] = [
+            {
+              id: '1',
+              customerId: '1',
+              customerName: 'John Doe',
+              items: [
+                {
+                  productId: '1',
+                  productName: 'Premium Coffee Beans',
+                  quantity: 2,
+                  price: 250,
+                  total: 500,
+                },
+              ],
+              total: 500,
+              paymentType: 'card',
+              status: 'paid',
+              date: new Date(),
+              invoiceNumber: 'INV-001',
+            },
+          ];
+
+          set({
+            products: demoProducts,
+            sales: demoSales,
+            expenses: [],
+            inventoryTransactions: [],
+          });
+        } else {
+          // Load real data from Supabase
+          try {
+            const [productsResult, salesResult, expensesResult, settingsResult] = await Promise.all([
+              supabase.from('products').select('*').eq('user_id', user.id),
+              supabase.from('sales').select('*').eq('user_id', user.id),
+              supabase.from('expenses').select('*').eq('user_id', user.id),
+              supabase.from('user_settings').select('*').eq('user_id', user.id).single(),
+            ]);
+
+            const products = productsResult.data?.map(transformSupabaseData.product) || [];
+            const sales = salesResult.data?.map(transformSupabaseData.sale) || [];
+            const expenses = expensesResult.data?.map(transformSupabaseData.expense) || [];
+            const userSettings = settingsResult.data ? transformSupabaseData.userSettings(settingsResult.data) : null;
+
+            set({
+              products,
+              sales,
+              expenses,
+              userSettings,
+              monthlyGoal: userSettings?.monthlyGoal || 50000,
+            });
+          } catch (error) {
+            console.error('Failed to load data:', error);
+          }
+        }
       },
     }),
     {
-      name: 'bizmanager-storage',
-      storage: createJSONStorage(() => localforageStorage),
+      name: 'bizmanager-store',
+      storage: createJSONStorage(() => localforage),
       partialize: (state) => ({
         user: state.user,
         products: state.products,
@@ -1479,54 +982,19 @@ export const useStore = create<Store>()(
         monthlyGoal: state.monthlyGoal,
         pendingSyncItems: state.pendingSyncItems,
       }),
-      deserialize: (str) => {
-        try {
-          return JSON.parse(str, dateReviver);
-        } catch (error) {
-          console.error('Error deserializing data:', error);
-          return {};
-        }
-      },
-      // Force rehydration on every load to ensure data persistence
-      onRehydrateStorage: () => (state) => {
-        if (state) {
-          console.log('Data rehydrated successfully');
-        }
-      },
     }
   )
 );
 
-// Set up auth state listener
-supabase.auth.onAuthStateChange((event, session) => {
-  const store = useStore.getState();
-  
-  if (event === 'SIGNED_IN' && session?.user) {
-    store.setUser({
-      id: session.user.id,
-      email: session.user.email!,
-      name: session.user.user_metadata?.name || session.user.user_metadata?.full_name || 'User',
-      plan: session.user.user_metadata?.plan || 'free',
-      currency: 'PHP',
-    });
-    
-    // Fetch initial data
-    store.fetchInitialData();
-  } else if (event === 'SIGNED_OUT') {
-    store.setUser(null);
-    store.clearAllData();
-  }
-});
-
-// Set up online/offline event listeners
+// Set up online/offline listeners
 if (typeof window !== 'undefined') {
   window.addEventListener('online', () => {
-    console.log('Network: Online');
     useStore.getState().setOnlineStatus(true);
   });
-  
+
   window.addEventListener('offline', () => {
-    console.log('Network: Offline');
     useStore.getState().setOnlineStatus(false);
   });
 }
+
+export { useStore };
