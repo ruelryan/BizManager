@@ -24,8 +24,9 @@ A comprehensive business management solution built with React, TypeScript, Tailw
 
 ### 💳 **Payment Integration**
 - **PayPal Integration**: Secure international payments through PayPal
-- **Local Payment Methods**: GCash, Bank Transfer, Credit/Debit Cards
-- **Automatic Currency Conversion**: PHP to USD for PayPal transactions
+- **Multiple Payment Options**: Credit cards, debit cards, bank accounts, and PayPal balance
+- **No PayPal Account Required**: Pay directly with cards through PayPal gateway
+- **Automatic Currency Conversion**: PHP to USD for international transactions
 - **Subscription Management**: Automated plan upgrades and renewals
 
 ### 🔄 **Offline-First Architecture**
@@ -123,10 +124,18 @@ npm run dev
 
 1. User selects PayPal as payment method
 2. PayPal SDK creates secure payment session
-3. User completes payment on PayPal
+3. User completes payment on PayPal (with any supported payment method)
 4. PayPal returns payment confirmation
 5. System verifies payment and updates user subscription
 6. User gains access to premium features
+
+### Supported Payment Methods (via PayPal)
+
+- **PayPal Balance**: Direct payment from PayPal account
+- **Credit Cards**: Visa, Mastercard, American Express, Discover
+- **Debit Cards**: All major debit card networks
+- **Bank Accounts**: Direct bank account payments
+- **Buy Now, Pay Later**: PayPal Pay in 4 and other BNPL options
 
 ### Currency Handling
 
@@ -195,14 +204,17 @@ npm run dev
 
 ## Payment Methods
 
-### International
-- **PayPal**: Secure payment processing for global customers
-- **Credit/Debit Cards**: Via PayPal gateway
+### International (via PayPal)
+- **PayPal Balance**: Direct payment from PayPal account
+- **Credit/Debit Cards**: All major card networks via PayPal gateway
+- **Bank Accounts**: Direct bank payments through PayPal
+- **Buy Now, Pay Later**: PayPal's BNPL options
 
-### Philippines
-- **GCash**: Mobile wallet payments
-- **Bank Transfer**: Direct bank transfers
-- **Credit/Debit Cards**: Local card processing
+### Key Benefits
+- **No PayPal Account Required**: Pay directly with cards
+- **Buyer Protection**: PayPal's comprehensive buyer protection
+- **Global Reach**: Accept payments from customers worldwide
+- **Secure Processing**: Industry-standard encryption and fraud protection
 
 ## Offline Capabilities
 

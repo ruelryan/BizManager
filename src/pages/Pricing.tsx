@@ -187,21 +187,24 @@ export function Pricing() {
         <div className="mt-16 max-w-4xl mx-auto">
           <div className="rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-6">
             <div className="flex items-start">
-              <AlertCircle className="h-6 w-6 text-blue-600 dark:text-blue-400 mr-3 mt-0.5 flex-shrink-0" />
+              <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                <span className="text-white text-xs font-bold">PP</span>
+              </div>
               <div>
                 <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-300 mb-2">
-                  PayPal Payment Available
+                  Secure Payment with PayPal
                 </h3>
                 <div className="text-sm text-blue-700 dark:text-blue-400 space-y-2">
-                  <p>We now accept PayPal for secure international payments!</p>
+                  <p>We use PayPal for secure payment processing worldwide!</p>
                   <ul className="list-disc list-inside space-y-1 ml-4">
-                    <li>Secure payment processing through PayPal</li>
-                    <li>Support for international credit cards and PayPal balance</li>
+                    <li>Secure payment processing with industry-standard encryption</li>
+                    <li>Accept PayPal balance, credit cards, debit cards, and bank accounts</li>
                     <li>Automatic currency conversion from PHP to USD</li>
+                    <li>No PayPal account required - pay directly with your card</li>
                     <li>Instant plan activation upon successful payment</li>
                   </ul>
                   <p className="font-medium mt-3">
-                    Local payment methods (GCash, Bank Transfer) are also available for Philippine customers.
+                    PayPal handles all payment methods securely, so you can pay however you prefer.
                   </p>
                 </div>
               </div>
@@ -235,11 +238,11 @@ export function Pricing() {
             </div>
             
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-400 mb-2">
                 What payment methods do you accept?
               </h3>
               <p className="text-gray-600 dark:text-gray-400">
-                We accept PayPal (international), GCash, credit cards, debit cards, and bank transfers.
+                We accept all major payment methods through PayPal: credit cards, debit cards, bank accounts, and PayPal balance.
               </p>
             </div>
             
@@ -257,16 +260,16 @@ export function Pricing() {
                 Is PayPal payment secure?
               </h3>
               <p className="text-gray-600 dark:text-gray-400">
-                Yes, all PayPal transactions are processed securely through PayPal's encrypted payment system.
+                Yes, all PayPal transactions are processed securely through PayPal's encrypted payment system with buyer protection.
               </p>
             </div>
             
             <div>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                What currency does PayPal use?
+                Do I need a PayPal account?
               </h3>
               <p className="text-gray-600 dark:text-gray-400">
-                PayPal processes payments in USD with automatic conversion from our PHP pricing.
+                No, you can pay directly with your credit or debit card through PayPal without creating an account.
               </p>
             </div>
           </div>

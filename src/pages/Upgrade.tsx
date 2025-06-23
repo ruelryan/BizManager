@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { CreditCard, Smartphone, Building, ArrowLeft, Check, Shield, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Check, Shield, AlertCircle } from 'lucide-react';
 import { plans } from '../utils/plans';
 import { useStore } from '../store/useStore';
 import { ThemeToggle } from '../components/ThemeToggle';
@@ -11,36 +11,9 @@ export function Upgrade() {
   const navigate = useNavigate();
   const { user, setUser } = useStore();
   const [selectedPlan, setSelectedPlan] = React.useState(location.state?.planId || 'starter');
-  const [paymentMethod, setPaymentMethod] = React.useState<'paypal' | 'gcash' | 'card' | 'bank'>('paypal');
-  const [isProcessing, setIsProcessing] = React.useState(false);
   const [paymentError, setPaymentError] = React.useState<string | null>(null);
 
   const plan = plans.find(p => p.id === selectedPlan);
-
-  const handleTraditionalPayment = async () => {
-    setIsProcessing(true);
-    setPaymentError(null);
-    
-    try {
-      // Simulate payment processing for traditional methods
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Update user plan
-      if (user) {
-        setUser({
-          ...user,
-          plan: selectedPlan as any,
-          subscriptionExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
-        });
-      }
-      
-      navigate('/', { state: { upgraded: true } });
-    } catch (error) {
-      setPaymentError('Payment processing failed. Please try again.');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
 
   const handlePayPalSuccess = () => {
     // Update user plan after successful PayPal payment
@@ -57,7 +30,7 @@ export function Upgrade() {
 
   const handlePayPalError = (error: any) => {
     console.error('PayPal payment failed:', error);
-    setPaymentError('PayPal payment failed. Please try again or use a different payment method.');
+    setPaymentError('PayPal payment failed. Please try again.');
   };
 
   if (!plan) {
@@ -98,9 +71,7 @@ export function Upgrade() {
                 <span className="text-lg font-medium text-gray-900 dark:text-white">{plan.name} Plan</span>
                 <div className="text-right">
                   <span className="text-2xl font-bold text-gray-900 dark:text-white">₱{plan.price}/month</span>
-                  {paymentMethod === 'paypal' && (
-                    <div className="text-sm text-gray-500 dark:text-gray-400">≈ ${usdPrice} USD</div>
-                  )}
+                  <div className="text-sm text-gray-500 dark:text-gray-400">≈ ${usdPrice} USD</div>
                 </div>
               </div>
             </div>
@@ -165,7 +136,7 @@ export function Upgrade() {
 
           {/* Payment Form */}
           <div className="rounded-xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">Payment Method</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">Secure Payment with PayPal</h2>
 
             {/* Error Message */}
             {paymentError && (
@@ -177,160 +148,35 @@ export function Upgrade() {
               </div>
             )}
 
-            {/* Payment Method Selection */}
-            <div className="space-y-3 mb-6">
-              <label className="flex items-center p-4 border border-gray-200 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                <input
-                  type="radio"
-                  name="payment"
-                  value="paypal"
-                  checked={paymentMethod === 'paypal'}
-                  onChange={(e) => setPaymentMethod(e.target.value as any)}
-                  className="mr-3"
-                />
-                <div className="flex items-center">
-                  <div className="mr-3 w-8 h-8 bg-blue-600 rounded flex items-center justify-center">
+            {/* PayPal Information */}
+            <div className="space-y-4 mb-6">
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <div className="flex items-center mb-3">
+                  <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center mr-3">
                     <span className="text-white text-xs font-bold">PP</span>
                   </div>
-                  <div>
-                    <div className="font-medium text-gray-900 dark:text-white">PayPal</div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">Secure payment with PayPal</div>
-                  </div>
+                  <h3 className="font-medium text-blue-800 dark:text-blue-300">PayPal Secure Payment</h3>
                 </div>
-              </label>
-
-              <label className="flex items-center p-4 border border-gray-200 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                <input
-                  type="radio"
-                  name="payment"
-                  value="gcash"
-                  checked={paymentMethod === 'gcash'}
-                  onChange={(e) => setPaymentMethod(e.target.value as any)}
-                  className="mr-3"
-                />
-                <Smartphone className="mr-3 h-5 w-5 text-blue-600 dark:text-blue-400" />
-                <div>
-                  <div className="font-medium text-gray-900 dark:text-white">GCash</div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Pay with your GCash wallet</div>
+                <div className="text-sm text-blue-700 dark:text-blue-400 space-y-2">
+                  <p><strong>Amount:</strong> ${usdPrice} USD (≈ ₱{plan.price})</p>
+                  <p>PayPal accepts:</p>
+                  <ul className="list-disc list-inside ml-4 space-y-1">
+                    <li>PayPal account balance</li>
+                    <li>Credit cards (Visa, Mastercard, American Express)</li>
+                    <li>Debit cards</li>
+                    <li>Bank accounts</li>
+                  </ul>
+                  <p className="font-medium">You don't need a PayPal account to pay with your card.</p>
                 </div>
-              </label>
-
-              <label className="flex items-center p-4 border border-gray-200 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                <input
-                  type="radio"
-                  name="payment"
-                  value="card"
-                  checked={paymentMethod === 'card'}
-                  onChange={(e) => setPaymentMethod(e.target.value as any)}
-                  className="mr-3"
-                />
-                <CreditCard className="mr-3 h-5 w-5 text-green-600 dark:text-green-400" />
-                <div>
-                  <div className="font-medium text-gray-900 dark:text-white">Credit/Debit Card</div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Visa, Mastercard, etc.</div>
-                </div>
-              </label>
-
-              <label className="flex items-center p-4 border border-gray-200 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                <input
-                  type="radio"
-                  name="payment"
-                  value="bank"
-                  checked={paymentMethod === 'bank'}
-                  onChange={(e) => setPaymentMethod(e.target.value as any)}
-                  className="mr-3"
-                />
-                <Building className="mr-3 h-5 w-5 text-purple-600 dark:text-purple-400" />
-                <div>
-                  <div className="font-medium text-gray-900 dark:text-white">Bank Transfer</div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Direct bank transfer</div>
-                </div>
-              </label>
+              </div>
+              
+              {/* PayPal Button */}
+              <PayPalOneTimeButton
+                planId={selectedPlan}
+                onSuccess={handlePayPalSuccess}
+                onError={handlePayPalError}
+              />
             </div>
-
-            {/* Payment Form Fields */}
-            {paymentMethod === 'paypal' && (
-              <div className="space-y-4 mb-6">
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                  <h3 className="font-medium text-blue-800 dark:text-blue-300 mb-2">PayPal Payment</h3>
-                  <div className="text-sm text-blue-700 dark:text-blue-400 space-y-1">
-                    <p><strong>Amount:</strong> ${usdPrice} USD (≈ ₱{plan.price})</p>
-                    <p>You'll be redirected to PayPal to complete your payment securely.</p>
-                  </div>
-                </div>
-                
-                {/* PayPal Button */}
-                <PayPalOneTimeButton
-                  planId={selectedPlan}
-                  onSuccess={handlePayPalSuccess}
-                  onError={handlePayPalError}
-                />
-              </div>
-            )}
-
-            {paymentMethod === 'gcash' && (
-              <div className="space-y-4 mb-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    GCash Number
-                  </label>
-                  <input
-                    type="tel"
-                    placeholder="09XX XXX XXXX"
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-            )}
-
-            {paymentMethod === 'card' && (
-              <div className="space-y-4 mb-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Card Number
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="1234 5678 9012 3456"
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Expiry Date
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="MM/YY"
-                      className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      CVV
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="123"
-                      className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {paymentMethod === 'bank' && (
-              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-6">
-                <h3 className="font-medium text-yellow-800 dark:text-yellow-300 mb-2">Bank Transfer Instructions</h3>
-                <div className="text-sm text-yellow-700 dark:text-yellow-400 space-y-1">
-                  <p><strong>Account Name:</strong> BizManager Philippines</p>
-                  <p><strong>Account Number:</strong> 1234-5678-9012</p>
-                  <p><strong>Bank:</strong> BPI</p>
-                  <p><strong>Amount:</strong> ₱{plan.price}</p>
-                </div>
-              </div>
-            )}
 
             {/* Total */}
             <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mb-6">
@@ -338,35 +184,62 @@ export function Upgrade() {
                 <span className="text-gray-900 dark:text-white">Total</span>
                 <div className="text-right">
                   <span className="text-gray-900 dark:text-white">₱{plan.price}/month</span>
-                  {paymentMethod === 'paypal' && (
-                    <div className="text-sm text-gray-500 dark:text-gray-400">${usdPrice} USD</div>
-                  )}
+                  <div className="text-sm text-gray-500 dark:text-gray-400">${usdPrice} USD</div>
                 </div>
               </div>
             </div>
 
-            {/* Submit Button - Only show for non-PayPal methods */}
-            {paymentMethod !== 'paypal' && (
-              <button
-                onClick={handleTraditionalPayment}
-                disabled={isProcessing}
-                className="w-full rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-3 text-white font-medium hover:from-blue-700 hover:to-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isProcessing ? (
-                  <div className="flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                    Processing...
-                  </div>
-                ) : (
-                  `Subscribe to ${plan.name} - ₱${plan.price}/month`
-                )}
-              </button>
-            )}
+            {/* Security Notice */}
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+              <div className="flex items-center">
+                <Shield className="mr-2 h-5 w-5 text-green-600 dark:text-green-400" />
+                <div className="text-sm text-green-800 dark:text-green-300">
+                  <p className="font-medium">Secure Payment Processing</p>
+                  <p>Your payment is processed securely by PayPal with industry-standard encryption.</p>
+                </div>
+              </div>
+            </div>
 
             <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-4">
               By subscribing, you agree to our Terms of Service and Privacy Policy.
               You can cancel anytime.
             </p>
+          </div>
+        </div>
+
+        {/* PayPal Benefits */}
+        <div className="mt-8 rounded-xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Why PayPal?</h3>
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="text-center">
+              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center mx-auto mb-3">
+                <Shield className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+              </div>
+              <h4 className="font-medium text-gray-900 dark:text-white mb-2">Secure & Trusted</h4>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                PayPal's advanced security protects your financial information
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center mx-auto mb-3">
+                <Check className="h-6 w-6 text-green-600 dark:text-green-400" />
+              </div>
+              <h4 className="font-medium text-gray-900 dark:text-white mb-2">Multiple Payment Options</h4>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Pay with PayPal balance, cards, or bank account
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center mx-auto mb-3">
+                <div className="w-6 h-6 bg-purple-600 rounded flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">$</span>
+                </div>
+              </div>
+              <h4 className="font-medium text-gray-900 dark:text-white mb-2">Global Currency Support</h4>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Automatic currency conversion from PHP to USD
+              </p>
+            </div>
           </div>
         </div>
 
@@ -379,7 +252,7 @@ export function Upgrade() {
               <li>Create a PayPal Developer account at <a href="https://developer.paypal.com" target="_blank" rel="noopener noreferrer" className="underline">developer.paypal.com</a></li>
               <li>Create a new app and get your Client ID</li>
               <li>Add <code className="bg-yellow-100 dark:bg-yellow-800 px-1 rounded">VITE_PAYPAL_CLIENT_ID=your_client_id</code> to your .env file</li>
-              <li>For production, create subscription plans in PayPal and add the plan IDs</li>
+              <li>For production, switch to live PayPal environment</li>
               <li>Configure webhook endpoints for payment verification</li>
             </ol>
             <p className="mt-3 font-medium">Current status: <span className="text-yellow-600 dark:text-yellow-400">Demo mode (PayPal sandbox)</span></p>
