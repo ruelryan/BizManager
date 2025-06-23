@@ -413,6 +413,62 @@ const useStore = create<StoreState>()(
         return categories.sort();
       },
 
+      // Helper function to find or create customer
+      findOrCreateCustomer: async (customerName: string, customerEmail?: string, userId?: string) => {
+        if (!customerName || customerName === 'Walk-in Customer' || !userId) {
+          return null;
+        }
+
+        try {
+          // First, try to find existing customer by name
+          const { data: existingCustomers, error: searchError } = await supabase
+            .from('customers')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('name', customerName)
+            .limit(1);
+
+          if (searchError) {
+            console.error('Error searching for customer:', searchError);
+            return null;
+          }
+
+          if (existingCustomers && existingCustomers.length > 0) {
+            return existingCustomers[0].id;
+          }
+
+          // Customer doesn't exist, create new one
+          const newCustomer = {
+            id: crypto.randomUUID(),
+            name: customerName,
+            email: customerEmail || null,
+            phone: null,
+            address: null,
+            balance: 0,
+            credit_limit: 0,
+            is_active: true,
+            user_id: userId,
+            created_at: new Date().toISOString()
+          };
+
+          const { data: createdCustomer, error: createError } = await supabase
+            .from('customers')
+            .insert(newCustomer)
+            .select('id')
+            .single();
+
+          if (createError) {
+            console.error('Error creating customer:', createError);
+            return null;
+          }
+
+          return createdCustomer.id;
+        } catch (error) {
+          console.error('Error in findOrCreateCustomer:', error);
+          return null;
+        }
+      },
+
       // Sale actions
       addSale: async (saleData) => {
         const { user, products } = get();
@@ -462,6 +518,12 @@ const useStore = create<StoreState>()(
         // Persist to database if not demo user
         if (user.id !== 'demo-user-id') {
           try {
+            // Handle customer creation/lookup
+            let customerId = null;
+            if (sale.customerName && sale.customerName !== 'Walk-in Customer') {
+              customerId = await get().findOrCreateCustomer(sale.customerName, sale.customerEmail, user.id);
+            }
+
             // Prepare sale data for Supabase with proper UUID handling
             const supabaseData = {
               id: sale.id,
@@ -475,7 +537,7 @@ const useStore = create<StoreState>()(
                 method: sale.paymentType,
                 amount: sale.total
               }],
-              customer_id: sale.customerId && sale.customerId !== 'walk-in' ? sale.customerId : null,
+              customer_id: customerId,
               customer_name: sale.customerName,
               customer_email: sale.customerEmail || null,
               cashier_id: user.id,
@@ -540,7 +602,15 @@ const useStore = create<StoreState>()(
         // Persist to database if not demo user
         if (user.id !== 'demo-user-id') {
           try {
-            const supabaseData = transformToSupabaseData.sale(updates, user.id);
+            // Handle customer creation/lookup if customer name is being updated
+            let customerId = updates.customerId;
+            if (updates.customerName && updates.customerName !== 'Walk-in Customer') {
+              customerId = await get().findOrCreateCustomer(updates.customerName, updates.customerEmail, user.id);
+            } else if (updates.customerName === 'Walk-in Customer') {
+              customerId = null;
+            }
+
+            const supabaseData = transformToSupabaseData.sale({ ...updates, customerId }, user.id);
             const { error } = await supabase
               .from('sales')
               .update(supabaseData)
