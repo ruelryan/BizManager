@@ -383,13 +383,42 @@ const useStore = create<StoreState>()(
         // Persist to database if not demo user
         if (user.id !== 'demo-user-id') {
           try {
-            const supabaseData = transformToSupabaseData.sale(sale, user.id);
-            const { error } = await supabase
+            // Prepare sale data for Supabase
+            const supabaseData = {
+              id: sale.id,
+              receipt_number: sale.invoiceNumber || `INV-${Date.now()}`,
+              items: sale.items,
+              subtotal: sale.total,
+              tax: 0,
+              discount: 0,
+              total: sale.total,
+              payments: [{
+                method: sale.paymentType,
+                amount: sale.total
+              }],
+              customer_id: sale.customerId || null,
+              customer_name: sale.customerName,
+              customer_email: sale.customerEmail || null,
+              cashier_id: user.id,
+              cashier_name: user.name,
+              status: sale.status,
+              user_id: user.id,
+              created_at: sale.date.toISOString(),
+              notes: null
+            };
+
+            console.log('Saving sale to database:', supabaseData);
+
+            const { data, error } = await supabase
               .from('sales')
-              .insert(supabaseData);
+              .insert(supabaseData)
+              .select();
             
             if (error) {
+              console.error('Supabase error:', error);
               handleSupabaseError(error);
+            } else {
+              console.log('Sale saved successfully:', data);
             }
 
             // Update product stock in database
@@ -397,15 +426,24 @@ const useStore = create<StoreState>()(
               const product = products.find(p => p.id === item.productId);
               if (product) {
                 const newStock = Math.max(0, product.currentStock - item.quantity);
-                await supabase
+                const { error: stockError } = await supabase
                   .from('products')
-                  .update({ stock: newStock, updated_at: new Date().toISOString() })
-                  .eq('id', item.productId);
+                  .update({ 
+                    stock: newStock, 
+                    updated_at: new Date().toISOString() 
+                  })
+                  .eq('id', item.productId)
+                  .eq('user_id', user.id);
+                
+                if (stockError) {
+                  console.error('Failed to update product stock:', stockError);
+                }
               }
             }
           } catch (error) {
             console.error('Failed to save sale to database:', error);
-            throw error;
+            // Don't throw error here to prevent UI from breaking
+            // The sale is already saved locally
           }
         }
       },
@@ -428,7 +466,8 @@ const useStore = create<StoreState>()(
             const { error } = await supabase
               .from('sales')
               .update(supabaseData)
-              .eq('id', id);
+              .eq('id', id)
+              .eq('user_id', user.id);
             
             if (error) {
               handleSupabaseError(error);
@@ -455,7 +494,8 @@ const useStore = create<StoreState>()(
             const { error } = await supabase
               .from('sales')
               .delete()
-              .eq('id', id);
+              .eq('id', id)
+              .eq('user_id', user.id);
             
             if (error) {
               handleSupabaseError(error);
@@ -728,12 +768,19 @@ const useStore = create<StoreState>()(
         } else {
           // Load real data from Supabase
           try {
+            console.log('Loading data for user:', user.id);
+            
             const [productsResult, salesResult, expensesResult, settingsResult] = await Promise.all([
               supabase.from('products').select('*').eq('user_id', user.id),
               supabase.from('sales').select('*').eq('user_id', user.id),
               supabase.from('expenses').select('*').eq('user_id', user.id),
               supabase.from('user_settings').select('*').eq('user_id', user.id).single(),
             ]);
+
+            console.log('Products result:', productsResult);
+            console.log('Sales result:', salesResult);
+            console.log('Expenses result:', expensesResult);
+            console.log('Settings result:', settingsResult);
 
             const products = productsResult.data?.map(transformSupabaseData.product) || [];
             const sales = salesResult.data?.map(transformSupabaseData.sale) || [];
@@ -747,6 +794,8 @@ const useStore = create<StoreState>()(
               userSettings,
               monthlyGoal: userSettings?.monthlyGoal || 50000,
             });
+
+            console.log('Data loaded successfully:', { products: products.length, sales: sales.length, expenses: expenses.length });
           } catch (error) {
             console.error('Failed to load data:', error);
           }
