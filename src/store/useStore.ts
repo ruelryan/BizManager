@@ -8,6 +8,7 @@ interface StoreState {
   // Auth
   user: User | null;
   isLoading: boolean;
+  isInitialized: boolean;
   
   // Data
   products: Product[];
@@ -60,6 +61,7 @@ interface StoreState {
   loadData: () => Promise<void>;
   setOnlineStatus: (status: boolean) => void;
   initializeAuth: () => Promise<void>;
+  setInitialized: (initialized: boolean) => void;
 }
 
 // Configure localforage for offline storage
@@ -80,28 +82,6 @@ const getEffectivePlan = (user: User): string => {
     return 'pro'; // During trial, user gets all pro features
   }
   return user.plan;
-};
-
-// Cookie utilities for user persistence
-const setCookie = (name: string, value: string, days: number = 30) => {
-  const expires = new Date();
-  expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
-  document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Lax`;
-};
-
-const getCookie = (name: string): string | null => {
-  const nameEQ = name + "=";
-  const ca = document.cookie.split(';');
-  for (let i = 0; i < ca.length; i++) {
-    let c = ca[i];
-    while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
-  }
-  return null;
-};
-
-const deleteCookie = (name: string) => {
-  document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
 };
 
 // Helper function to convert date strings back to Date objects
@@ -166,6 +146,7 @@ const useStore = create<StoreState>()(
       // Initial state
       user: null,
       isLoading: false,
+      isInitialized: false,
       products: [],
       sales: [],
       inventoryTransactions: [],
@@ -174,20 +155,39 @@ const useStore = create<StoreState>()(
       isOnline: navigator.onLine,
       monthlyGoal: 50000,
 
-      // Initialize auth state from cookies and Supabase
+      setInitialized: (initialized: boolean) => {
+        set({ isInitialized: initialized });
+      },
+
+      // Initialize auth state from Supabase and localStorage
       initializeAuth: async () => {
+        if (get().isInitialized) return;
+        
         set({ isLoading: true });
         try {
-          // First check for existing Supabase session
-          const { data: { session } } = await supabase.auth.getSession();
+          // Check for existing Supabase session first
+          const { data: { session }, error } = await supabase.auth.getSession();
+          
+          if (error) {
+            console.error('Error getting session:', error);
+          }
           
           if (session?.user) {
             // User has active Supabase session
             const authUser = session.user;
+            console.log('Found active Supabase session for:', authUser.email);
+            
+            // Check if user is new (created in last 5 minutes)
+            const userCreatedAt = new Date(authUser.created_at);
+            const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+            const isNewUser = userCreatedAt > fiveMinutesAgo;
             
             // Give new users a free one-month trial with all features
-            const trialExpiry = new Date();
-            trialExpiry.setMonth(trialExpiry.getMonth() + 1);
+            const trialExpiry = isNewUser ? (() => {
+              const expiry = new Date();
+              expiry.setMonth(expiry.getMonth() + 1);
+              return expiry;
+            })() : undefined;
             
             const user: User = {
               id: authUser.id,
@@ -198,29 +198,24 @@ const useStore = create<StoreState>()(
               subscriptionExpiry: trialExpiry,
             };
             
-            set({ user });
-            setCookie('user_session', JSON.stringify(user), 30);
+            set({ user, isInitialized: true });
             await get().loadData();
           } else {
-            // Check for saved user in cookies
-            const savedUser = getCookie('user_session');
-            if (savedUser) {
-              try {
-                const user = JSON.parse(savedUser);
-                // Restore dates
-                if (user.subscriptionExpiry) {
-                  user.subscriptionExpiry = new Date(user.subscriptionExpiry);
-                }
-                set({ user });
-                await get().loadData();
-              } catch (error) {
-                console.error('Failed to parse saved user:', error);
-                deleteCookie('user_session');
-              }
+            // No active session, check localStorage for persisted user
+            const persistedState = get();
+            if (persistedState.user) {
+              console.log('Found persisted user:', persistedState.user.email);
+              // User was persisted, keep them logged in
+              set({ isInitialized: true });
+              await get().loadData();
+            } else {
+              console.log('No session or persisted user found');
+              set({ isInitialized: true });
             }
           }
         } catch (error) {
           console.error('Failed to initialize auth:', error);
+          set({ isInitialized: true });
         } finally {
           set({ isLoading: false });
         }
@@ -241,7 +236,6 @@ const useStore = create<StoreState>()(
               businessName: 'Demo Business',
             };
             set({ user: demoUser });
-            setCookie('user_session', JSON.stringify(demoUser), 30);
             await get().loadData();
           } else {
             // Real Supabase authentication
@@ -266,7 +260,6 @@ const useStore = create<StoreState>()(
                 subscriptionExpiry: trialExpiry,
               };
               set({ user });
-              setCookie('user_session', JSON.stringify(user), 30);
               await get().loadData();
             }
           }
@@ -338,7 +331,6 @@ const useStore = create<StoreState>()(
               subscriptionExpiry: trialExpiry,
             };
             set({ user });
-            setCookie('user_session', JSON.stringify(user), 30);
           }
         } catch (error: any) {
           throw new Error(error.message || 'Sign up failed');
@@ -350,7 +342,6 @@ const useStore = create<StoreState>()(
       signOut: async () => {
         try {
           await supabase.auth.signOut();
-          deleteCookie('user_session');
           set({
             user: null,
             products: [],
@@ -366,7 +357,6 @@ const useStore = create<StoreState>()(
 
       setUser: (user: User) => {
         set({ user });
-        setCookie('user_session', JSON.stringify(user), 30);
       },
 
       // Product actions
@@ -851,7 +841,6 @@ const useStore = create<StoreState>()(
 
         const updatedUser = { ...user, ...data };
         set({ user: updatedUser });
-        setCookie('user_session', JSON.stringify(updatedUser), 30);
 
         if (user.id !== 'demo-user-id') {
           try {
@@ -1051,7 +1040,7 @@ if (typeof window !== 'undefined') {
   });
 }
 
-// Set up Supabase auth state listener for Google/Facebook OAuth
+// Set up Supabase auth state listener for OAuth and session changes
 if (typeof window !== 'undefined') {
   supabase.auth.onAuthStateChange(async (event, session) => {
     console.log('Auth state changed:', event, session?.user?.email);
@@ -1059,7 +1048,7 @@ if (typeof window !== 'undefined') {
     if (event === 'SIGNED_IN' && session?.user) {
       const { user: authUser } = session;
       
-      // Check if this is an OAuth user
+      // Check if this is an OAuth user or regular sign in
       if (authUser.app_metadata.provider === 'google' || authUser.app_metadata.provider === 'facebook') {
         // Give new OAuth users a free one-month trial with all features
         const trialExpiry = new Date();
@@ -1077,16 +1066,36 @@ if (typeof window !== 'undefined') {
         useStore.getState().setUser(user);
         await useStore.getState().loadData();
         
-        // Redirect to dashboard
+        // Redirect to dashboard if on login page
         if (window.location.pathname === '/login') {
           window.location.href = '/';
         }
       }
+    } else if (event === 'SIGNED_OUT') {
+      // Clear user data on sign out
+      useStore.getState().signOut();
+    } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+      // Session was refreshed, ensure user is still set
+      const currentUser = useStore.getState().user;
+      if (!currentUser && session.user) {
+        const user: User = {
+          id: session.user.id,
+          email: session.user.email!,
+          name: session.user.user_metadata?.name || session.user.user_metadata?.full_name || 'User',
+          plan: 'free',
+          currency: 'PHP',
+        };
+        
+        useStore.getState().setUser(user);
+        await useStore.getState().loadData();
+      }
     }
   });
 
-  // Initialize auth on app load
-  useStore.getState().initializeAuth();
+  // Initialize auth when the store is created
+  setTimeout(() => {
+    useStore.getState().initializeAuth();
+  }, 100);
 }
 
 // Export helper functions for use in components

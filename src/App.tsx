@@ -16,10 +16,10 @@ import { useStore } from './store/useStore';
 import { ThemeProvider } from './contexts/ThemeContext';
 
 function App() {
-  const { user, isLoading } = useStore();
+  const { user, isLoading, isInitialized } = useStore();
 
   // Show loading spinner while initializing auth
-  if (isLoading) {
+  if (!isInitialized || isLoading) {
     return (
       <ThemeProvider>
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
