@@ -104,6 +104,62 @@ const deleteCookie = (name: string) => {
   document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
 };
 
+// Helper function to convert date strings back to Date objects
+const deserializeState = (str: string) => {
+  const state = JSON.parse(str);
+  
+  // Convert user dates
+  if (state.user?.subscriptionExpiry) {
+    state.user.subscriptionExpiry = new Date(state.user.subscriptionExpiry);
+  }
+  
+  // Convert product dates
+  if (state.products) {
+    state.products = state.products.map((product: any) => ({
+      ...product,
+      createdAt: product.createdAt ? new Date(product.createdAt) : undefined,
+      updatedAt: product.updatedAt ? new Date(product.updatedAt) : undefined,
+    }));
+  }
+  
+  // Convert sale dates
+  if (state.sales) {
+    state.sales = state.sales.map((sale: any) => ({
+      ...sale,
+      date: sale.date ? new Date(sale.date) : undefined,
+      dueDate: sale.dueDate ? new Date(sale.dueDate) : undefined,
+    }));
+  }
+  
+  // Convert inventory transaction dates
+  if (state.inventoryTransactions) {
+    state.inventoryTransactions = state.inventoryTransactions.map((transaction: any) => ({
+      ...transaction,
+      date: transaction.date ? new Date(transaction.date) : undefined,
+    }));
+  }
+  
+  // Convert expense dates
+  if (state.expenses) {
+    state.expenses = state.expenses.map((expense: any) => ({
+      ...expense,
+      date: expense.date ? new Date(expense.date) : undefined,
+    }));
+  }
+  
+  // Convert user settings dates
+  if (state.userSettings) {
+    if (state.userSettings.createdAt) {
+      state.userSettings.createdAt = new Date(state.userSettings.createdAt);
+    }
+    if (state.userSettings.updatedAt) {
+      state.userSettings.updatedAt = new Date(state.userSettings.updatedAt);
+    }
+  }
+  
+  return state;
+};
+
 const useStore = create<StoreState>()(
   persist(
     (set, get) => ({
@@ -967,6 +1023,7 @@ const useStore = create<StoreState>()(
         userSettings: state.userSettings,
         monthlyGoal: state.monthlyGoal,
       }),
+      deserialize: deserializeState,
     }
   )
 );
