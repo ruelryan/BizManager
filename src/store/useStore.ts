@@ -232,7 +232,18 @@ const useStore = create<StoreState>()(
           products: [...state.products, product]
         }));
 
-        if (isOnline && user.id !== 'demo-user-id') {
+        // Only add to pending sync if offline OR if online sync fails
+        if (!isOnline) {
+          set(state => ({
+            pendingSyncItems: [...state.pendingSyncItems, {
+              id: crypto.randomUUID(),
+              type: 'product',
+              action: 'create',
+              data: product,
+              timestamp: new Date(),
+            }]
+          }));
+        } else if (user.id !== 'demo-user-id') {
           try {
             const supabaseData = transformToSupabaseData.product(product, user.id);
             const { error } = await supabase
@@ -243,7 +254,7 @@ const useStore = create<StoreState>()(
               handleSupabaseError(error);
             }
           } catch (error) {
-            // Add to pending sync if online sync fails
+            // Add to pending sync only if online sync fails
             set(state => ({
               pendingSyncItems: [...state.pendingSyncItems, {
                 id: crypto.randomUUID(),
@@ -255,17 +266,6 @@ const useStore = create<StoreState>()(
             }));
             console.error('Failed to sync product to server:', error);
           }
-        } else {
-          // Add to pending sync for offline or demo users
-          set(state => ({
-            pendingSyncItems: [...state.pendingSyncItems, {
-              id: crypto.randomUUID(),
-              type: 'product',
-              action: 'create',
-              data: product,
-              timestamp: new Date(),
-            }]
-          }));
         }
       },
 
@@ -282,7 +282,18 @@ const useStore = create<StoreState>()(
           )
         }));
 
-        if (isOnline && user.id !== 'demo-user-id') {
+        // Only add to pending sync if offline OR if online sync fails
+        if (!isOnline) {
+          set(state => ({
+            pendingSyncItems: [...state.pendingSyncItems, {
+              id: crypto.randomUUID(),
+              type: 'product',
+              action: 'update',
+              data: { id, ...updatedProduct },
+              timestamp: new Date(),
+            }]
+          }));
+        } else if (user.id !== 'demo-user-id') {
           try {
             const supabaseData = transformToSupabaseData.product(updatedProduct, user.id);
             const { error } = await supabase
@@ -294,7 +305,7 @@ const useStore = create<StoreState>()(
               handleSupabaseError(error);
             }
           } catch (error) {
-            // Add to pending sync if online sync fails
+            // Add to pending sync only if online sync fails
             set(state => ({
               pendingSyncItems: [...state.pendingSyncItems, {
                 id: crypto.randomUUID(),
@@ -306,17 +317,6 @@ const useStore = create<StoreState>()(
             }));
             console.error('Failed to sync product update to server:', error);
           }
-        } else {
-          // Add to pending sync for offline or demo users
-          set(state => ({
-            pendingSyncItems: [...state.pendingSyncItems, {
-              id: crypto.randomUUID(),
-              type: 'product',
-              action: 'update',
-              data: { id, ...updatedProduct },
-              timestamp: new Date(),
-            }]
-          }));
         }
       },
 
@@ -329,7 +329,18 @@ const useStore = create<StoreState>()(
           products: state.products.filter(p => p.id !== id)
         }));
 
-        if (isOnline && user.id !== 'demo-user-id') {
+        // Only add to pending sync if offline OR if online sync fails
+        if (!isOnline) {
+          set(state => ({
+            pendingSyncItems: [...state.pendingSyncItems, {
+              id: crypto.randomUUID(),
+              type: 'product',
+              action: 'delete',
+              data: { id },
+              timestamp: new Date(),
+            }]
+          }));
+        } else if (user.id !== 'demo-user-id') {
           try {
             const { error } = await supabase
               .from('products')
@@ -340,7 +351,7 @@ const useStore = create<StoreState>()(
               handleSupabaseError(error);
             }
           } catch (error) {
-            // Add to pending sync if online sync fails
+            // Add to pending sync only if online sync fails
             set(state => ({
               pendingSyncItems: [...state.pendingSyncItems, {
                 id: crypto.randomUUID(),
@@ -352,17 +363,6 @@ const useStore = create<StoreState>()(
             }));
             console.error('Failed to sync product deletion to server:', error);
           }
-        } else {
-          // Add to pending sync for offline or demo users
-          set(state => ({
-            pendingSyncItems: [...state.pendingSyncItems, {
-              id: crypto.randomUUID(),
-              type: 'product',
-              action: 'delete',
-              data: { id },
-              timestamp: new Date(),
-            }]
-          }));
         }
       },
 
@@ -418,7 +418,18 @@ const useStore = create<StoreState>()(
           inventoryTransactions: [...state.inventoryTransactions, ...inventoryTransactions]
         }));
 
-        if (isOnline && user.id !== 'demo-user-id') {
+        // Only add to pending sync if offline OR if online sync fails
+        if (!isOnline) {
+          set(state => ({
+            pendingSyncItems: [...state.pendingSyncItems, {
+              id: crypto.randomUUID(),
+              type: 'sale',
+              action: 'create',
+              data: sale,
+              timestamp: new Date(),
+            }]
+          }));
+        } else if (user.id !== 'demo-user-id') {
           try {
             const supabaseData = transformToSupabaseData.sale(sale, user.id);
             const { error } = await supabase
@@ -441,7 +452,7 @@ const useStore = create<StoreState>()(
               }
             }
           } catch (error) {
-            // Add to pending sync if online sync fails
+            // Add to pending sync only if online sync fails
             set(state => ({
               pendingSyncItems: [...state.pendingSyncItems, {
                 id: crypto.randomUUID(),
@@ -453,17 +464,6 @@ const useStore = create<StoreState>()(
             }));
             console.error('Failed to sync sale to server:', error);
           }
-        } else {
-          // Add to pending sync for offline or demo users
-          set(state => ({
-            pendingSyncItems: [...state.pendingSyncItems, {
-              id: crypto.randomUUID(),
-              type: 'sale',
-              action: 'create',
-              data: sale,
-              timestamp: new Date(),
-            }]
-          }));
         }
       },
 
@@ -478,7 +478,18 @@ const useStore = create<StoreState>()(
           )
         }));
 
-        if (isOnline && user.id !== 'demo-user-id') {
+        // Only add to pending sync if offline OR if online sync fails
+        if (!isOnline) {
+          set(state => ({
+            pendingSyncItems: [...state.pendingSyncItems, {
+              id: crypto.randomUUID(),
+              type: 'sale',
+              action: 'update',
+              data: { id, ...updates },
+              timestamp: new Date(),
+            }]
+          }));
+        } else if (user.id !== 'demo-user-id') {
           try {
             const supabaseData = transformToSupabaseData.sale(updates, user.id);
             const { error } = await supabase
@@ -490,7 +501,7 @@ const useStore = create<StoreState>()(
               handleSupabaseError(error);
             }
           } catch (error) {
-            // Add to pending sync if online sync fails
+            // Add to pending sync only if online sync fails
             set(state => ({
               pendingSyncItems: [...state.pendingSyncItems, {
                 id: crypto.randomUUID(),
@@ -502,17 +513,6 @@ const useStore = create<StoreState>()(
             }));
             console.error('Failed to sync sale update to server:', error);
           }
-        } else {
-          // Add to pending sync for offline or demo users
-          set(state => ({
-            pendingSyncItems: [...state.pendingSyncItems, {
-              id: crypto.randomUUID(),
-              type: 'sale',
-              action: 'update',
-              data: { id, ...updates },
-              timestamp: new Date(),
-            }]
-          }));
         }
       },
 
@@ -525,7 +525,18 @@ const useStore = create<StoreState>()(
           sales: state.sales.filter(s => s.id !== id)
         }));
 
-        if (isOnline && user.id !== 'demo-user-id') {
+        // Only add to pending sync if offline OR if online sync fails
+        if (!isOnline) {
+          set(state => ({
+            pendingSyncItems: [...state.pendingSyncItems, {
+              id: crypto.randomUUID(),
+              type: 'sale',
+              action: 'delete',
+              data: { id },
+              timestamp: new Date(),
+            }]
+          }));
+        } else if (user.id !== 'demo-user-id') {
           try {
             const { error } = await supabase
               .from('sales')
@@ -536,7 +547,7 @@ const useStore = create<StoreState>()(
               handleSupabaseError(error);
             }
           } catch (error) {
-            // Add to pending sync if online sync fails
+            // Add to pending sync only if online sync fails
             set(state => ({
               pendingSyncItems: [...state.pendingSyncItems, {
                 id: crypto.randomUUID(),
@@ -548,17 +559,6 @@ const useStore = create<StoreState>()(
             }));
             console.error('Failed to sync sale deletion to server:', error);
           }
-        } else {
-          // Add to pending sync for offline or demo users
-          set(state => ({
-            pendingSyncItems: [...state.pendingSyncItems, {
-              id: crypto.randomUUID(),
-              type: 'sale',
-              action: 'delete',
-              data: { id },
-              timestamp: new Date(),
-            }]
-          }));
         }
       },
 
@@ -610,7 +610,18 @@ const useStore = create<StoreState>()(
           expenses: [...state.expenses, expense]
         }));
 
-        if (isOnline && user.id !== 'demo-user-id') {
+        // Only add to pending sync if offline OR if online sync fails
+        if (!isOnline) {
+          set(state => ({
+            pendingSyncItems: [...state.pendingSyncItems, {
+              id: crypto.randomUUID(),
+              type: 'expense',
+              action: 'create',
+              data: expense,
+              timestamp: new Date(),
+            }]
+          }));
+        } else if (user.id !== 'demo-user-id') {
           try {
             const supabaseData = transformToSupabaseData.expense(expense, user.id);
             const { error } = await supabase
@@ -621,7 +632,7 @@ const useStore = create<StoreState>()(
               handleSupabaseError(error);
             }
           } catch (error) {
-            // Add to pending sync if online sync fails
+            // Add to pending sync only if online sync fails
             set(state => ({
               pendingSyncItems: [...state.pendingSyncItems, {
                 id: crypto.randomUUID(),
@@ -633,17 +644,6 @@ const useStore = create<StoreState>()(
             }));
             console.error('Failed to sync expense to server:', error);
           }
-        } else {
-          // Add to pending sync for offline or demo users
-          set(state => ({
-            pendingSyncItems: [...state.pendingSyncItems, {
-              id: crypto.randomUUID(),
-              type: 'expense',
-              action: 'create',
-              data: expense,
-              timestamp: new Date(),
-            }]
-          }));
         }
       },
 
@@ -658,7 +658,18 @@ const useStore = create<StoreState>()(
           )
         }));
 
-        if (isOnline && user.id !== 'demo-user-id') {
+        // Only add to pending sync if offline OR if online sync fails
+        if (!isOnline) {
+          set(state => ({
+            pendingSyncItems: [...state.pendingSyncItems, {
+              id: crypto.randomUUID(),
+              type: 'expense',
+              action: 'update',
+              data: { id, ...updates },
+              timestamp: new Date(),
+            }]
+          }));
+        } else if (user.id !== 'demo-user-id') {
           try {
             const supabaseData = transformToSupabaseData.expense(updates, user.id);
             const { error } = await supabase
@@ -670,7 +681,7 @@ const useStore = create<StoreState>()(
               handleSupabaseError(error);
             }
           } catch (error) {
-            // Add to pending sync if online sync fails
+            // Add to pending sync only if online sync fails
             set(state => ({
               pendingSyncItems: [...state.pendingSyncItems, {
                 id: crypto.randomUUID(),
@@ -682,17 +693,6 @@ const useStore = create<StoreState>()(
             }));
             console.error('Failed to sync expense update to server:', error);
           }
-        } else {
-          // Add to pending sync for offline or demo users
-          set(state => ({
-            pendingSyncItems: [...state.pendingSyncItems, {
-              id: crypto.randomUUID(),
-              type: 'expense',
-              action: 'update',
-              data: { id, ...updates },
-              timestamp: new Date(),
-            }]
-          }));
         }
       },
 
@@ -705,7 +705,18 @@ const useStore = create<StoreState>()(
           expenses: state.expenses.filter(e => e.id !== id)
         }));
 
-        if (isOnline && user.id !== 'demo-user-id') {
+        // Only add to pending sync if offline OR if online sync fails
+        if (!isOnline) {
+          set(state => ({
+            pendingSyncItems: [...state.pendingSyncItems, {
+              id: crypto.randomUUID(),
+              type: 'expense',
+              action: 'delete',
+              data: { id },
+              timestamp: new Date(),
+            }]
+          }));
+        } else if (user.id !== 'demo-user-id') {
           try {
             const { error } = await supabase
               .from('expenses')
@@ -716,7 +727,7 @@ const useStore = create<StoreState>()(
               handleSupabaseError(error);
             }
           } catch (error) {
-            // Add to pending sync if online sync fails
+            // Add to pending sync only if online sync fails
             set(state => ({
               pendingSyncItems: [...state.pendingSyncItems, {
                 id: crypto.randomUUID(),
@@ -728,17 +739,6 @@ const useStore = create<StoreState>()(
             }));
             console.error('Failed to sync expense deletion to server:', error);
           }
-        } else {
-          // Add to pending sync for offline or demo users
-          set(state => ({
-            pendingSyncItems: [...state.pendingSyncItems, {
-              id: crypto.randomUUID(),
-              type: 'expense',
-              action: 'delete',
-              data: { id },
-              timestamp: new Date(),
-            }]
-          }));
         }
       },
 
