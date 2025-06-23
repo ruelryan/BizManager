@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, Crown, Star, ArrowRight } from 'lucide-react';
+import { Check, Crown, Star, ArrowRight, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { plans } from '../utils/plans';
 import { useStore } from '../store/useStore';
@@ -183,6 +183,32 @@ export function Pricing() {
           ))}
         </div>
 
+        {/* PayPal Integration Notice */}
+        <div className="mt-16 max-w-4xl mx-auto">
+          <div className="rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-6">
+            <div className="flex items-start">
+              <AlertCircle className="h-6 w-6 text-blue-600 dark:text-blue-400 mr-3 mt-0.5 flex-shrink-0" />
+              <div>
+                <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-300 mb-2">
+                  PayPal Payment Available
+                </h3>
+                <div className="text-sm text-blue-700 dark:text-blue-400 space-y-2">
+                  <p>We now accept PayPal for secure international payments!</p>
+                  <ul className="list-disc list-inside space-y-1 ml-4">
+                    <li>Secure payment processing through PayPal</li>
+                    <li>Support for international credit cards and PayPal balance</li>
+                    <li>Automatic currency conversion from PHP to USD</li>
+                    <li>Instant plan activation upon successful payment</li>
+                  </ul>
+                  <p className="font-medium mt-3">
+                    Local payment methods (GCash, Bank Transfer) are also available for Philippine customers.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* FAQ Section */}
         <div className="mt-20 max-w-4xl mx-auto">
           <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white mb-12">
@@ -213,7 +239,7 @@ export function Pricing() {
                 What payment methods do you accept?
               </h3>
               <p className="text-gray-600 dark:text-gray-400">
-                We accept GCash, credit cards, debit cards, and bank transfers for your convenience.
+                We accept PayPal (international), GCash, credit cards, debit cards, and bank transfers.
               </p>
             </div>
             
@@ -223,6 +249,24 @@ export function Pricing() {
               </h3>
               <p className="text-gray-600 dark:text-gray-400">
                 Yes, we offer a 30-day money-back guarantee if you're not satisfied with our service.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                Is PayPal payment secure?
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                Yes, all PayPal transactions are processed securely through PayPal's encrypted payment system.
+              </p>
+            </div>
+            
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                What currency does PayPal use?
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                PayPal processes payments in USD with automatic conversion from our PHP pricing.
               </p>
             </div>
           </div>

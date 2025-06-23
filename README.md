@@ -22,6 +22,12 @@ A comprehensive business management solution built with React, TypeScript, Tailw
 - **Multi-Plan Support**: Free, Starter, and Pro plans with different feature sets
 - **Dark Mode**: Beautiful dark/light theme support
 
+### 💳 **Payment Integration**
+- **PayPal Integration**: Secure international payments through PayPal
+- **Local Payment Methods**: GCash, Bank Transfer, Credit/Debit Cards
+- **Automatic Currency Conversion**: PHP to USD for PayPal transactions
+- **Subscription Management**: Automated plan upgrades and renewals
+
 ### 🔄 **Offline-First Architecture**
 - **Offline Capability**: Works seamlessly without internet connection
 - **Auto-Sync**: Automatic synchronization when connection is restored
@@ -32,6 +38,7 @@ A comprehensive business management solution built with React, TypeScript, Tailw
 
 - **Frontend**: React 18, TypeScript, Tailwind CSS
 - **Backend**: Supabase (PostgreSQL, Auth, Real-time)
+- **Payment Processing**: PayPal SDK
 - **State Management**: Zustand with persistence
 - **Offline Storage**: LocalForage (IndexedDB)
 - **Charts**: Recharts
@@ -58,17 +65,75 @@ VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key-here
 ```
 
-### 3. Set Up Database
+### 3. Set Up PayPal Integration
+
+1. Create a PayPal Developer account at [developer.paypal.com](https://developer.paypal.com)
+2. Create a new app in your PayPal Developer Dashboard
+3. Get your Client ID and Client Secret
+4. Add PayPal credentials to your `.env` file:
+```env
+VITE_PAYPAL_CLIENT_ID=your_paypal_client_id
+```
+
+For production, you'll also need to:
+- Create subscription plans in PayPal
+- Set up webhook endpoints for payment verification
+- Configure Supabase Edge Functions for payment processing
+
+### 4. Set Up Database
 
 Run the migration files in your Supabase SQL editor:
 
 1. **Create Schema**: Run `supabase/migrations/create_business_schema.sql`
 2. **Add Sample Data**: Run `supabase/migrations/add_sample_sales.sql`
 
-### 4. Start Development
+### 5. Start Development
 ```bash
 npm run dev
 ```
+
+## PayPal Integration
+
+### Setup Steps
+
+1. **PayPal Developer Account**
+   - Sign up at [developer.paypal.com](https://developer.paypal.com)
+   - Create a new application
+   - Note your Client ID and Client Secret
+
+2. **Environment Variables**
+   ```env
+   VITE_PAYPAL_CLIENT_ID=your_client_id_here
+   ```
+
+3. **Subscription Plans** (Optional)
+   - Create subscription plans in PayPal Dashboard
+   - Add plan IDs to environment variables
+   ```env
+   VITE_PAYPAL_PLAN_ID_STARTER=your_starter_plan_id
+   VITE_PAYPAL_PLAN_ID_PRO=your_pro_plan_id
+   ```
+
+4. **Webhook Configuration**
+   - Set up webhooks in PayPal Dashboard
+   - Point to your Supabase Edge Function endpoint
+   - Configure payment verification logic
+
+### Payment Flow
+
+1. User selects PayPal as payment method
+2. PayPal SDK creates secure payment session
+3. User completes payment on PayPal
+4. PayPal returns payment confirmation
+5. System verifies payment and updates user subscription
+6. User gains access to premium features
+
+### Currency Handling
+
+- Prices are displayed in PHP (Philippine Peso)
+- PayPal processes payments in USD
+- Automatic currency conversion at current exchange rates
+- Exchange rate: ~₱56 = $1 USD (approximate)
 
 ## Database Schema
 
@@ -128,6 +193,17 @@ npm run dev
 - Priority support
 - Data export capabilities
 
+## Payment Methods
+
+### International
+- **PayPal**: Secure payment processing for global customers
+- **Credit/Debit Cards**: Via PayPal gateway
+
+### Philippines
+- **GCash**: Mobile wallet payments
+- **Bank Transfer**: Direct bank transfers
+- **Credit/Debit Cards**: Local card processing
+
 ## Offline Capabilities
 
 ### Smart Sync System
@@ -148,6 +224,8 @@ npm run dev
 ```
 src/
 ├── components/          # Reusable UI components
+│   ├── PayPalButton.tsx # PayPal payment integration
+│   └── ...
 ├── pages/              # Main application pages
 ├── store/              # Zustand state management
 ├── lib/                # Supabase client and utilities
@@ -159,6 +237,7 @@ src/
 ### Key Components
 - **Layout**: Main app shell with navigation
 - **FeatureGate**: Plan-based feature access control
+- **PayPalButton**: Secure payment processing
 - **ThemeToggle**: Dark/light mode switching
 - **Store**: Centralized state with offline sync
 
@@ -172,6 +251,20 @@ npm run preview
 
 # Deploy to your preferred hosting platform
 ```
+
+## Security Considerations
+
+### PayPal Security
+- Client-side integration uses PayPal SDK
+- Payment verification happens server-side
+- No sensitive PayPal credentials exposed to frontend
+- Webhook verification for payment confirmation
+
+### Data Protection
+- All user data isolated by Row Level Security
+- Encrypted data transmission
+- Secure authentication with Supabase
+- No payment data stored locally
 
 ## Contributing
 
