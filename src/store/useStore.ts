@@ -59,6 +59,7 @@ interface StoreState {
   exportReportData: () => string;
   loadData: () => Promise<void>;
   setOnlineStatus: (status: boolean) => void;
+  initializeAuth: () => Promise<void>;
 }
 
 // Configure localforage for offline storage
@@ -81,6 +82,28 @@ const getEffectivePlan = (user: User): string => {
   return user.plan;
 };
 
+// Cookie utilities for user persistence
+const setCookie = (name: string, value: string, days: number = 30) => {
+  const expires = new Date();
+  expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
+  document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Lax`;
+};
+
+const getCookie = (name: string): string | null => {
+  const nameEQ = name + "=";
+  const ca = document.cookie.split(';');
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i];
+    while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+  }
+  return null;
+};
+
+const deleteCookie = (name: string) => {
+  document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+};
+
 const useStore = create<StoreState>()(
   persist(
     (set, get) => ({
@@ -94,6 +117,58 @@ const useStore = create<StoreState>()(
       userSettings: null,
       isOnline: navigator.onLine,
       monthlyGoal: 50000,
+
+      // Initialize auth state from cookies and Supabase
+      initializeAuth: async () => {
+        set({ isLoading: true });
+        try {
+          // First check for existing Supabase session
+          const { data: { session } } = await supabase.auth.getSession();
+          
+          if (session?.user) {
+            // User has active Supabase session
+            const authUser = session.user;
+            
+            // Give new users a free one-month trial with all features
+            const trialExpiry = new Date();
+            trialExpiry.setMonth(trialExpiry.getMonth() + 1);
+            
+            const user: User = {
+              id: authUser.id,
+              email: authUser.email!,
+              name: authUser.user_metadata?.name || authUser.user_metadata?.full_name || 'User',
+              plan: 'free',
+              currency: 'PHP',
+              subscriptionExpiry: trialExpiry,
+            };
+            
+            set({ user });
+            setCookie('user_session', JSON.stringify(user), 30);
+            await get().loadData();
+          } else {
+            // Check for saved user in cookies
+            const savedUser = getCookie('user_session');
+            if (savedUser) {
+              try {
+                const user = JSON.parse(savedUser);
+                // Restore dates
+                if (user.subscriptionExpiry) {
+                  user.subscriptionExpiry = new Date(user.subscriptionExpiry);
+                }
+                set({ user });
+                await get().loadData();
+              } catch (error) {
+                console.error('Failed to parse saved user:', error);
+                deleteCookie('user_session');
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Failed to initialize auth:', error);
+        } finally {
+          set({ isLoading: false });
+        }
+      },
 
       // Auth actions
       signIn: async (email: string, password: string, plan = 'free') => {
@@ -110,6 +185,7 @@ const useStore = create<StoreState>()(
               businessName: 'Demo Business',
             };
             set({ user: demoUser });
+            setCookie('user_session', JSON.stringify(demoUser), 30);
             await get().loadData();
           } else {
             // Real Supabase authentication
@@ -131,9 +207,10 @@ const useStore = create<StoreState>()(
                 name: data.user.user_metadata?.name || 'User',
                 plan: 'free',
                 currency: 'PHP',
-                subscriptionExpiry: trialExpiry, // Free trial for one month
+                subscriptionExpiry: trialExpiry,
               };
               set({ user });
+              setCookie('user_session', JSON.stringify(user), 30);
               await get().loadData();
             }
           }
@@ -154,7 +231,6 @@ const useStore = create<StoreState>()(
             },
           });
           if (error) throw error;
-          // Note: The actual user setup will happen in the auth state change listener
         } catch (error: any) {
           set({ isLoading: false });
           throw new Error(error.message || 'Google sign in failed');
@@ -203,9 +279,10 @@ const useStore = create<StoreState>()(
               name,
               plan: 'free',
               currency: 'PHP',
-              subscriptionExpiry: trialExpiry, // Free trial for one month
+              subscriptionExpiry: trialExpiry,
             };
             set({ user });
+            setCookie('user_session', JSON.stringify(user), 30);
           }
         } catch (error: any) {
           throw new Error(error.message || 'Sign up failed');
@@ -217,6 +294,7 @@ const useStore = create<StoreState>()(
       signOut: async () => {
         try {
           await supabase.auth.signOut();
+          deleteCookie('user_session');
           set({
             user: null,
             products: [],
@@ -232,6 +310,7 @@ const useStore = create<StoreState>()(
 
       setUser: (user: User) => {
         set({ user });
+        setCookie('user_session', JSON.stringify(user), 30);
       },
 
       // Product actions
@@ -383,7 +462,7 @@ const useStore = create<StoreState>()(
         // Persist to database if not demo user
         if (user.id !== 'demo-user-id') {
           try {
-            // Prepare sale data for Supabase
+            // Prepare sale data for Supabase with proper UUID handling
             const supabaseData = {
               id: sale.id,
               receipt_number: sale.invoiceNumber || `INV-${Date.now()}`,
@@ -396,7 +475,7 @@ const useStore = create<StoreState>()(
                 method: sale.paymentType,
                 amount: sale.total
               }],
-              customer_id: sale.customerId || null,
+              customer_id: sale.customerId && sale.customerId !== 'walk-in' ? sale.customerId : null,
               customer_name: sale.customerName,
               customer_email: sale.customerEmail || null,
               cashier_id: user.id,
@@ -416,7 +495,7 @@ const useStore = create<StoreState>()(
             
             if (error) {
               console.error('Supabase error:', error);
-              handleSupabaseError(error);
+              throw error;
             } else {
               console.log('Sale saved successfully:', data);
             }
@@ -442,8 +521,7 @@ const useStore = create<StoreState>()(
             }
           } catch (error) {
             console.error('Failed to save sale to database:', error);
-            // Don't throw error here to prevent UI from breaking
-            // The sale is already saved locally
+            throw new Error('Failed to save sale to database: ' + error.message);
           }
         }
       },
@@ -647,6 +725,7 @@ const useStore = create<StoreState>()(
 
         const updatedUser = { ...user, ...data };
         set({ user: updatedUser });
+        setCookie('user_session', JSON.stringify(updatedUser), 30);
 
         if (user.id !== 'demo-user-id') {
           try {
@@ -836,10 +915,12 @@ if (typeof window !== 'undefined') {
 // Set up Supabase auth state listener for Google/Facebook OAuth
 if (typeof window !== 'undefined') {
   supabase.auth.onAuthStateChange(async (event, session) => {
+    console.log('Auth state changed:', event, session?.user?.email);
+    
     if (event === 'SIGNED_IN' && session?.user) {
       const { user: authUser } = session;
       
-      // Check if this is a new OAuth user
+      // Check if this is an OAuth user
       if (authUser.app_metadata.provider === 'google' || authUser.app_metadata.provider === 'facebook') {
         // Give new OAuth users a free one-month trial with all features
         const trialExpiry = new Date();
@@ -851,17 +932,22 @@ if (typeof window !== 'undefined') {
           name: authUser.user_metadata?.name || authUser.user_metadata?.full_name || 'User',
           plan: 'free',
           currency: 'PHP',
-          subscriptionExpiry: trialExpiry, // Free trial for one month
+          subscriptionExpiry: trialExpiry,
         };
         
         useStore.getState().setUser(user);
         await useStore.getState().loadData();
         
         // Redirect to dashboard
-        window.location.href = '/';
+        if (window.location.pathname === '/login') {
+          window.location.href = '/';
+        }
       }
     }
   });
+
+  // Initialize auth on app load
+  useStore.getState().initializeAuth();
 }
 
 // Export helper functions for use in components

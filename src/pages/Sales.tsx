@@ -1,6 +1,6 @@
 import React from 'react';
 import { format } from 'date-fns';
-import { Plus, Filter, Eye, Edit, Trash2, ChevronDown, X } from 'lucide-react';
+import { Plus, Filter, Eye, Edit, Trash2, ChevronDown, X, AlertTriangle } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { Sale } from '../types';
 
@@ -11,6 +11,7 @@ export function Sales() {
   const [viewingSale, setViewingSale] = React.useState<Sale | null>(null);
   const [filterStatus, setFilterStatus] = React.useState<'all' | 'paid' | 'pending' | 'overdue'>('all');
   const [deleteConfirm, setDeleteConfirm] = React.useState<string | null>(null);
+  const [deleteCountdown, setDeleteCountdown] = React.useState<number>(0);
 
   // Filter sales
   const filteredSales = sales.filter((sale) => {
@@ -36,14 +37,29 @@ export function Sales() {
     return sale.status;
   };
 
+  // Handle delete with confirmation and countdown
   const handleDeleteSale = (id: string) => {
     if (deleteConfirm === id) {
+      // Second click - actually delete
       deleteSale(id);
       setDeleteConfirm(null);
+      setDeleteCountdown(0);
     } else {
+      // First click - start confirmation
       setDeleteConfirm(id);
-      // Auto-cancel confirmation after 3 seconds
-      setTimeout(() => setDeleteConfirm(null), 3000);
+      setDeleteCountdown(5);
+      
+      // Start countdown
+      const interval = setInterval(() => {
+        setDeleteCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            setDeleteConfirm(null);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
     }
   };
 
@@ -177,72 +193,81 @@ export function Sales() {
       paymentType: sale?.paymentType || 'cash' as const,
       status: sale?.status || 'paid' as const,
     });
+    const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
+      setIsSubmitting(true);
       
-      // Set default customer name if empty
-      const customerName = formData.customerName.trim() || 'Walk-in Customer';
-      
-      const saleItems = formData.items
-        .filter(item => item.productId)
-        .map(item => {
+      try {
+        // Set default customer name if empty
+        const customerName = formData.customerName.trim() || 'Walk-in Customer';
+        
+        const saleItems = formData.items
+          .filter(item => item.productId)
+          .map(item => {
+            const product = products.find(p => p.id === item.productId);
+            return {
+              productId: item.productId,
+              productName: product?.name || '',
+              quantity: item.quantity,
+              price: item.price || product?.price || 0,
+              total: item.quantity * (item.price || product?.price || 0),
+            };
+          });
+
+        const total = saleItems.reduce((sum, item) => sum + item.total, 0);
+
+        // Check stock availability
+        const stockErrors: string[] = [];
+        saleItems.forEach(item => {
           const product = products.find(p => p.id === item.productId);
-          return {
-            productId: item.productId,
-            productName: product?.name || '',
-            quantity: item.quantity,
-            price: item.price || product?.price || 0,
-            total: item.quantity * (item.price || product?.price || 0),
-          };
+          if (product && product.currentStock < item.quantity) {
+            stockErrors.push(`${product.name} has only ${product.currentStock} units in stock`);
+          }
         });
 
-      const total = saleItems.reduce((sum, item) => sum + item.total, 0);
-
-      // Check stock availability
-      const stockErrors: string[] = [];
-      saleItems.forEach(item => {
-        const product = products.find(p => p.id === item.productId);
-        if (product && product.currentStock < item.quantity) {
-          stockErrors.push(`${product.name} has only ${product.currentStock} units in stock`);
+        if (stockErrors.length > 0) {
+          alert(`Stock Error:\n${stockErrors.join('\n')}`);
+          return;
         }
-      });
 
-      if (stockErrors.length > 0) {
-        alert(`Stock Error:\n${stockErrors.join('\n')}`);
-        return;
+        const dueDate = formData.status === 'pending' 
+          ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days from now
+          : undefined;
+
+        const saleData = {
+          customerId: sale?.customerId || crypto.randomUUID(),
+          customerName,
+          customerEmail: formData.customerEmail || undefined,
+          items: saleItems,
+          total,
+          paymentType: formData.paymentType,
+          status: formData.status,
+          date: sale?.date || new Date(),
+          dueDate,
+        };
+
+        if (sale) {
+          await updateSale(sale.id, saleData);
+        } else {
+          await addSale(saleData);
+        }
+
+        onClose();
+        setFormData({
+          customerName: '',
+          customerEmail: '',
+          items: [{ productId: '', quantity: 1, price: 0 }],
+          paymentType: 'cash',
+          status: 'paid',
+        });
+      } catch (error: any) {
+        console.error('Failed to save sale:', error);
+        alert('Failed to save sale: ' + error.message);
+      } finally {
+        setIsSubmitting(false);
       }
-
-      const dueDate = formData.status === 'pending' 
-        ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days from now
-        : undefined;
-
-      const saleData = {
-        customerId: sale?.customerId || crypto.randomUUID(),
-        customerName,
-        customerEmail: formData.customerEmail || undefined,
-        items: saleItems,
-        total,
-        paymentType: formData.paymentType,
-        status: formData.status,
-        date: sale?.date || new Date(),
-        dueDate,
-      };
-
-      if (sale) {
-        updateSale(sale.id, saleData);
-      } else {
-        addSale(saleData);
-      }
-
-      onClose();
-      setFormData({
-        customerName: '',
-        customerEmail: '',
-        items: [{ productId: '', quantity: 1, price: 0 }],
-        paymentType: 'cash',
-        status: 'paid',
-      });
     };
 
     const addItem = () => {
@@ -414,14 +439,23 @@ export function Sales() {
             <div className="flex space-x-3 pt-4">
               <button
                 type="submit"
-                className="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-white font-medium hover:bg-blue-700 transition-colors"
+                disabled={isSubmitting}
+                className="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-white font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {sale ? 'Update Sale' : 'Create Sale'}
+                {isSubmitting ? (
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Saving...
+                  </div>
+                ) : (
+                  sale ? 'Update Sale' : 'Create Sale'
+                )}
               </button>
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 px-4 py-2 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                disabled={isSubmitting}
+                className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 px-4 py-2 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -658,14 +692,21 @@ export function Sales() {
                         </button>
                         <button
                           onClick={() => handleDeleteSale(sale.id)}
-                          className={`transition-colors ${
+                          className={`relative transition-colors ${
                             deleteConfirm === sale.id
                               ? 'text-red-600 dark:text-red-400'
                               : 'text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400'
                           }`}
-                          title={deleteConfirm === sale.id ? 'Click again to confirm deletion' : 'Delete sale'}
+                          title={deleteConfirm === sale.id ? `Click again to confirm (${deleteCountdown}s)` : 'Delete sale'}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          {deleteConfirm === sale.id ? (
+                            <div className="flex items-center space-x-1">
+                              <AlertTriangle className="h-4 w-4" />
+                              <span className="text-xs font-medium">{deleteCountdown}</span>
+                            </div>
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
                         </button>
                       </div>
                     </td>

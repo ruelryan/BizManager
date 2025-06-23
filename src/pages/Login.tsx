@@ -28,10 +28,11 @@ export function Login() {
           return;
         }
         await signUp(formData.email, formData.password, formData.name);
+        navigate('/');
       } else {
         await signIn(formData.email, formData.password, formData.plan);
+        navigate('/');
       }
-      navigate('/');
     } catch (err: any) {
       setError(err.message || `Failed to ${showSignUp ? 'create account' : 'sign in'}`);
     }
@@ -41,7 +42,7 @@ export function Login() {
     setError('');
     try {
       await signInWithGoogle();
-      // Redirect will be handled by Supabase
+      // Redirect will be handled by auth state change listener
     } catch (err: any) {
       setError(err.message || 'Failed to sign in with Google');
     }
@@ -51,7 +52,7 @@ export function Login() {
     setError('');
     try {
       await signInWithFacebook();
-      // Redirect will be handled by Supabase
+      // Redirect will be handled by auth state change listener
     } catch (err: any) {
       setError(err.message || 'Failed to sign in with Facebook');
     }
@@ -316,6 +317,22 @@ export function Login() {
                 <p><strong>Free:</strong> Limited to 10 products, basic features only</p>
                 <p><strong>Starter:</strong> Unlimited products, basic reports</p>
                 <p><strong>Pro:</strong> All features including PDF invoices & advanced analytics</p>
+              </div>
+            </div>
+          )}
+
+          {/* Free Trial Notice */}
+          {showSignUp && (
+            <div className="mt-4 p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
+              <h3 className="text-sm font-medium text-purple-900 dark:text-purple-300 mb-2">🎉 Free Trial Included!</h3>
+              <div className="text-sm text-purple-700 dark:text-purple-400">
+                <p>Get 1 month of Pro features absolutely free when you sign up!</p>
+                <ul className="list-disc list-inside mt-2 space-y-1">
+                  <li>All Pro features unlocked</li>
+                  <li>PDF invoice generation</li>
+                  <li>Advanced reports & analytics</li>
+                  <li>No credit card required</li>
+                </ul>
               </div>
             </div>
           )}
