@@ -14,11 +14,13 @@ import {
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { useStore } from '../store/useStore';
 import { FeatureGate } from '../components/FeatureGate';
+import { useCurrency } from '../hooks/useCurrency';
 
 export function Dashboard() {
-  const { sales, products, monthlyGoal, setMonthlyGoal } = useStore();
+  const { sales, products, monthlyGoal, setMonthlyGoal, userSettings, updateUserSettings } = useStore();
   const [showGoalSetting, setShowGoalSetting] = React.useState(false);
   const [newGoal, setNewGoal] = React.useState(monthlyGoal);
+  const { formatAmount, convertAmount, symbol } = useCurrency();
 
   // Calculate current month stats
   const currentMonth = new Date();
@@ -46,8 +48,10 @@ export function Dashboard() {
   // Unpaid invoices
   const unpaidInvoices = sales.filter(sale => sale.status === 'pending' || sale.status === 'overdue');
   
-  // Revenue progress
-  const revenueProgress = (currentRevenue / monthlyGoal) * 100;
+  // Revenue progress (convert goal to user currency for comparison)
+  const convertedGoal = convertAmount(monthlyGoal, 'PHP');
+  const convertedRevenue = convertAmount(currentRevenue, 'PHP');
+  const revenueProgress = (convertedRevenue / convertedGoal) * 100;
   
   // Last 7 days data for chart
   const last7Days = Array.from({ length: 7 }, (_, i) => {
@@ -58,11 +62,21 @@ export function Dashboard() {
       format(sale.date, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd') && sale.status === 'paid'
     );
     const revenue = daySales.reduce((sum, sale) => sum + sale.total, 0);
-    return { day: dayName, revenue, sales: daySales.length };
+    return { day: dayName, revenue: convertAmount(revenue, 'PHP'), sales: daySales.length };
   });
 
-  const handleGoalUpdate = () => {
-    setMonthlyGoal(newGoal);
+  const handleGoalUpdate = async () => {
+    // Convert goal back to PHP for storage
+    const phpGoal = convertAmount(newGoal, userSettings?.currency || 'PHP');
+    setMonthlyGoal(phpGoal);
+    
+    // Update user settings
+    try {
+      await updateUserSettings({ monthlyGoal: phpGoal });
+    } catch (error) {
+      console.error('Failed to update goal:', error);
+    }
+    
     setShowGoalSetting(false);
   };
 
@@ -115,7 +129,7 @@ export function Dashboard() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Today's Revenue"
-          value={`₱${todayRevenue.toLocaleString()}`}
+          value={formatAmount(todayRevenue, 'PHP')}
           change={12}
           icon={DollarSign}
           color="green"
@@ -156,7 +170,7 @@ export function Dashboard() {
           </div>
           <div className="mb-2 flex items-center justify-between text-sm">
             <span className="text-gray-600 dark:text-gray-400">
-              ₱{currentRevenue.toLocaleString()} of ₱{monthlyGoal.toLocaleString()}
+              {formatAmount(currentRevenue, 'PHP')} of {formatAmount(monthlyGoal, 'PHP')}
             </span>
             <span className="font-medium text-gray-900 dark:text-white">{revenueProgress.toFixed(1)}%</span>
           </div>
@@ -180,14 +194,14 @@ export function Dashboard() {
             <div className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Monthly Goal (₱)
+                  Monthly Goal ({symbol})
                 </label>
                 <input
                   type="number"
                   min="0"
                   step="1000"
-                  value={newGoal}
-                  onChange={(e) => setNewGoal(parseInt(e.target.value) || 0)}
+                  value={convertAmount(newGoal, 'PHP')}
+                  onChange={(e) => setNewGoal(convertAmount(parseInt(e.target.value) || 0, userSettings?.currency || 'PHP'))}
                   className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   placeholder="Enter your monthly revenue goal"
                 />
@@ -223,7 +237,7 @@ export function Dashboard() {
               <XAxis dataKey="day" stroke="#6B7280" />
               <YAxis stroke="#6B7280" />
               <Tooltip 
-                formatter={(value) => [`₱${value}`, 'Revenue']}
+                formatter={(value) => [formatAmount(value as number, userSettings?.currency || 'PHP'), 'Revenue']}
                 contentStyle={{
                   backgroundColor: 'var(--tooltip-bg)',
                   border: '1px solid var(--tooltip-border)',
@@ -329,7 +343,7 @@ export function Dashboard() {
                 <div key={invoice.id} className="flex items-center justify-between text-sm">
                   <span className="text-orange-700 dark:text-orange-300">{invoice.customerName}</span>
                   <span className="rounded-full bg-orange-100 dark:bg-orange-800 px-2 py-1 text-xs font-medium text-orange-800 dark:text-orange-200">
-                    ₱{invoice.total.toLocaleString()}
+                    {formatAmount(invoice.total, 'PHP')}
                   </span>
                 </div>
               ))}
