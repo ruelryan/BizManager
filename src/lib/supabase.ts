@@ -120,7 +120,7 @@ export const transformToSupabaseData = {
       method: data.paymentType,
       amount: data.total
     }],
-    customer_id: data.customerId ? parseInt(data.customerId) : null,
+    customer_id: data.customerId || null,
     customer_name: data.customerName,
     customer_email: data.customerEmail || null,
     cashier_id: userId || 'unknown',

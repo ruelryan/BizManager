@@ -218,7 +218,7 @@ export function Sales() {
         : undefined;
 
       const saleData = {
-        customerId: sale?.customerId || Date.now().toString(),
+        customerId: sale?.customerId || crypto.randomUUID(),
         customerName,
         customerEmail: formData.customerEmail || undefined,
         items: saleItems,
