@@ -855,12 +855,21 @@ const useStore = create<StoreState>()(
 
         if (user.id !== 'demo-user-id') {
           try {
-            const { error } = await supabase.auth.updateUser({
-              data: data,
-            });
+            // Only pass standard user metadata fields to Supabase auth
+            const authData: any = {};
+            if (data.name) {
+              authData.name = data.name;
+            }
             
-            if (error) {
-              handleSupabaseError(error);
+            // Only update auth if we have valid auth data
+            if (Object.keys(authData).length > 0) {
+              const { error } = await supabase.auth.updateUser({
+                data: authData,
+              });
+              
+              if (error) {
+                handleSupabaseError(error);
+              }
             }
           } catch (error) {
             console.error('Failed to update user profile:', error);
@@ -880,13 +889,16 @@ const useStore = create<StoreState>()(
             const supabaseData = transformToSupabaseData.userSettings(settings, user.id);
             const { error } = await supabase
               .from('user_settings')
-              .upsert(supabaseData);
+              .upsert(supabaseData, { 
+                onConflict: 'user_id' 
+              });
             
             if (error) {
               handleSupabaseError(error);
             }
           } catch (error) {
             console.error('Failed to update user settings:', error);
+            throw error;
           }
         }
       },
