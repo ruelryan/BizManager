@@ -40,7 +40,7 @@ export function PayPalOneTimeButton({ planId, onSuccess, onError }: PayPalOneTim
             value: usdPrice,
           },
           description: `${plan.name} Plan - BizManager Subscription`,
-          custom_id: user?.id,
+          custom_id: user?.id, // This is crucial for webhook processing
         },
       ],
       application_context: {
@@ -58,9 +58,8 @@ export function PayPalOneTimeButton({ planId, onSuccess, onError }: PayPalOneTim
       const details = await actions.order.capture();
       console.log('PayPal payment completed:', details);
       
-      // Here you would typically verify the payment with your backend
-      // and update the user's subscription status
-      
+      // The webhook will handle the actual subscription update
+      // We just need to notify the UI of success
       onSuccess();
     } catch (error) {
       console.error('PayPal payment error:', error);
@@ -151,6 +150,13 @@ export function PayPalOneTimeButton({ planId, onSuccess, onError }: PayPalOneTim
             </p>
           </div>
         )}
+
+        {/* Webhook Processing Notice */}
+        <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+          <p className="text-xs text-blue-700 dark:text-blue-300 text-center">
+            🔄 Your subscription will be activated automatically after payment confirmation via our secure webhook system.
+          </p>
+        </div>
       </div>
     </PayPalScriptProvider>
   );

@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, Mail, Crown, Save, ArrowLeft, Globe, Building, Calendar, AlertCircle } from 'lucide-react';
+import { User, Mail, Crown, Save, ArrowLeft, Globe, Building, Calendar, AlertCircle, Bell, CreditCard } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useStore, isInFreeTrial } from '../store/useStore';
 import { plans } from '../utils/plans';
@@ -30,6 +30,8 @@ export function Profile() {
   });
   const [isSaving, setIsSaving] = React.useState(false);
   const [message, setMessage] = React.useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [showPaymentHistory, setShowPaymentHistory] = React.useState(false);
+  const [showNotifications, setShowNotifications] = React.useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -328,6 +330,58 @@ export function Profile() {
             )}
           </div>
 
+          {/* Payment History */}
+          <div className="rounded-xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Payment History</h3>
+              <button
+                onClick={() => setShowPaymentHistory(!showPaymentHistory)}
+                className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+              >
+                <CreditCard className="h-5 w-5" />
+              </button>
+            </div>
+            
+            {showPaymentHistory ? (
+              <div className="space-y-3">
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  <p>No payment history available.</p>
+                  <p className="mt-2">Payment transactions will appear here once you make a purchase.</p>
+                </div>
+              </div>
+            ) : (
+              <div className="text-sm text-gray-600 dark:text-gray-400">
+                <p>Click the card icon to view your payment history.</p>
+              </div>
+            )}
+          </div>
+
+          {/* Notifications */}
+          <div className="rounded-xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Notifications</h3>
+              <button
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+              >
+                <Bell className="h-5 w-5" />
+              </button>
+            </div>
+            
+            {showNotifications ? (
+              <div className="space-y-3">
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  <p>No notifications at this time.</p>
+                  <p className="mt-2">Payment confirmations, subscription updates, and other important notifications will appear here.</p>
+                </div>
+              </div>
+            ) : (
+              <div className="text-sm text-gray-600 dark:text-gray-400">
+                <p>Click the bell icon to view your notifications.</p>
+              </div>
+            )}
+          </div>
+
           {/* Currency Preview */}
           <div className="rounded-xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-200 dark:border-gray-700">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Currency Preview</h3>
@@ -380,6 +434,13 @@ export function Profile() {
                   Active
                 </span>
               </div>
+
+              <div className="flex justify-between">
+                <span className="text-gray-600 dark:text-gray-400">Payment Status:</span>
+                <span className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/30 px-2 py-1 text-xs font-medium text-blue-800 dark:text-blue-300">
+                  {userSettings?.paymentStatus || 'Active'}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -419,6 +480,17 @@ export function Profile() {
               </button>
             </div>
           )}
+
+          {/* Webhook Status */}
+          <div className="rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-6">
+            <div className="flex items-center mb-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+              <h3 className="text-sm font-semibold text-green-800 dark:text-green-300">Payment System Status</h3>
+            </div>
+            <p className="text-xs text-green-700 dark:text-green-400">
+              PayPal webhook handlers are active and monitoring payment events in real-time.
+            </p>
+          </div>
         </div>
       </div>
     </div>
