@@ -261,6 +261,91 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* PayPal Dark Mode Fixes */
+.dark .paypal-button-container {
+  /* Force PayPal buttons to respect dark mode */
+  filter: brightness(0.9) contrast(1.1);
+}
+
+.dark .paypal-button-container iframe {
+  /* Ensure PayPal iframes work well in dark mode */
+  border-radius: 8px;
+  background: #1f2937 !important;
+}
+
+/* PayPal Modal and Popup Dark Mode Overrides */
+.dark body.paypal-modal-open {
+  background: #111827 !important;
+}
+
+.dark .paypal-checkout-sandbox,
+.dark .paypal-checkout-production,
+.dark .paypal-modal,
+.dark .paypal-overlay {
+  background: #1f2937 !important;
+  color: #f3f4f6 !important;
+}
+
+.dark .paypal-modal .paypal-modal-content {
+  background: #1f2937 !important;
+  border: 1px solid #374151 !important;
+}
+
+.dark .paypal-modal input,
+.dark .paypal-modal select,
+.dark .paypal-modal textarea {
+  background: #374151 !important;
+  color: #f3f4f6 !important;
+  border: 1px solid #4b5563 !important;
+}
+
+.dark .paypal-modal label,
+.dark .paypal-modal .paypal-label {
+  color: #d1d5db !important;
+}
+
+.dark .paypal-modal .paypal-button {
+  background: #3b82f6 !important;
+  color: #ffffff !important;
+}
+
+.dark .paypal-modal .paypal-text,
+.dark .paypal-modal p,
+.dark .paypal-modal span {
+  color: #f3f4f6 !important;
+}
+
+/* PayPal Checkout Form Dark Mode */
+.dark .paypal-checkout-form {
+  background: #1f2937 !important;
+  color: #f3f4f6 !important;
+}
+
+.dark .paypal-checkout-form .form-field input {
+  background: #374151 !important;
+  color: #f3f4f6 !important;
+  border: 1px solid #4b5563 !important;
+}
+
+.dark .paypal-checkout-form .form-field label {
+  color: #d1d5db !important;
+}
+
+/* PayPal Payment Method Selection Dark Mode */
+.dark .payment-method-list {
+  background: #1f2937 !important;
+}
+
+.dark .payment-method-item {
+  background: #374151 !important;
+  border: 1px solid #4b5563 !important;
+  color: #f3f4f6 !important;
+}
+
+.dark .payment-method-item:hover {
+  background: #4b5563 !important;
+}
+
 /* Responsive Design Helpers */
 @media (max-width: 640px) {
   .mobile-padding {

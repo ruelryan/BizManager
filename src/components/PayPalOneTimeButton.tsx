@@ -2,6 +2,7 @@ import React from 'react';
 import { PayPalButtons, PayPalScriptProvider } from '@paypal/react-paypal-js';
 import { useStore } from '../store/useStore';
 import { plans } from '../utils/plans';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface PayPalOneTimeButtonProps {
   planId: string;
@@ -11,6 +12,7 @@ interface PayPalOneTimeButtonProps {
 
 export function PayPalOneTimeButton({ planId, onSuccess, onError }: PayPalOneTimeButtonProps) {
   const { user } = useStore();
+  const { theme } = useTheme();
   const plan = plans.find(p => p.id === planId);
 
   if (!plan || plan.price === 0) {
@@ -20,11 +22,13 @@ export function PayPalOneTimeButton({ planId, onSuccess, onError }: PayPalOneTim
   // Convert PHP to USD (approximate rate - you should use a real exchange rate API)
   const usdPrice = (plan.price / 56).toFixed(2); // Approximate PHP to USD conversion
 
-  // PayPal configuration for one-time payments
+  // PayPal configuration for one-time payments with dark mode support
   const initialOptions = {
     clientId: import.meta.env.VITE_PAYPAL_CLIENT_ID || "test",
     currency: "USD",
     intent: "capture" as const,
+    // Add data attributes for better dark mode support
+    'data-sdk-integration-source': 'button-factory',
   };
 
   const createOrder = (data: any, actions: any) => {
@@ -72,12 +76,62 @@ export function PayPalOneTimeButton({ planId, onSuccess, onError }: PayPalOneTim
   return (
     <PayPalScriptProvider options={initialOptions}>
       <div className="paypal-button-container">
+        {/* Add custom CSS for dark mode compatibility */}
+        <style jsx>{`
+          .paypal-button-container {
+            /* Ensure PayPal buttons work well in dark mode */
+            background: transparent;
+          }
+          
+          /* Override PayPal's default styles for dark mode */
+          .paypal-button-container iframe {
+            border-radius: 8px;
+          }
+          
+          /* Dark mode specific overrides */
+          ${theme === 'dark' ? `
+            .paypal-button-container .paypal-button {
+              background: #1f2937 !important;
+              border: 1px solid #374151 !important;
+            }
+            
+            .paypal-button-container .paypal-button-text {
+              color: #f3f4f6 !important;
+            }
+            
+            /* Override PayPal's modal and popup styles for dark mode */
+            .paypal-checkout-sandbox,
+            .paypal-checkout-production {
+              background: #1f2937 !important;
+              color: #f3f4f6 !important;
+            }
+            
+            /* Style PayPal's payment form in dark mode */
+            .paypal-payment-form {
+              background: #1f2937 !important;
+              color: #f3f4f6 !important;
+            }
+            
+            .paypal-payment-form input {
+              background: #374151 !important;
+              color: #f3f4f6 !important;
+              border: 1px solid #4b5563 !important;
+            }
+            
+            .paypal-payment-form label {
+              color: #d1d5db !important;
+            }
+          ` : ''}
+        `}</style>
+        
         <PayPalButtons
           style={{
             shape: "rect",
-            color: "blue",
+            color: theme === 'dark' ? "white" : "blue",
             layout: "vertical",
             label: "pay",
+            tagline: false,
+            height: 45,
           }}
           createOrder={createOrder}
           onApprove={onApprove}
@@ -85,7 +139,18 @@ export function PayPalOneTimeButton({ planId, onSuccess, onError }: PayPalOneTim
           onCancel={() => {
             console.log('PayPal payment cancelled');
           }}
+          // Add custom styling for dark mode
+          forceReRender={[theme]}
         />
+        
+        {/* Additional dark mode notice */}
+        {theme === 'dark' && (
+          <div className="mt-3 p-3 bg-gray-800 border border-gray-700 rounded-lg">
+            <p className="text-xs text-gray-300 text-center">
+              💡 If the PayPal payment window appears too dark, you can switch to light mode temporarily for better visibility.
+            </p>
+          </div>
+        )}
       </div>
     </PayPalScriptProvider>
   );

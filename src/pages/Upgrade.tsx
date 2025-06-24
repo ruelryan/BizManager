@@ -1,15 +1,17 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Check, Shield, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Check, Shield, AlertCircle, Sun, Moon } from 'lucide-react';
 import { plans } from '../utils/plans';
 import { useStore } from '../store/useStore';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { PayPalOneTimeButton } from '../components/PayPalOneTimeButton';
+import { useTheme } from '../contexts/ThemeContext';
 
 export function Upgrade() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, setUser } = useStore();
+  const { theme, toggleTheme } = useTheme();
   const [selectedPlan, setSelectedPlan] = React.useState(location.state?.planId || 'starter');
   const [paymentError, setPaymentError] = React.useState<string | null>(null);
 
@@ -144,6 +146,32 @@ export function Upgrade() {
                 <div className="flex items-center">
                   <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 mr-2" />
                   <span className="text-sm text-red-800 dark:text-red-300">{paymentError}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Dark Mode Notice for PayPal */}
+            {theme === 'dark' && (
+              <div className="mb-6 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-4">
+                <div className="flex items-start">
+                  <div className="flex items-center mr-3">
+                    <Sun className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-300 mb-2">
+                      PayPal Dark Mode Notice
+                    </h3>
+                    <p className="text-sm text-yellow-700 dark:text-yellow-400 mb-3">
+                      PayPal's payment forms may appear with dark text on dark backgrounds. For the best experience, you can temporarily switch to light mode during payment.
+                    </p>
+                    <button
+                      onClick={toggleTheme}
+                      className="inline-flex items-center px-3 py-1.5 bg-yellow-100 dark:bg-yellow-800 text-yellow-800 dark:text-yellow-200 text-sm font-medium rounded-md hover:bg-yellow-200 dark:hover:bg-yellow-700 transition-colors"
+                    >
+                      <Sun className="mr-1.5 h-4 w-4" />
+                      Switch to Light Mode
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
