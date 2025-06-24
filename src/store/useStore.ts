@@ -84,21 +84,36 @@ const getEffectivePlan = (user: User): string => {
   return user.plan;
 };
 
+// Helper function to safely convert date strings to Date objects
+const safeParseDate = (dateValue: any): Date => {
+  if (!dateValue) return new Date();
+  
+  const date = new Date(dateValue);
+  
+  // Check if the date is valid
+  if (isNaN(date.getTime())) {
+    console.warn('Invalid date value encountered:', dateValue, 'Using current date as fallback');
+    return new Date();
+  }
+  
+  return date;
+};
+
 // Helper function to convert date strings back to Date objects
 const deserializeState = (str: string) => {
   const state = JSON.parse(str);
   
   // Convert user dates
   if (state.user?.subscriptionExpiry) {
-    state.user.subscriptionExpiry = new Date(state.user.subscriptionExpiry);
+    state.user.subscriptionExpiry = safeParseDate(state.user.subscriptionExpiry);
   }
   
   // Convert product dates
   if (state.products) {
     state.products = state.products.map((product: any) => ({
       ...product,
-      createdAt: product.createdAt ? new Date(product.createdAt) : undefined,
-      updatedAt: product.updatedAt ? new Date(product.updatedAt) : undefined,
+      createdAt: product.createdAt ? safeParseDate(product.createdAt) : undefined,
+      updatedAt: product.updatedAt ? safeParseDate(product.updatedAt) : undefined,
     }));
   }
   
@@ -106,8 +121,8 @@ const deserializeState = (str: string) => {
   if (state.sales) {
     state.sales = state.sales.map((sale: any) => ({
       ...sale,
-      date: sale.date ? new Date(sale.date) : undefined,
-      dueDate: sale.dueDate ? new Date(sale.dueDate) : undefined,
+      date: sale.date ? safeParseDate(sale.date) : undefined,
+      dueDate: sale.dueDate ? safeParseDate(sale.dueDate) : undefined,
     }));
   }
   
@@ -115,7 +130,7 @@ const deserializeState = (str: string) => {
   if (state.inventoryTransactions) {
     state.inventoryTransactions = state.inventoryTransactions.map((transaction: any) => ({
       ...transaction,
-      date: transaction.date ? new Date(transaction.date) : undefined,
+      date: transaction.date ? safeParseDate(transaction.date) : new Date(),
     }));
   }
   
@@ -123,17 +138,17 @@ const deserializeState = (str: string) => {
   if (state.expenses) {
     state.expenses = state.expenses.map((expense: any) => ({
       ...expense,
-      date: expense.date ? new Date(expense.date) : undefined,
+      date: expense.date ? safeParseDate(expense.date) : undefined,
     }));
   }
   
   // Convert user settings dates
   if (state.userSettings) {
     if (state.userSettings.createdAt) {
-      state.userSettings.createdAt = new Date(state.userSettings.createdAt);
+      state.userSettings.createdAt = safeParseDate(state.userSettings.createdAt);
     }
     if (state.userSettings.updatedAt) {
-      state.userSettings.updatedAt = new Date(state.userSettings.updatedAt);
+      state.userSettings.updatedAt = safeParseDate(state.userSettings.updatedAt);
     }
   }
   
