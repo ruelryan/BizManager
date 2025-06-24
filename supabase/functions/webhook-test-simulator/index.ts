@@ -32,9 +32,15 @@ Deno.serve(async (req) => {
     }
 
     if (req.method === 'GET') {
-      // Return test interface
+      // Return test interface with explicit charset
       return new Response(getTestInterface(), {
-        headers: { ...corsHeaders, 'Content-Type': 'text/html' },
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'text/html; charset=utf-8',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        },
         status: 200,
       });
     }
@@ -70,7 +76,7 @@ Deno.serve(async (req) => {
           test_event: webhookEvent,
         }),
         {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...corsHeaders, 'Content-Type': 'application/json; charset=utf-8' },
           status: 200,
         }
       );
@@ -90,7 +96,7 @@ Deno.serve(async (req) => {
         error: error.message,
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json; charset=utf-8' },
         status: 500,
       }
     );
@@ -238,6 +244,7 @@ function getTestInterface(): string {
                 margin: 0 auto;
                 padding: 20px;
                 background: #f9fafb;
+                line-height: 1.6;
             }
             .container {
                 background: white;
@@ -248,6 +255,15 @@ function getTestInterface(): string {
             h1 {
                 color: #1f2937;
                 margin-bottom: 20px;
+                font-size: 28px;
+            }
+            .status-indicator {
+                display: inline-block;
+                width: 8px;
+                height: 8px;
+                background: #10b981;
+                border-radius: 50%;
+                margin-right: 8px;
             }
             .form-group {
                 margin-bottom: 20px;
@@ -264,6 +280,12 @@ function getTestInterface(): string {
                 border: 1px solid #d1d5db;
                 border-radius: 6px;
                 font-size: 14px;
+                box-sizing: border-box;
+            }
+            select:focus, input:focus {
+                outline: none;
+                border-color: #3b82f6;
+                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
             }
             button {
                 background: #3b82f6;
@@ -274,17 +296,24 @@ function getTestInterface(): string {
                 cursor: pointer;
                 font-size: 16px;
                 font-weight: 500;
+                transition: background-color 0.2s;
             }
             button:hover {
                 background: #2563eb;
+            }
+            button:disabled {
+                background: #9ca3af;
+                cursor: not-allowed;
             }
             .result {
                 margin-top: 20px;
                 padding: 15px;
                 border-radius: 6px;
                 white-space: pre-wrap;
-                font-family: monospace;
+                font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
                 font-size: 12px;
+                max-height: 400px;
+                overflow-y: auto;
             }
             .success {
                 background: #ecfdf5;
@@ -296,44 +325,71 @@ function getTestInterface(): string {
                 border: 1px solid #ef4444;
                 color: #7f1d1d;
             }
+            .loading {
+                background: #fef3c7;
+                border: 1px solid #f59e0b;
+                color: #92400e;
+            }
+            .info-box {
+                background: #eff6ff;
+                border: 1px solid #3b82f6;
+                border-radius: 6px;
+                padding: 15px;
+                margin-bottom: 20px;
+                color: #1e40af;
+            }
+            .webhook-url {
+                font-family: monospace;
+                background: #f3f4f6;
+                padding: 2px 6px;
+                border-radius: 4px;
+                word-break: break-all;
+            }
         </style>
     </head>
     <body>
         <div class="container">
-            <h1>PayPal Webhook Test Simulator</h1>
-            <p>Use this tool to test your PayPal webhook handlers with simulated events.</p>
+            <h1><span class="status-indicator"></span>PayPal Webhook Test Simulator</h1>
+            
+            <div class="info-box">
+                <strong>🔧 Test Environment Active</strong><br>
+                This tool simulates PayPal webhook events to test your payment processing system.<br>
+                Webhook URL: <span class="webhook-url">${Deno.env.get('SUPABASE_URL')}/functions/v1/paypal-webhook-handler</span>
+            </div>
             
             <form id="testForm">
                 <div class="form-group">
                     <label for="eventType">Event Type:</label>
                     <select id="eventType" required>
-                        <option value="PAYMENT.CAPTURE.COMPLETED">Payment Completed</option>
-                        <option value="PAYMENT.CAPTURE.DECLINED">Payment Failed</option>
-                        <option value="PAYMENT.CAPTURE.REFUNDED">Payment Refunded</option>
-                        <option value="CUSTOMER.DISPUTE.CREATED">Dispute Created</option>
-                        <option value="BILLING.SUBSCRIPTION.ACTIVATED">Subscription Activated</option>
-                        <option value="BILLING.SUBSCRIPTION.CANCELLED">Subscription Cancelled</option>
-                        <option value="BILLING.SUBSCRIPTION.PAYMENT.FAILED">Subscription Payment Failed</option>
-                        <option value="BILLING.SUBSCRIPTION.EXPIRED">Subscription Expired</option>
+                        <option value="PAYMENT.CAPTURE.COMPLETED">✅ Payment Completed</option>
+                        <option value="PAYMENT.CAPTURE.DECLINED">❌ Payment Failed</option>
+                        <option value="PAYMENT.CAPTURE.REFUNDED">💰 Payment Refunded</option>
+                        <option value="CUSTOMER.DISPUTE.CREATED">⚠️ Dispute Created</option>
+                        <option value="BILLING.SUBSCRIPTION.ACTIVATED">🔄 Subscription Activated</option>
+                        <option value="BILLING.SUBSCRIPTION.CANCELLED">🚫 Subscription Cancelled</option>
+                        <option value="BILLING.SUBSCRIPTION.PAYMENT.FAILED">💳 Subscription Payment Failed</option>
+                        <option value="BILLING.SUBSCRIPTION.EXPIRED">⏰ Subscription Expired</option>
                     </select>
                 </div>
                 
                 <div class="form-group">
                     <label for="userId">User ID (optional):</label>
-                    <input type="text" id="userId" placeholder="test-user-id">
+                    <input type="text" id="userId" placeholder="test-user-id or leave empty for auto-generation">
                 </div>
                 
                 <div class="form-group">
                     <label for="amount">Amount:</label>
-                    <input type="number" id="amount" step="0.01" value="199.00">
+                    <input type="number" id="amount" step="0.01" value="199.00" min="0">
                 </div>
                 
                 <div class="form-group">
                     <label for="currency">Currency:</label>
                     <select id="currency">
-                        <option value="USD">USD</option>
-                        <option value="EUR">EUR</option>
-                        <option value="GBP">GBP</option>
+                        <option value="USD">USD - US Dollar</option>
+                        <option value="EUR">EUR - Euro</option>
+                        <option value="GBP">GBP - British Pound</option>
+                        <option value="CAD">CAD - Canadian Dollar</option>
+                        <option value="AUD">AUD - Australian Dollar</option>
                     </select>
                 </div>
                 
@@ -342,7 +398,7 @@ function getTestInterface(): string {
                     <input type="text" id="transactionId" placeholder="Auto-generated if empty">
                 </div>
                 
-                <button type="submit">Send Test Webhook</button>
+                <button type="submit" id="submitBtn">🚀 Send Test Webhook</button>
             </form>
             
             <div id="result"></div>
@@ -352,7 +408,13 @@ function getTestInterface(): string {
             document.getElementById('testForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 
-                const formData = new FormData(e.target);
+                const submitBtn = document.getElementById('submitBtn');
+                const resultDiv = document.getElementById('result');
+                
+                // Disable button and show loading state
+                submitBtn.disabled = true;
+                submitBtn.textContent = '⏳ Sending...';
+                
                 const payload = {
                     event_type: document.getElementById('eventType').value,
                     user_id: document.getElementById('userId').value || undefined,
@@ -361,9 +423,8 @@ function getTestInterface(): string {
                     transaction_id: document.getElementById('transactionId').value || undefined,
                 };
                 
-                const resultDiv = document.getElementById('result');
-                resultDiv.innerHTML = 'Sending test webhook...';
-                resultDiv.className = 'result';
+                resultDiv.innerHTML = '⏳ Sending test webhook event...\\n\\nPayload:\\n' + JSON.stringify(payload, null, 2);
+                resultDiv.className = 'result loading';
                 
                 try {
                     const response = await fetch(window.location.href, {
@@ -376,14 +437,28 @@ function getTestInterface(): string {
                     
                     const result = await response.json();
                     
-                    resultDiv.innerHTML = JSON.stringify(result, null, 2);
+                    let displayResult = '📊 Test Results:\\n\\n';
+                    displayResult += 'Status: ' + (result.success ? '✅ SUCCESS' : '❌ FAILED') + '\\n';
+                    displayResult += 'HTTP Status: ' + result.status + '\\n\\n';
+                    displayResult += '📤 Sent Event:\\n' + JSON.stringify(result.test_event, null, 2) + '\\n\\n';
+                    displayResult += '📥 Webhook Response:\\n' + result.response + '\\n\\n';
+                    displayResult += '🔍 Full Result:\\n' + JSON.stringify(result, null, 2);
+                    
+                    resultDiv.innerHTML = displayResult;
                     resultDiv.className = 'result ' + (result.success ? 'success' : 'error');
                     
                 } catch (error) {
-                    resultDiv.innerHTML = 'Error: ' + error.message;
+                    resultDiv.innerHTML = '❌ Network Error:\\n\\n' + error.message + '\\n\\nPlease check your connection and try again.';
                     resultDiv.className = 'result error';
+                } finally {
+                    // Re-enable button
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = '🚀 Send Test Webhook';
                 }
             });
+            
+            // Auto-focus on first input
+            document.getElementById('eventType').focus();
         </script>
     </body>
     </html>
