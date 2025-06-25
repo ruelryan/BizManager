@@ -25,12 +25,19 @@ interface PayPalHeaders {
 }
 
 Deno.serve(async (req) => {
+  console.log('=== WEBHOOK REQUEST RECEIVED ===');
+  console.log('Method:', req.method);
+  console.log('URL:', req.url);
+  console.log('Headers:', Object.fromEntries(req.headers.entries()));
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('Handling CORS preflight request');
     return new Response(null, { headers: corsHeaders });
   }
 
   if (req.method !== 'POST') {
+    console.log('Invalid method:', req.method);
     return new Response('Method not allowed', { 
       status: 405, 
       headers: corsHeaders 
@@ -46,6 +53,14 @@ Deno.serve(async (req) => {
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
+    console.log('Environment check:');
+    console.log('- PAYPAL_CLIENT_ID:', PAYPAL_CLIENT_ID ? 'SET' : 'MISSING');
+    console.log('- PAYPAL_CLIENT_SECRET:', PAYPAL_CLIENT_SECRET ? 'SET' : 'MISSING');
+    console.log('- PAYPAL_WEBHOOK_ID:', PAYPAL_WEBHOOK_ID ? 'SET' : 'MISSING');
+    console.log('- PAYPAL_BASE_URL:', PAYPAL_BASE_URL);
+    console.log('- SUPABASE_URL:', SUPABASE_URL ? 'SET' : 'MISSING');
+    console.log('- SUPABASE_SERVICE_ROLE_KEY:', SUPABASE_SERVICE_ROLE_KEY ? 'SET' : 'MISSING');
+
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
       throw new Error('Missing Supabase configuration');
     }
@@ -55,7 +70,16 @@ Deno.serve(async (req) => {
 
     // Get webhook payload and headers
     const webhookBody = await req.text();
-    const webhookEvent: WebhookEvent = JSON.parse(webhookBody);
+    console.log('Webhook body length:', webhookBody.length);
+    console.log('Webhook body preview:', webhookBody.substring(0, 500));
+
+    let webhookEvent: WebhookEvent;
+    try {
+      webhookEvent = JSON.parse(webhookBody);
+    } catch (parseError) {
+      console.error('Failed to parse webhook body:', parseError);
+      throw new Error('Invalid JSON in webhook body');
+    }
 
     // Extract PayPal headers for verification
     const paypalHeaders: PayPalHeaders = {
@@ -66,19 +90,22 @@ Deno.serve(async (req) => {
       'x-paypal-transmission-time': req.headers.get('x-paypal-transmission-time') || '',
     };
 
-    console.log('Received webhook:', {
-      eventId: webhookEvent.id,
-      eventType: webhookEvent.event_type,
-      resourceType: webhookEvent.resource_type,
-      headers: paypalHeaders,
-    });
+    console.log('=== WEBHOOK EVENT DETAILS ===');
+    console.log('Event ID:', webhookEvent.id);
+    console.log('Event Type:', webhookEvent.event_type);
+    console.log('Resource Type:', webhookEvent.resource_type);
+    console.log('PayPal Headers:', paypalHeaders);
 
     // Check for duplicate events (idempotency)
-    const { data: existingEvent } = await supabase
+    const { data: existingEvent, error: existingEventError } = await supabase
       .from('webhook_events')
       .select('id, processed')
       .eq('event_id', webhookEvent.id)
       .single();
+
+    if (existingEventError && existingEventError.code !== 'PGRST116') {
+      console.error('Error checking for existing event:', existingEventError);
+    }
 
     if (existingEvent) {
       if (existingEvent.processed) {
@@ -88,9 +115,11 @@ Deno.serve(async (req) => {
           headers: corsHeaders 
         });
       }
+      console.log('Event exists but not processed yet:', webhookEvent.id);
     } else {
       // Store the webhook event for audit trail
-      await supabase
+      console.log('Storing new webhook event...');
+      const { error: insertError } = await supabase
         .from('webhook_events')
         .insert({
           event_id: webhookEvent.id,
@@ -100,12 +129,18 @@ Deno.serve(async (req) => {
           payload: webhookEvent,
           processed: false,
         });
+
+      if (insertError) {
+        console.error('Error storing webhook event:', insertError);
+      } else {
+        console.log('Webhook event stored successfully');
+      }
     }
 
-    // Skip signature verification in development/testing if credentials are missing
+    // Verify webhook signature if we have all required credentials
     let isValid = true;
     if (PAYPAL_CLIENT_ID && PAYPAL_CLIENT_SECRET && PAYPAL_WEBHOOK_ID) {
-      // Only verify signature if we have all required credentials
+      console.log('=== VERIFYING WEBHOOK SIGNATURE ===');
       isValid = await verifyWebhookSignature(
         webhookBody,
         paypalHeaders,
@@ -114,6 +149,8 @@ Deno.serve(async (req) => {
         PAYPAL_CLIENT_SECRET,
         PAYPAL_BASE_URL
       );
+
+      console.log('Signature verification result:', isValid);
 
       if (!isValid) {
         console.error('Invalid webhook signature');
@@ -124,14 +161,16 @@ Deno.serve(async (req) => {
         });
       }
     } else {
-      console.log('Skipping signature verification - missing PayPal credentials');
+      console.log('⚠️ Skipping signature verification - missing PayPal credentials');
+      console.log('This is NOT recommended for production!');
     }
 
     // Process the webhook event based on type
+    console.log('=== PROCESSING WEBHOOK EVENT ===');
     await processWebhookEvent(supabase, webhookEvent);
 
     // Mark event as processed
-    await supabase
+    const { error: updateError } = await supabase
       .from('webhook_events')
       .update({ 
         processed: true, 
@@ -139,7 +178,14 @@ Deno.serve(async (req) => {
       })
       .eq('event_id', webhookEvent.id);
 
-    console.log('Webhook processed successfully:', webhookEvent.id);
+    if (updateError) {
+      console.error('Error marking event as processed:', updateError);
+    } else {
+      console.log('Event marked as processed successfully');
+    }
+
+    console.log('=== WEBHOOK PROCESSING COMPLETE ===');
+    console.log('Event ID:', webhookEvent.id, 'processed successfully');
 
     return new Response('Webhook processed successfully', {
       status: 200,
@@ -147,22 +193,11 @@ Deno.serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('Webhook processing error:', error);
+    console.error('=== WEBHOOK PROCESSING ERROR ===');
+    console.error('Error details:', error);
+    console.error('Error stack:', error.stack);
     
-    // Try to log the error if we have the event ID
-    try {
-      const webhookBody = await req.text();
-      const webhookEvent = JSON.parse(webhookBody);
-      const supabase = createClient(
-        Deno.env.get('SUPABASE_URL')!,
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-      );
-      await updateWebhookProcessingError(supabase, webhookEvent.id, error.message);
-    } catch (logError) {
-      console.error('Failed to log error:', logError);
-    }
-
-    return new Response('Webhook processing failed', {
+    return new Response(`Webhook processing failed: ${error.message}`, {
       status: 500,
       headers: corsHeaders,
     });
@@ -178,6 +213,8 @@ async function verifyWebhookSignature(
   baseUrl: string
 ): Promise<boolean> {
   try {
+    console.log('Getting PayPal access token...');
+    
     // Get PayPal access token
     const authResponse = await fetch(`${baseUrl}/v1/oauth2/token`, {
       method: 'POST',
@@ -189,14 +226,16 @@ async function verifyWebhookSignature(
     });
 
     if (!authResponse.ok) {
-      console.error('Failed to get PayPal access token:', authResponse.status);
+      console.error('Failed to get PayPal access token:', authResponse.status, await authResponse.text());
       return false;
     }
 
     const authData = await authResponse.json();
     const accessToken = authData.access_token;
+    console.log('PayPal access token obtained successfully');
 
     // Verify webhook signature
+    console.log('Verifying webhook signature...');
     const verificationPayload = {
       auth_algo: headers['x-paypal-auth-algo'],
       cert_id: headers['x-paypal-cert-id'],
@@ -206,6 +245,8 @@ async function verifyWebhookSignature(
       webhook_id: webhookId,
       webhook_event: JSON.parse(webhookBody),
     };
+
+    console.log('Verification payload:', JSON.stringify(verificationPayload, null, 2));
 
     const verificationResponse = await fetch(`${baseUrl}/v1/notifications/verify-webhook-signature`, {
       method: 'POST',
@@ -217,11 +258,13 @@ async function verifyWebhookSignature(
     });
 
     if (!verificationResponse.ok) {
-      console.error('Webhook verification failed:', verificationResponse.status);
+      console.error('Webhook verification failed:', verificationResponse.status, await verificationResponse.text());
       return false;
     }
 
     const verificationResult = await verificationResponse.json();
+    console.log('Verification result:', verificationResult);
+    
     return verificationResult.verification_status === 'SUCCESS';
 
   } catch (error) {
@@ -234,6 +277,7 @@ async function processWebhookEvent(supabase: any, event: WebhookEvent): Promise<
   const { event_type, resource } = event;
 
   console.log('Processing event type:', event_type);
+  console.log('Resource details:', JSON.stringify(resource, null, 2));
 
   switch (event_type) {
     // Payment completion events
@@ -293,6 +337,7 @@ async function processWebhookEvent(supabase: any, event: WebhookEvent): Promise<
 
     default:
       console.log('Unhandled event type:', event_type);
+      console.log('This event will be logged but not processed');
   }
 }
 
@@ -302,11 +347,16 @@ async function handlePaymentCompleted(supabase: any, event: WebhookEvent): Promi
   const currency = resource.amount?.currency_code || 'USD';
   const transactionId = resource.id;
 
-  console.log('Processing payment completion:', transactionId, amount, currency);
+  console.log('=== PROCESSING PAYMENT COMPLETION ===');
+  console.log('Transaction ID:', transactionId);
+  console.log('Amount:', amount, currency);
 
   // Find user by PayPal payer ID or custom field
   const payerId = resource.payer?.payer_id;
   const customId = resource.custom_id; // This should be the user ID from your app
+
+  console.log('Payer ID:', payerId);
+  console.log('Custom ID:', customId);
 
   let userId = customId;
 
@@ -329,6 +379,7 @@ async function handlePaymentCompleted(supabase: any, event: WebhookEvent): Promi
         status: 'completed',
         metadata: resource,
       });
+    console.log('Created anonymous transaction record');
     return;
   }
 
@@ -341,49 +392,75 @@ async function handlePaymentCompleted(supabase: any, event: WebhookEvent): Promi
     planId = 'starter';
   }
 
+  console.log('Determined plan:', planId, 'based on PHP amount:', phpAmount);
+
   // Calculate subscription expiry (30 days from now)
   const subscriptionExpiry = new Date();
   subscriptionExpiry.setMonth(subscriptionExpiry.getMonth() + 1);
 
-  // Record the transaction
-  await supabase
-    .from('payment_transactions')
-    .insert({
-      user_id: userId,
-      paypal_transaction_id: transactionId,
-      transaction_type: 'payment',
-      amount: amount,
-      currency: currency,
-      status: 'completed',
-      plan_id: planId,
-      payment_method: 'paypal',
-      net_amount: amount, // You might want to calculate fees
-      metadata: resource,
-    });
+  try {
+    // Record the transaction
+    const { error: transactionError } = await supabase
+      .from('payment_transactions')
+      .insert({
+        user_id: userId,
+        paypal_transaction_id: transactionId,
+        transaction_type: 'payment',
+        amount: amount,
+        currency: currency,
+        status: 'completed',
+        plan_id: planId,
+        payment_method: 'paypal',
+        net_amount: amount, // You might want to calculate fees
+        metadata: resource,
+      });
 
-  // Update user subscription
-  await supabase
-    .from('user_settings')
-    .upsert({
-      user_id: userId,
-      plan: planId,
-      subscription_expiry: subscriptionExpiry.toISOString(),
-      payment_status: 'active',
-      last_payment_date: new Date().toISOString(),
-    }, { onConflict: 'user_id' });
+    if (transactionError) {
+      console.error('Error recording transaction:', transactionError);
+    } else {
+      console.log('Transaction recorded successfully');
+    }
 
-  // Queue success notification
-  await supabase
-    .from('notification_queue')
-    .insert({
-      user_id: userId,
-      notification_type: 'payment_success',
-      title: 'Payment Successful',
-      message: `Your payment of ${currency} ${amount} has been processed successfully. Your ${planId} plan is now active.`,
-      metadata: { transaction_id: transactionId, plan: planId },
-    });
+    // Update user subscription
+    const { error: settingsError } = await supabase
+      .from('user_settings')
+      .upsert({
+        user_id: userId,
+        plan: planId,
+        subscription_expiry: subscriptionExpiry.toISOString(),
+        payment_status: 'active',
+        last_payment_date: new Date().toISOString(),
+      }, { onConflict: 'user_id' });
 
-  console.log('Payment completed successfully for user:', userId);
+    if (settingsError) {
+      console.error('Error updating user settings:', settingsError);
+    } else {
+      console.log('User settings updated successfully');
+    }
+
+    // Queue success notification
+    const { error: notificationError } = await supabase
+      .from('notification_queue')
+      .insert({
+        user_id: userId,
+        notification_type: 'payment_success',
+        title: 'Payment Successful',
+        message: `Your payment of ${currency} ${amount} has been processed successfully. Your ${planId} plan is now active.`,
+        metadata: { transaction_id: transactionId, plan: planId },
+      });
+
+    if (notificationError) {
+      console.error('Error queuing notification:', notificationError);
+    } else {
+      console.log('Success notification queued');
+    }
+
+    console.log('Payment completed successfully for user:', userId);
+
+  } catch (error) {
+    console.error('Error in handlePaymentCompleted:', error);
+    throw error;
+  }
 }
 
 async function handlePaymentFailed(supabase: any, event: WebhookEvent): Promise<void> {

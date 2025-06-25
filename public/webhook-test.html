@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PayPal Webhook Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f9fafb;
+            line-height: 1.6;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #1f2937;
+            margin-bottom: 20px;
+        }
+        .webhook-url {
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            word-break: break-all;
+            margin: 20px 0;
+            border: 1px solid #e5e7eb;
+        }
+        .test-button {
+            background: #3b82f6;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        .test-button:hover {
+            background: #2563eb;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .success {
+            background: #ecfdf5;
+            border: 1px solid #10b981;
+            color: #065f46;
+        }
+        .error {
+            background: #fef2f2;
+            border: 1px solid #ef4444;
+            color: #7f1d1d;
+        }
+        .info {
+            background: #eff6ff;
+            border: 1px solid #3b82f6;
+            color: #1e40af;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>PayPal Webhook Test</h1>
+        
+        <div class="info">
+            <strong>🔧 Webhook Configuration</strong><br>
+            Use this URL in your PayPal Developer Dashboard webhook settings:
+        </div>
+        
+        <div class="webhook-url">
+            https://ywzplutpijvwktwqurox.supabase.co/functions/v1/paypal-webhook-handler
+        </div>
+        
+        <div class="info">
+            <strong>📋 Setup Checklist:</strong><br>
+            1. ✅ Go to <a href="https://developer.paypal.com" target="_blank">PayPal Developer Dashboard</a><br>
+            2. ✅ Navigate to your app → Webhooks<br>
+            3. ✅ Add the webhook URL above<br>
+            4. ✅ Select these events: PAYMENT.CAPTURE.COMPLETED, PAYMENT.CAPTURE.DECLINED<br>
+            5. ✅ Save and get the Webhook ID<br>
+            6. ✅ Add PAYPAL_WEBHOOK_ID to your Supabase secrets
+        </div>
+        
+        <h3>Test Webhook Handler</h3>
+        <button class="test-button" onclick="testWebhook('PAYMENT.CAPTURE.COMPLETED')">
+            Test Payment Success
+        </button>
+        <button class="test-button" onclick="testWebhook('PAYMENT.CAPTURE.DECLINED')">
+            Test Payment Failed
+        </button>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        async function testWebhook(eventType) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Testing webhook...';
+            resultDiv.className = 'result';
+            
+            const testEvent = {
+                id: `test-${Date.now()}`,
+                event_type: eventType,
+                resource_type: 'capture',
+                resource: {
+                    id: `test-transaction-${Date.now()}`,
+                    status: eventType === 'PAYMENT.CAPTURE.COMPLETED' ? 'COMPLETED' : 'DECLINED',
+                    amount: {
+                        value: '199.00',
+                        currency_code: 'USD'
+                    },
+                    custom_id: 'test-user-id',
+                    payer: {
+                        payer_id: 'test-payer-id',
+                        email_address: 'test@example.com'
+                    }
+                },
+                create_time: new Date().toISOString(),
+                event_version: '1.0',
+                summary: `Test ${eventType} event`
+            };
+            
+            try {
+                const response = await fetch('https://ywzplutpijvwktwqurox.supabase.co/functions/v1/paypal-webhook-handler', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-paypal-transmission-id': 'test-transmission-id',
+                        'x-paypal-cert-id': 'test-cert-id',
+                        'x-paypal-auth-algo': 'SHA256withRSA',
+                        'x-paypal-transmission-sig': 'test-signature',
+                        'x-paypal-transmission-time': new Date().toISOString()
+                    },
+                    body: JSON.stringify(testEvent)
+                });
+                
+                const result = await response.text();
+                
+                resultDiv.innerHTML = `Status: ${response.status}\n\nResponse:\n${result}\n\nTest Event:\n${JSON.stringify(testEvent, null, 2)}`;
+                resultDiv.className = `result ${response.ok ? 'success' : 'error'}`;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `Error: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+    </script>
+</body>
+</html>
