@@ -244,6 +244,31 @@ async function processWebhookEvent(supabase: any, event: WebhookEvent): Promise<
       await handleDispute(supabase, event);
       break;
 
+    // Billing Plan Events
+    case 'BILLING.PLAN.ACTIVATED':
+      await handleBillingPlanActivated(supabase, event);
+      break;
+
+    case 'BILLING.PLAN.CREATED':
+      await handleBillingPlanCreated(supabase, event);
+      break;
+
+    case 'BILLING.PLAN.DEACTIVATED':
+      await handleBillingPlanDeactivated(supabase, event);
+      break;
+
+    case 'BILLING.PLAN.PRICING-CHANGE.ACTIVATED':
+      await handleBillingPlanPricingChangeActivated(supabase, event);
+      break;
+
+    case 'BILLING.PLAN.PRICING-CHANGE.INPROGRESS':
+      await handleBillingPlanPricingChangeInProgress(supabase, event);
+      break;
+
+    case 'BILLING.PLAN.UPDATED':
+      await handleBillingPlanUpdated(supabase, event);
+      break;
+
     // Subscription events
     case 'BILLING.SUBSCRIPTION.ACTIVATED':
       await handleSubscriptionActivated(supabase, event);
@@ -254,12 +279,24 @@ async function processWebhookEvent(supabase: any, event: WebhookEvent): Promise<
       await handleSubscriptionCancelled(supabase, event);
       break;
 
-    case 'BILLING.SUBSCRIPTION.PAYMENT.FAILED':
-      await handleSubscriptionPaymentFailed(supabase, event);
+    case 'BILLING.SUBSCRIPTION.CREATED':
+      await handleSubscriptionCreated(supabase, event);
       break;
 
     case 'BILLING.SUBSCRIPTION.EXPIRED':
       await handleSubscriptionExpired(supabase, event);
+      break;
+
+    case 'BILLING.SUBSCRIPTION.PAYMENT.FAILED':
+      await handleSubscriptionPaymentFailed(supabase, event);
+      break;
+
+    case 'BILLING.SUBSCRIPTION.RE-ACTIVATED':
+      await handleSubscriptionReactivated(supabase, event);
+      break;
+
+    case 'BILLING.SUBSCRIPTION.UPDATED':
+      await handleSubscriptionUpdated(supabase, event);
       break;
 
     default:
@@ -499,10 +536,153 @@ async function handleDispute(supabase: any, event: WebhookEvent): Promise<void> 
   console.log('Dispute processed for user:', originalTransaction.user_id);
 }
 
+// New Billing Plan Event Handlers
+async function handleBillingPlanActivated(supabase: any, event: WebhookEvent): Promise<void> {
+  const { resource } = event;
+  const planId = resource.id;
+  const planName = resource.name;
+  const status = resource.status;
+
+  console.log('Processing billing plan activation:', planId, planName, status);
+
+  // Log the plan activation for audit purposes
+  await supabase
+    .from('payment_transactions')
+    .insert({
+      paypal_transaction_id: `plan-activated-${planId}`,
+      transaction_type: 'plan_activation',
+      amount: 0,
+      currency: 'USD',
+      status: 'completed',
+      plan_id: planId,
+      metadata: resource,
+    });
+
+  console.log('Billing plan activated:', planId);
+}
+
+async function handleBillingPlanCreated(supabase: any, event: WebhookEvent): Promise<void> {
+  const { resource } = event;
+  const planId = resource.id;
+  const planName = resource.name;
+  const status = resource.status;
+
+  console.log('Processing billing plan creation:', planId, planName, status);
+
+  // Log the plan creation for audit purposes
+  await supabase
+    .from('payment_transactions')
+    .insert({
+      paypal_transaction_id: `plan-created-${planId}`,
+      transaction_type: 'plan_creation',
+      amount: 0,
+      currency: 'USD',
+      status: 'completed',
+      plan_id: planId,
+      metadata: resource,
+    });
+
+  console.log('Billing plan created:', planId);
+}
+
+async function handleBillingPlanDeactivated(supabase: any, event: WebhookEvent): Promise<void> {
+  const { resource } = event;
+  const planId = resource.id;
+  const planName = resource.name;
+  const status = resource.status;
+
+  console.log('Processing billing plan deactivation:', planId, planName, status);
+
+  // Log the plan deactivation for audit purposes
+  await supabase
+    .from('payment_transactions')
+    .insert({
+      paypal_transaction_id: `plan-deactivated-${planId}`,
+      transaction_type: 'plan_deactivation',
+      amount: 0,
+      currency: 'USD',
+      status: 'completed',
+      plan_id: planId,
+      metadata: resource,
+    });
+
+  console.log('Billing plan deactivated:', planId);
+}
+
+async function handleBillingPlanPricingChangeActivated(supabase: any, event: WebhookEvent): Promise<void> {
+  const { resource } = event;
+  const planId = resource.id;
+  const pricingSchemes = resource.pricing_schemes;
+
+  console.log('Processing billing plan pricing change activation:', planId);
+
+  // Log the pricing change activation
+  await supabase
+    .from('payment_transactions')
+    .insert({
+      paypal_transaction_id: `plan-pricing-change-${planId}-${Date.now()}`,
+      transaction_type: 'plan_pricing_change',
+      amount: 0,
+      currency: 'USD',
+      status: 'completed',
+      plan_id: planId,
+      metadata: resource,
+    });
+
+  console.log('Billing plan pricing change activated:', planId);
+}
+
+async function handleBillingPlanPricingChangeInProgress(supabase: any, event: WebhookEvent): Promise<void> {
+  const { resource } = event;
+  const planId = resource.id;
+
+  console.log('Processing billing plan pricing change in progress:', planId);
+
+  // Log the pricing change in progress
+  await supabase
+    .from('payment_transactions')
+    .insert({
+      paypal_transaction_id: `plan-pricing-progress-${planId}-${Date.now()}`,
+      transaction_type: 'plan_pricing_progress',
+      amount: 0,
+      currency: 'USD',
+      status: 'pending',
+      plan_id: planId,
+      metadata: resource,
+    });
+
+  console.log('Billing plan pricing change in progress:', planId);
+}
+
+async function handleBillingPlanUpdated(supabase: any, event: WebhookEvent): Promise<void> {
+  const { resource } = event;
+  const planId = resource.id;
+  const planName = resource.name;
+
+  console.log('Processing billing plan update:', planId, planName);
+
+  // Log the plan update
+  await supabase
+    .from('payment_transactions')
+    .insert({
+      paypal_transaction_id: `plan-updated-${planId}-${Date.now()}`,
+      transaction_type: 'plan_update',
+      amount: 0,
+      currency: 'USD',
+      status: 'completed',
+      plan_id: planId,
+      metadata: resource,
+    });
+
+  console.log('Billing plan updated:', planId);
+}
+
+// Enhanced Subscription Event Handlers
 async function handleSubscriptionActivated(supabase: any, event: WebhookEvent): Promise<void> {
   const { resource } = event;
   const subscriptionId = resource.id;
   const planId = resource.plan_id;
+  const subscriberId = resource.subscriber?.payer_id;
 
   console.log('Processing subscription activation:', subscriptionId, planId);
 
@@ -514,11 +694,59 @@ async function handleSubscriptionActivated(supabase: any, event: WebhookEvent): 
 
   const internalPlanId = planMapping[planId] || 'free';
 
-  // Find user by subscriber info
-  const subscriberId = resource.subscriber?.payer_id;
-  // You might need to implement a way to map PayPal subscriber IDs to user IDs
+  // Calculate subscription expiry (30 days from now)
+  const subscriptionExpiry = new Date();
+  subscriptionExpiry.setMonth(subscriptionExpiry.getMonth() + 1);
+
+  // Record the subscription activation
+  await supabase
+    .from('payment_transactions')
+    .insert({
+      paypal_transaction_id: subscriptionId,
+      paypal_subscription_id: subscriptionId,
+      transaction_type: 'subscription_activation',
+      amount: 0,
+      currency: 'USD',
+      status: 'completed',
+      plan_id: internalPlanId,
+      metadata: resource,
+    });
 
   console.log('Subscription activated for plan:', internalPlanId);
+}
+
+async function handleSubscriptionCreated(supabase: any, event: WebhookEvent): Promise<void> {
+  const { resource } = event;
+  const subscriptionId = resource.id;
+  const planId = resource.plan_id;
+  const subscriberId = resource.subscriber?.payer_id;
+  const status = resource.status;
+
+  console.log('Processing subscription creation:', subscriptionId, planId, status);
+
+  // Map PayPal plan IDs to internal plan names
+  const planMapping: Record<string, string> = {
+    [Deno.env.get('PAYPAL_PLAN_ID_STARTER') || '']: 'starter',
+    [Deno.env.get('PAYPAL_PLAN_ID_PRO') || '']: 'pro',
+  };
+
+  const internalPlanId = planMapping[planId] || 'free';
+
+  // Record the subscription creation
+  await supabase
+    .from('payment_transactions')
+    .insert({
+      paypal_transaction_id: subscriptionId,
+      paypal_subscription_id: subscriptionId,
+      transaction_type: 'subscription_creation',
+      amount: 0,
+      currency: 'USD',
+      status: status,
+      plan_id: internalPlanId,
+      metadata: resource,
+    });
+
+  console.log('Subscription created for plan:', internalPlanId);
 }
 
 async function handleSubscriptionCancelled(supabase: any, event: WebhookEvent): Promise<void> {
@@ -555,40 +783,22 @@ async function handleSubscriptionCancelled(supabase: any, event: WebhookEvent): 
         metadata: { subscription_id: subscriptionId },
       });
   }
-}
 
-async function handleSubscriptionPaymentFailed(supabase: any, event: WebhookEvent): Promise<void> {
-  const { resource } = event;
-  const subscriptionId = resource.id;
+  // Record the cancellation
+  await supabase
+    .from('payment_transactions')
+    .insert({
+      user_id: userSettings?.user_id,
+      paypal_transaction_id: `cancel-${subscriptionId}`,
+      paypal_subscription_id: subscriptionId,
+      transaction_type: 'subscription_cancellation',
+      amount: 0,
+      currency: 'USD',
+      status: 'completed',
+      metadata: resource,
+    });
 
-  console.log('Processing subscription payment failure:', subscriptionId);
-
-  // Find user and update payment status
-  const { data: userSettings } = await supabase
-    .from('user_settings')
-    .select('user_id')
-    .eq('paypal_subscription_id', subscriptionId)
-    .single();
-
-  if (userSettings) {
-    await supabase
-      .from('user_settings')
-      .update({
-        payment_status: 'failed',
-      })
-      .eq('user_id', userSettings.user_id);
-
-    // Queue payment failure notification
-    await supabase
-      .from('notification_queue')
-      .insert({
-        user_id: userSettings.user_id,
-        notification_type: 'payment_failed',
-        title: 'Subscription Payment Failed',
-        message: 'Your subscription payment could not be processed. Please update your payment method.',
-        metadata: { subscription_id: subscriptionId },
-      });
-  }
+  console.log('Subscription cancelled:', subscriptionId);
 }
 
 async function handleSubscriptionExpired(supabase: any, event: WebhookEvent): Promise<void> {
@@ -625,6 +835,208 @@ async function handleSubscriptionExpired(supabase: any, event: WebhookEvent): Pr
         metadata: { subscription_id: subscriptionId },
       });
   }
+
+  // Record the expiration
+  await supabase
+    .from('payment_transactions')
+    .insert({
+      user_id: userSettings?.user_id,
+      paypal_transaction_id: `expire-${subscriptionId}`,
+      paypal_subscription_id: subscriptionId,
+      transaction_type: 'subscription_expiration',
+      amount: 0,
+      currency: 'USD',
+      status: 'completed',
+      metadata: resource,
+    });
+
+  console.log('Subscription expired:', subscriptionId);
+}
+
+async function handleSubscriptionPaymentFailed(supabase: any, event: WebhookEvent): Promise<void> {
+  const { resource } = event;
+  const subscriptionId = resource.id;
+
+  console.log('Processing subscription payment failure:', subscriptionId);
+
+  // Find user and update payment status
+  const { data: userSettings } = await supabase
+    .from('user_settings')
+    .select('user_id')
+    .eq('paypal_subscription_id', subscriptionId)
+    .single();
+
+  if (userSettings) {
+    await supabase
+      .from('user_settings')
+      .update({
+        payment_status: 'failed',
+      })
+      .eq('user_id', userSettings.user_id);
+
+    // Queue payment failure notification
+    await supabase
+      .from('notification_queue')
+      .insert({
+        user_id: userSettings.user_id,
+        notification_type: 'payment_failed',
+        title: 'Subscription Payment Failed',
+        message: 'Your subscription payment could not be processed. Please update your payment method.',
+        metadata: { subscription_id: subscriptionId },
+      });
+  }
+
+  // Record the payment failure
+  await supabase
+    .from('payment_transactions')
+    .insert({
+      user_id: userSettings?.user_id,
+      paypal_transaction_id: `payment-fail-${subscriptionId}-${Date.now()}`,
+      paypal_subscription_id: subscriptionId,
+      transaction_type: 'subscription_payment_failed',
+      amount: 0,
+      currency: 'USD',
+      status: 'failed',
+      metadata: resource,
+    });
+
+  console.log('Subscription payment failed:', subscriptionId);
+}
+
+async function handleSubscriptionReactivated(supabase: any, event: WebhookEvent): Promise<void> {
+  const { resource } = event;
+  const subscriptionId = resource.id;
+  const planId = resource.plan_id;
+
+  console.log('Processing subscription reactivation:', subscriptionId, planId);
+
+  // Map PayPal plan IDs to internal plan names
+  const planMapping: Record<string, string> = {
+    [Deno.env.get('PAYPAL_PLAN_ID_STARTER') || '']: 'starter',
+    [Deno.env.get('PAYPAL_PLAN_ID_PRO') || '']: 'pro',
+  };
+
+  const internalPlanId = planMapping[planId] || 'free';
+
+  // Calculate new subscription expiry (30 days from now)
+  const subscriptionExpiry = new Date();
+  subscriptionExpiry.setMonth(subscriptionExpiry.getMonth() + 1);
+
+  // Find user and reactivate subscription
+  const { data: userSettings } = await supabase
+    .from('user_settings')
+    .select('user_id')
+    .eq('paypal_subscription_id', subscriptionId)
+    .single();
+
+  if (userSettings) {
+    await supabase
+      .from('user_settings')
+      .update({
+        plan: internalPlanId,
+        payment_status: 'active',
+        subscription_expiry: subscriptionExpiry.toISOString(),
+        last_payment_date: new Date().toISOString(),
+      })
+      .eq('user_id', userSettings.user_id);
+
+    // Queue reactivation notification
+    await supabase
+      .from('notification_queue')
+      .insert({
+        user_id: userSettings.user_id,
+        notification_type: 'subscription_reactivated',
+        title: 'Subscription Reactivated',
+        message: `Your ${internalPlanId} subscription has been reactivated successfully.`,
+        metadata: { subscription_id: subscriptionId, plan: internalPlanId },
+      });
+  }
+
+  // Record the reactivation
+  await supabase
+    .from('payment_transactions')
+    .insert({
+      user_id: userSettings?.user_id,
+      paypal_transaction_id: `reactivate-${subscriptionId}`,
+      paypal_subscription_id: subscriptionId,
+      transaction_type: 'subscription_reactivation',
+      amount: 0,
+      currency: 'USD',
+      status: 'completed',
+      plan_id: internalPlanId,
+      metadata: resource,
+    });
+
+  console.log('Subscription reactivated for plan:', internalPlanId);
+}
+
+async function handleSubscriptionUpdated(supabase: any, event: WebhookEvent): Promise<void> {
+  const { resource } = event;
+  const subscriptionId = resource.id;
+  const planId = resource.plan_id;
+  const status = resource.status;
+
+  console.log('Processing subscription update:', subscriptionId, planId, status);
+
+  // Map PayPal plan IDs to internal plan names
+  const planMapping: Record<string, string> = {
+    [Deno.env.get('PAYPAL_PLAN_ID_STARTER') || '']: 'starter',
+    [Deno.env.get('PAYPAL_PLAN_ID_PRO') || '']: 'pro',
+  };
+
+  const internalPlanId = planMapping[planId] || 'free';
+
+  // Find user and update subscription details
+  const { data: userSettings } = await supabase
+    .from('user_settings')
+    .select('user_id')
+    .eq('paypal_subscription_id', subscriptionId)
+    .single();
+
+  if (userSettings) {
+    // Update subscription details based on the new information
+    const updateData: any = {
+      plan: internalPlanId,
+    };
+
+    // Update status if it's provided
+    if (status) {
+      updateData.payment_status = status === 'ACTIVE' ? 'active' : status.toLowerCase();
+    }
+
+    await supabase
+      .from('user_settings')
+      .update(updateData)
+      .eq('user_id', userSettings.user_id);
+
+    // Queue update notification
+    await supabase
+      .from('notification_queue')
+      .insert({
+        user_id: userSettings.user_id,
+        notification_type: 'subscription_updated',
+        title: 'Subscription Updated',
+        message: `Your subscription has been updated. Current plan: ${internalPlanId}`,
+        metadata: { subscription_id: subscriptionId, plan: internalPlanId, status: status },
+      });
+  }
+
+  // Record the update
+  await supabase
+    .from('payment_transactions')
+    .insert({
+      user_id: userSettings?.user_id,
+      paypal_transaction_id: `update-${subscriptionId}-${Date.now()}`,
+      paypal_subscription_id: subscriptionId,
+      transaction_type: 'subscription_update',
+      amount: 0,
+      currency: 'USD',
+      status: 'completed',
+      plan_id: internalPlanId,
+      metadata: resource,
+    });
+
+  console.log('Subscription updated for plan:', internalPlanId);
 }
 
 async function updateWebhookProcessingError(supabase: any, eventId: string, error: string): Promise<void> {
