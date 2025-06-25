@@ -99,4 +99,20 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['lucide-react'],
   },
+  // Add fallback for SPA routing in development
+  server: {
+    historyApiFallback: true,
+  },
+  // Ensure proper build configuration for SPA
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          router: ['react-router-dom'],
+          ui: ['lucide-react'],
+        },
+      },
+    },
+  },
 });

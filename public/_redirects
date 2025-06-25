@@ -1,0 +1,3 @@
+# Netlify redirects file
+# This tells Netlify to serve index.html for all routes that don't match a file
+/*    /index.html   200
