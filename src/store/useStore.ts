@@ -185,6 +185,9 @@ const useStore = create<StoreState>()(
           
           if (error) {
             console.error('Error getting session:', error);
+            // Clear local user state if Supabase session is invalid
+            set({ user: null, isInitialized: true });
+            return;
           }
           
           if (session?.user) {
@@ -216,21 +219,30 @@ const useStore = create<StoreState>()(
             set({ user, isInitialized: true });
             await get().loadData();
           } else {
-            // No active session, check localStorage for persisted user
-            const persistedState = get();
-            if (persistedState.user) {
-              console.log('Found persisted user:', persistedState.user.email);
-              // User was persisted, keep them logged in
-              set({ isInitialized: true });
-              await get().loadData();
-            } else {
-              console.log('No session or persisted user found');
-              set({ isInitialized: true });
-            }
+            // No active Supabase session - clear any persisted user state
+            console.log('No active Supabase session found, clearing local user state');
+            set({ 
+              user: null, 
+              isInitialized: true,
+              products: [],
+              sales: [],
+              inventoryTransactions: [],
+              expenses: [],
+              userSettings: null,
+            });
           }
         } catch (error) {
           console.error('Failed to initialize auth:', error);
-          set({ isInitialized: true });
+          // Clear user state on any auth initialization error
+          set({ 
+            user: null, 
+            isInitialized: true,
+            products: [],
+            sales: [],
+            inventoryTransactions: [],
+            expenses: [],
+            userSettings: null,
+          });
         } finally {
           set({ isLoading: false });
         }
