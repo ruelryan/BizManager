@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PayPal Webhook Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #1f2937;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #1f2937;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 28px;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            background: #10b981;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .webhook-url {
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            word-break: break-all;
+            margin: 20px 0;
+            border: 1px solid #e5e7eb;
+            font-size: 13px;
+        }
+        .test-section {
+            margin: 30px 0;
+            padding: 20px;
+            background: #f9fafb;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+        }
+        .test-button {
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .test-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        .test-button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            white-space: pre-wrap;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success {
+            background: #ecfdf5;
+            border: 1px solid #10b981;
+            color: #065f46;
+        }
+        .error {
+            background: #fef2f2;
+            border: 1px solid #ef4444;
+            color: #7f1d1d;
+        }
+        .loading {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            color: #92400e;
+        }
+        .info {
+            background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%);
+            border: 1px solid #3b82f6;
+            color: #1e40af;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+        }
+        .checklist {
+            list-style: none;
+            padding: 0;
+        }
+        .checklist li {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(59, 130, 246, 0.1);
+        }
+        .checklist li:last-child {
+            border-bottom: none;
+        }
+        .form-group {
+            margin: 15px 0;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><span class="status-indicator"></span>PayPal Webhook Test</h1>
+        
+        <div class="info">
+            <strong>🔧 Webhook Configuration</strong><br>
+            Use this URL in your PayPal Developer Dashboard webhook settings:
+            <div class="webhook-url">
+                https://ywzplutpijvwktwqurox.supabase.co/functions/v1/paypal-webhook-handler
+            </div>
+        </div>
+        
+        <div class="info">
+            <strong>📋 Setup Checklist:</strong>
+            <ul class="checklist">
+                <li>1. ✅ Go to <a href="https://developer.paypal.com" target="_blank">PayPal Developer Dashboard</a></li>
+                <li>2. ✅ Navigate to your app → Webhooks</li>
+                <li>3. ✅ Add the webhook URL above</li>
+                <li>4. ✅ Select events: PAYMENT.CAPTURE.COMPLETED, PAYMENT.CAPTURE.DECLINED, PAYMENT.CAPTURE.REFUNDED</li>
+                <li>5. ✅ Save and copy the Webhook ID</li>
+                <li>6. ✅ Add PAYPAL_WEBHOOK_ID to your Supabase secrets</li>
+                <li>7. ✅ Ensure PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET are set</li>
+                <li>8. ✅ Set PAYPAL_BASE_URL=https://api.paypal.com for live</li>
+            </ul>
+        </div>
+        
+        <div class="test-section">
+            <h3>🧪 Test Webhook Handler</h3>
+            <p>Test your webhook with simulated PayPal events:</p>
+            
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="userId">User ID (optional):</label>
+                    <input type="text" id="userId" placeholder="test-user-id" value="test-user-id">
+                </div>
+                <div class="form-group">
+                    <label for="amount">Amount:</label>
+                    <input type="number" id="amount" step="0.01" value="3.55" min="0">
+                </div>
+                <div class="form-group">
+                    <label for="currency">Currency:</label>
+                    <select id="currency">
+                        <option value="USD">USD</option>
+                        <option value="EUR">EUR</option>
+                        <option value="GBP">GBP</option>
+                    </select>
+                </div>
+            </div>
+            
+            <button class="test-button" onclick="testWebhook('PAYMENT.CAPTURE.COMPLETED')">
+                ✅ Test Payment Success
+            </button>
+            <button class="test-button" onclick="testWebhook('PAYMENT.CAPTURE.DECLINED')">
+                ❌ Test Payment Failed
+            </button>
+            <button class="test-button" onclick="testWebhook('PAYMENT.CAPTURE.REFUNDED')">
+                💰 Test Refund
+            </button>
+        </div>
+        
+        <div class="test-section">
+            <h3>🔗 Advanced Test Simulator</h3>
+            <p>For more advanced testing with all event types:</p>
+            <button class="test-button" onclick="openAdvancedTester()">
+                🚀 Open Advanced Test Simulator
+            </button>
+        </div>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        async function testWebhook(eventType) {
+            const resultDiv = document.getElementById('result');
+            const userId = document.getElementById('userId').value;
+            const amount = parseFloat(document.getElementById('amount').value);
+            const currency = document.getElementById('currency').value;
+            
+            resultDiv.innerHTML = `⏳ Testing ${eventType}...\n\nSending test webhook to your handler...`;
+            resultDiv.className = 'result loading';
+            
+            // Disable all buttons during test
+            const buttons = document.querySelectorAll('.test-button');
+            buttons.forEach(btn => btn.disabled = true);
+            
+            const testEvent = {
+                id: `test-${Date.now()}`,
+                event_type: eventType,
+                resource_type: eventType === 'PAYMENT.CAPTURE.REFUNDED' ? 'refund' : 'capture',
+                resource: {
+                    id: `test-transaction-${Date.now()}`,
+                    status: eventType === 'PAYMENT.CAPTURE.COMPLETED' ? 'COMPLETED' : 
+                           eventType === 'PAYMENT.CAPTURE.DECLINED' ? 'DECLINED' : 'COMPLETED',
+                    amount: {
+                        value: amount.toString(),
+                        currency_code: currency
+                    },
+                    custom_id: userId || 'test-user-id',
+                    payer: {
+                        payer_id: 'test-payer-id',
+                        email_address: 'test@example.com'
+                    },
+                    create_time: new Date().toISOString(),
+                    update_time: new Date().toISOString()
+                },
+                create_time: new Date().toISOString(),
+                event_version: '1.0',
+                summary: `Test ${eventType} event`
+            };
+
+            // Add specific fields for refund events
+            if (eventType === 'PAYMENT.CAPTURE.REFUNDED') {
+                testEvent.resource.invoice_id = 'test-original-transaction';
+            }
+
+            // Add failure reason for declined payments
+            if (eventType === 'PAYMENT.CAPTURE.DECLINED') {
+                testEvent.resource.status_details = {
+                    reason: 'INSUFFICIENT_FUNDS'
+                };
+            }
+            
+            try {
+                const response = await fetch('https://ywzplutpijvwktwqurox.supabase.co/functions/v1/paypal-webhook-handler', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-paypal-transmission-id': 'test-transmission-id',
+                        'x-paypal-cert-id': 'test-cert-id',
+                        'x-paypal-auth-algo': 'SHA256withRSA',
+                        'x-paypal-transmission-sig': 'test-signature',
+                        'x-paypal-transmission-time': new Date().toISOString()
+                    },
+                    body: JSON.stringify(testEvent)
+                });
+                
+                const result = await response.text();
+                
+                let displayResult = `📊 Test Results for ${eventType}:\n\n`;
+                displayResult += `Status: ${response.ok ? '✅ SUCCESS' : '❌ FAILED'}\n`;
+                displayResult += `HTTP Status: ${response.status}\n\n`;
+                displayResult += `Response:\n${result}\n\n`;
+                displayResult += `Test Event Sent:\n${JSON.stringify(testEvent, null, 2)}`;
+                
+                resultDiv.innerHTML = displayResult;
+                resultDiv.className = `result ${response.ok ? 'success' : 'error'}`;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `❌ Network Error:\n\n${error.message}\n\nPlease check:\n1. Your internet connection\n2. The webhook URL is correct\n3. Supabase Edge Function is deployed`;
+                resultDiv.className = 'result error';
+            } finally {
+                // Re-enable buttons
+                buttons.forEach(btn => btn.disabled = false);
+            }
+        }
+
+        function openAdvancedTester() {
+            window.open('https://ywzplutpijvwktwqurox.supabase.co/functions/v1/webhook-test-simulator', '_blank');
+        }
+
+        // Auto-focus on user ID field
+        document.getElementById('userId').focus();
+    </script>
+</body>
+</html>
