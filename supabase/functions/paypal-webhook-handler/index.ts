@@ -673,4 +673,4 @@ async function updateWebhookProcessingError(supabase: any, eventId: string, erro
   } catch (updateError) {
     console.error('Failed to update webhook error:', updateError);
   }
-}
+} //gibag-o
