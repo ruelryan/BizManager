@@ -45,18 +45,18 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Get environment variables
+    // Get environment variables with detailed logging
     const PAYPAL_CLIENT_ID = Deno.env.get('PAYPAL_CLIENT_ID');
     const PAYPAL_CLIENT_SECRET = Deno.env.get('PAYPAL_CLIENT_SECRET');
     const PAYPAL_WEBHOOK_ID = Deno.env.get('PAYPAL_WEBHOOK_ID');
-    const PAYPAL_BASE_URL = Deno.env.get('PAYPAL_BASE_URL') || 'https://api.paypal.com';
+    const PAYPAL_BASE_URL = Deno.env.get('PAYPAL_BASE_URL') || 'https://api.sandbox.paypal.com'; // Default to sandbox
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-    console.log('Environment check:');
-    console.log('- PAYPAL_CLIENT_ID:', PAYPAL_CLIENT_ID ? 'SET' : 'MISSING');
+    console.log('=== ENVIRONMENT CONFIGURATION ===');
+    console.log('- PAYPAL_CLIENT_ID:', PAYPAL_CLIENT_ID ? `SET (${PAYPAL_CLIENT_ID.substring(0, 10)}...)` : 'MISSING');
     console.log('- PAYPAL_CLIENT_SECRET:', PAYPAL_CLIENT_SECRET ? 'SET' : 'MISSING');
-    console.log('- PAYPAL_WEBHOOK_ID:', PAYPAL_WEBHOOK_ID ? 'SET' : 'MISSING');
+    console.log('- PAYPAL_WEBHOOK_ID:', PAYPAL_WEBHOOK_ID ? `SET (${PAYPAL_WEBHOOK_ID})` : 'MISSING');
     console.log('- PAYPAL_BASE_URL:', PAYPAL_BASE_URL);
     console.log('- SUPABASE_URL:', SUPABASE_URL ? 'SET' : 'MISSING');
     console.log('- SUPABASE_SERVICE_ROLE_KEY:', SUPABASE_SERVICE_ROLE_KEY ? 'SET' : 'MISSING');
@@ -141,6 +141,9 @@ Deno.serve(async (req) => {
     let isValid = true;
     if (PAYPAL_CLIENT_ID && PAYPAL_CLIENT_SECRET && PAYPAL_WEBHOOK_ID) {
       console.log('=== VERIFYING WEBHOOK SIGNATURE ===');
+      console.log('Using PayPal Base URL:', PAYPAL_BASE_URL);
+      console.log('Using Webhook ID:', PAYPAL_WEBHOOK_ID);
+      
       isValid = await verifyWebhookSignature(
         webhookBody,
         paypalHeaders,
@@ -153,15 +156,21 @@ Deno.serve(async (req) => {
       console.log('Signature verification result:', isValid);
 
       if (!isValid) {
-        console.error('Invalid webhook signature');
+        console.error('❌ Invalid webhook signature');
         await updateWebhookProcessingError(supabase, webhookEvent.id, 'Invalid webhook signature');
         return new Response('Invalid signature', { 
           status: 401, 
           headers: corsHeaders 
         });
+      } else {
+        console.log('✅ Webhook signature verified successfully');
       }
     } else {
       console.log('⚠️ Skipping signature verification - missing PayPal credentials');
+      console.log('Missing credentials:');
+      if (!PAYPAL_CLIENT_ID) console.log('  - PAYPAL_CLIENT_ID');
+      if (!PAYPAL_CLIENT_SECRET) console.log('  - PAYPAL_CLIENT_SECRET');
+      if (!PAYPAL_WEBHOOK_ID) console.log('  - PAYPAL_WEBHOOK_ID');
       console.log('This is NOT recommended for production!');
     }
 
@@ -213,7 +222,7 @@ async function verifyWebhookSignature(
   baseUrl: string
 ): Promise<boolean> {
   try {
-    console.log('Getting PayPal access token...');
+    console.log('Getting PayPal access token from:', baseUrl);
     
     // Get PayPal access token
     const authResponse = await fetch(`${baseUrl}/v1/oauth2/token`, {
@@ -226,13 +235,14 @@ async function verifyWebhookSignature(
     });
 
     if (!authResponse.ok) {
-      console.error('Failed to get PayPal access token:', authResponse.status, await authResponse.text());
+      const errorText = await authResponse.text();
+      console.error('Failed to get PayPal access token:', authResponse.status, errorText);
       return false;
     }
 
     const authData = await authResponse.json();
     const accessToken = authData.access_token;
-    console.log('PayPal access token obtained successfully');
+    console.log('✅ PayPal access token obtained successfully');
 
     // Verify webhook signature
     console.log('Verifying webhook signature...');
@@ -246,7 +256,11 @@ async function verifyWebhookSignature(
       webhook_event: JSON.parse(webhookBody),
     };
 
-    console.log('Verification payload:', JSON.stringify(verificationPayload, null, 2));
+    console.log('Verification payload summary:');
+    console.log('- auth_algo:', verificationPayload.auth_algo);
+    console.log('- cert_id:', verificationPayload.cert_id);
+    console.log('- transmission_id:', verificationPayload.transmission_id);
+    console.log('- webhook_id:', verificationPayload.webhook_id);
 
     const verificationResponse = await fetch(`${baseUrl}/v1/notifications/verify-webhook-signature`, {
       method: 'POST',
@@ -258,7 +272,8 @@ async function verifyWebhookSignature(
     });
 
     if (!verificationResponse.ok) {
-      console.error('Webhook verification failed:', verificationResponse.status, await verificationResponse.text());
+      const errorText = await verificationResponse.text();
+      console.error('Webhook verification failed:', verificationResponse.status, errorText);
       return false;
     }
 
@@ -418,7 +433,7 @@ async function handlePaymentCompleted(supabase: any, event: WebhookEvent): Promi
     if (transactionError) {
       console.error('Error recording transaction:', transactionError);
     } else {
-      console.log('Transaction recorded successfully');
+      console.log('✅ Transaction recorded successfully');
     }
 
     // Update user subscription
@@ -435,7 +450,7 @@ async function handlePaymentCompleted(supabase: any, event: WebhookEvent): Promi
     if (settingsError) {
       console.error('Error updating user settings:', settingsError);
     } else {
-      console.log('User settings updated successfully');
+      console.log('✅ User settings updated successfully');
     }
 
     // Queue success notification
@@ -452,10 +467,10 @@ async function handlePaymentCompleted(supabase: any, event: WebhookEvent): Promi
     if (notificationError) {
       console.error('Error queuing notification:', notificationError);
     } else {
-      console.log('Success notification queued');
+      console.log('✅ Success notification queued');
     }
 
-    console.log('Payment completed successfully for user:', userId);
+    console.log('🎉 Payment completed successfully for user:', userId);
 
   } catch (error) {
     console.error('Error in handlePaymentCompleted:', error);
