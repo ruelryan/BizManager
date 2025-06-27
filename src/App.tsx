@@ -40,11 +40,12 @@ function App() {
           {/* Public Routes */}
           <Route path="/landing" element={<Landing />} />
           <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <Login />} />
+          <Route path="/signup" element={user ? <Navigate to="/dashboard" /> : <Login />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/upgrade" element={<Upgrade />} />
           
           {/* Redirect root to landing if not authenticated, dashboard if authenticated */}
-          <Route path="/" element={user ? <Navigate to="/dashboard" /> : <Landing />} />
+          <Route path="/" element={user ? <Navigate to="/dashboard" /> : <Navigate to="/landing" />} />
           
           {/* Protected Routes */}
           <Route path="/dashboard" element={user ? <Layout /> : <Navigate to="/landing" />}>

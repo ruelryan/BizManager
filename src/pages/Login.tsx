@@ -1,21 +1,36 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { BarChart3, Mail, Lock, Eye, EyeOff, Crown, Star, Package, AlertCircle, UserPlus } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { ThemeToggle } from '../components/ThemeToggle';
 
 export function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { signIn, signInWithGoogle, signInWithFacebook, signUp, isLoading } = useStore();
+  
+  // Check if we're on the signup page
+  const isSignupPage = location.pathname === '/signup';
+  
   const [showPassword, setShowPassword] = React.useState(false);
-  const [showSignUp, setShowSignUp] = React.useState(false);
+  const [showSignUp, setShowSignUp] = React.useState(isSignupPage);
   const [error, setError] = React.useState('');
   const [formData, setFormData] = React.useState({
-    email: 'demo@businessmanager.com',
-    password: 'demo123',
+    email: isSignupPage ? '' : 'demo@businessmanager.com',
+    password: isSignupPage ? '' : 'demo123',
     name: '',
     plan: 'free' as 'free' | 'starter' | 'pro',
   });
+
+  // Update form state when route changes
+  React.useEffect(() => {
+    setShowSignUp(isSignupPage);
+    if (isSignupPage) {
+      setFormData(prev => ({ ...prev, email: '', password: '' }));
+    } else {
+      setFormData(prev => ({ ...prev, email: 'demo@businessmanager.com', password: 'demo123' }));
+    }
+  }, [isSignupPage]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,10 +43,10 @@ export function Login() {
           return;
         }
         await signUp(formData.email, formData.password, formData.name);
-        navigate('/');
+        navigate('/dashboard');
       } else {
         await signIn(formData.email, formData.password, formData.plan);
-        navigate('/');
+        navigate('/dashboard');
       }
     } catch (err: any) {
       setError(err.message || `Failed to ${showSignUp ? 'create account' : 'sign in'}`);
@@ -55,6 +70,19 @@ export function Login() {
       // Redirect will be handled by auth state change listener
     } catch (err: any) {
       setError(err.message || 'Failed to sign in with Facebook');
+    }
+  };
+
+  const toggleMode = () => {
+    const newMode = !showSignUp;
+    setShowSignUp(newMode);
+    setError('');
+    
+    // Navigate to the appropriate route
+    if (newMode) {
+      navigate('/signup');
+    } else {
+      navigate('/login');
     }
   };
 
@@ -280,17 +308,7 @@ export function Login() {
             <p className="text-sm text-gray-600 dark:text-gray-400">
               {showSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
               <button
-                onClick={() => {
-                  setShowSignUp(!showSignUp);
-                  setError('');
-                  if (!showSignUp) {
-                    // Clear demo credentials when switching to sign up
-                    setFormData(prev => ({ ...prev, email: '', password: '' }));
-                  } else {
-                    // Restore demo credentials when switching to sign in
-                    setFormData(prev => ({ ...prev, email: 'demo@businessmanager.com', password: 'demo123' }));
-                  }
-                }}
+                onClick={toggleMode}
                 className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
               >
                 {showSignUp ? 'Sign in' : 'Sign up for free'}

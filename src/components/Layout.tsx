@@ -37,12 +37,14 @@ export function Layout() {
   const { user, signOut, isOnline } = useStore();
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/landing" replace />;
   }
 
   const handleLogout = async () => {
     try {
       await signOut();
+      // The signOut function will clear the user state, which will trigger a redirect to /landing
+      // due to the Navigate component above
     } catch (error) {
       console.error('Logout failed:', error);
     }
