@@ -80,6 +80,9 @@ export function Demo() {
     }
   };
 
+  // Get the current feature's icon component
+  const CurrentFeatureIcon = features[currentFeature].icon;
+
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-200">
       {/* Header with back button */}
@@ -165,28 +168,31 @@ export function Demo() {
             
             {/* Feature Navigation */}
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-              {features.map((feature, index) => (
-                <button
-                  key={feature.id}
-                  onClick={() => jumpToFeature(index)}
-                  className={`p-4 rounded-lg text-left transition-all ${
-                    currentFeature === index
-                      ? 'bg-blue-600 text-white shadow-lg'
-                      : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
-                  }`}
-                >
-                  <feature.icon className={`h-6 w-6 mb-2 ${
-                    currentFeature === index ? 'text-white' : 'text-blue-600 dark:text-blue-400'
-                  }`} />
-                  <h3 className="font-semibold text-sm">{feature.name}</h3>
-                </button>
-              ))}
+              {features.map((feature, index) => {
+                const FeatureIcon = feature.icon;
+                return (
+                  <button
+                    key={feature.id}
+                    onClick={() => jumpToFeature(index)}
+                    className={`p-4 rounded-lg text-left transition-all ${
+                      currentFeature === index
+                        ? 'bg-blue-600 text-white shadow-lg'
+                        : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+                    }`}
+                  >
+                    <FeatureIcon className={`h-6 w-6 mb-2 ${
+                      currentFeature === index ? 'text-white' : 'text-blue-600 dark:text-blue-400'
+                    }`} />
+                    <h3 className="font-semibold text-sm">{feature.name}</h3>
+                  </button>
+                );
+              })}
             </div>
             
             {/* Current Feature Description */}
             <div className="mt-8 p-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
               <div className="flex items-start">
-                <features[currentFeature].icon className="h-8 w-8 text-blue-600 dark:text-blue-400 mr-4 flex-shrink-0" />
+                <CurrentFeatureIcon className="h-8 w-8 text-blue-600 dark:text-blue-400 mr-4 flex-shrink-0" />
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                     {features[currentFeature].name}
