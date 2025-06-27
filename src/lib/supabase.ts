@@ -55,7 +55,8 @@ export const transformSupabaseData = {
     currentStock: Number(data.stock) || 0,
     minStock: Number(data.min_stock) || 0,
     cost: Number(data.cost) || 0,
-    price: Number(data.price) || 0
+    price: Number(data.price) || 0,
+    barcode: data.barcode || undefined
   }),
   
   sale: (data: any) => ({
@@ -71,7 +72,11 @@ export const transformSupabaseData = {
   
   customer: (data: any) => ({
     ...data,
-    createdAt: new Date(data.created_at)
+    createdAt: new Date(data.created_at),
+    isActive: data.is_active,
+    creditLimit: Number(data.credit_limit) || 0,
+    balance: Number(data.balance) || 0,
+    specialPricing: data.special_pricing || {}
   }),
 
   expense: (data: any) => ({
@@ -90,7 +95,9 @@ export const transformSupabaseData = {
     businessPhone: data.business_phone,
     businessEmail: data.business_email,
     createdAt: new Date(data.created_at),
-    updatedAt: new Date(data.updated_at)
+    updatedAt: new Date(data.updated_at),
+    plan: data.plan || 'free',
+    subscriptionExpiry: data.subscription_expiry ? new Date(data.subscription_expiry) : undefined
   })
 };
 
@@ -105,6 +112,7 @@ export const transformToSupabaseData = {
     stock: data.currentStock,
     min_stock: data.minStock,
     unit: data.unit || 'pcs',
+    barcode: data.barcode || null,
     is_active: true,
     user_id: userId
   }),
@@ -137,7 +145,8 @@ export const transformToSupabaseData = {
     address: data.address || null,
     balance: data.balance || 0,
     credit_limit: data.creditLimit || 0,
-    is_active: true,
+    is_active: data.isActive,
+    special_pricing: data.specialPricing || {},
     user_id: userId
   }),
 
@@ -159,6 +168,8 @@ export const transformToSupabaseData = {
     business_address: data.businessAddress || null,
     business_phone: data.businessPhone || null,
     business_email: data.businessEmail || null,
+    plan: data.plan || 'free',
+    subscription_expiry: data.subscriptionExpiry,
     user_id: userId
   })
 };

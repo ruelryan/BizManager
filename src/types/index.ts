@@ -84,6 +84,7 @@ export interface Customer {
 export interface Return {
   id: string;
   originalSaleId: string;
+  originalSale?: Sale;
   date: Date;
   items: ReturnItem[];
   total: number;
@@ -113,6 +114,11 @@ export interface UserSettings {
   businessEmail?: string;
   createdAt?: Date;
   updatedAt?: Date;
+  plan?: 'free' | 'starter' | 'pro';
+  subscriptionExpiry?: Date;
+  paypalSubscriptionId?: string;
+  paymentStatus?: string;
+  lastPaymentDate?: Date;
 }
 
 export interface PlanFeatures {

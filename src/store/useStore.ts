@@ -179,6 +179,9 @@ const deserializeState = (str: string) => {
     if (state.userSettings.updatedAt) {
       state.userSettings.updatedAt = safeParseDate(state.userSettings.updatedAt);
     }
+    if (state.userSettings.subscriptionExpiry) {
+      state.userSettings.subscriptionExpiry = safeParseDate(state.userSettings.subscriptionExpiry);
+    }
   }
   
   return state;
@@ -1419,14 +1422,33 @@ const useStore = create<StoreState>()(
             })) || [];
             const userSettings = settingsResult.data ? transformSupabaseData.userSettings(settingsResult.data) : null;
 
-            set({
-              products,
-              sales,
-              expenses,
-              customers,
-              userSettings,
-              monthlyGoal: userSettings?.monthlyGoal || 50000,
-            });
+            // Update user with plan information from user_settings
+            if (userSettings) {
+              const updatedUser = {
+                ...user,
+                plan: userSettings.plan || user.plan,
+                subscriptionExpiry: userSettings.subscriptionExpiry || user.subscriptionExpiry
+              };
+              
+              set({
+                user: updatedUser,
+                products,
+                sales,
+                expenses,
+                customers,
+                userSettings,
+                monthlyGoal: userSettings?.monthlyGoal || 50000,
+              });
+            } else {
+              set({
+                products,
+                sales,
+                expenses,
+                customers,
+                userSettings,
+                monthlyGoal: userSettings?.monthlyGoal || 50000,
+              });
+            }
 
             console.log('Data loaded successfully:', { 
               products: products.length, 
