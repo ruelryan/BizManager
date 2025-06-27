@@ -12,6 +12,7 @@ import { Profile } from './pages/Profile';
 import { Pricing } from './pages/Pricing';
 import { Upgrade } from './pages/Upgrade';
 import { Login } from './pages/Login';
+import { Landing } from './pages/Landing';
 import { useStore } from './store/useStore';
 import { ThemeProvider } from './contexts/ThemeContext';
 
@@ -36,20 +37,39 @@ function App() {
     <ThemeProvider>
       <Router>
         <Routes>
-          <Route path="/login" element={user ? <Navigate to="/" /> : <Login />} />
+          {/* Public Routes */}
+          <Route path="/landing" element={<Landing />} />
+          <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <Login />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/upgrade" element={<Upgrade />} />
           
+          {/* Redirect root to landing if not authenticated, dashboard if authenticated */}
+          <Route path="/" element={user ? <Navigate to="/dashboard" /> : <Landing />} />
+          
           {/* Protected Routes */}
-          <Route path="/" element={user ? <Layout /> : <Navigate to="/login" />}>
+          <Route path="/dashboard" element={user ? <Layout /> : <Navigate to="/landing" />}>
             <Route index element={<Dashboard />} />
-            <Route path="sales" element={<Sales />} />
-            <Route path="products" element={<Products />} />
-            <Route path="inventory" element={<Inventory />} />
-            <Route path="expenses" element={<Expenses />} />
-            <Route path="invoices" element={<Invoices />} />
-            <Route path="reports" element={<Reports />} />
-            <Route path="profile" element={<Profile />} />
+          </Route>
+          <Route path="/sales" element={user ? <Layout /> : <Navigate to="/landing" />}>
+            <Route index element={<Sales />} />
+          </Route>
+          <Route path="/products" element={user ? <Layout /> : <Navigate to="/landing" />}>
+            <Route index element={<Products />} />
+          </Route>
+          <Route path="/inventory" element={user ? <Layout /> : <Navigate to="/landing" />}>
+            <Route index element={<Inventory />} />
+          </Route>
+          <Route path="/expenses" element={user ? <Layout /> : <Navigate to="/landing" />}>
+            <Route index element={<Expenses />} />
+          </Route>
+          <Route path="/invoices" element={user ? <Layout /> : <Navigate to="/landing" />}>
+            <Route index element={<Invoices />} />
+          </Route>
+          <Route path="/reports" element={user ? <Layout /> : <Navigate to="/landing" />}>
+            <Route index element={<Reports />} />
+          </Route>
+          <Route path="/profile" element={user ? <Layout /> : <Navigate to="/landing" />}>
+            <Route index element={<Profile />} />
           </Route>
         </Routes>
       </Router>

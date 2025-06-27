@@ -261,6 +261,14 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* Grid Pattern Background */
+.bg-grid-pattern {
+  background-image: 
+    linear-gradient(rgba(59, 130, 246, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59, 130, 246, 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
 /* PayPal Dark Mode Fixes */
 .dark .paypal-button-container {
   /* Force PayPal buttons to respect dark mode */
