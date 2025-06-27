@@ -1,22 +1,27 @@
-import React from 'react';
-import { Plus, Search, Edit, Trash2, Package, ChevronDown, Grid, List } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Plus, Search, Edit, Trash2, Package, ChevronDown, Grid, List, Barcode, AlertTriangle } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { Product } from '../types';
+import { BarcodeScanner } from '../components/BarcodeScanner';
 
 export function Products() {
   const { products, addProduct, updateProduct, deleteProduct, user, getProductCategories } = useStore();
-  const [showAddForm, setShowAddForm] = React.useState(false);
-  const [editingProduct, setEditingProduct] = React.useState<Product | null>(null);
-  const [searchTerm, setSearchTerm] = React.useState('');
-  const [deleteConfirm, setDeleteConfirm] = React.useState<string | null>(null);
-  const [viewMode, setViewMode] = React.useState<'grid' | 'list'>('grid');
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+  const [scanningFor, setScanningFor] = useState<'search' | 'add' | null>(null);
+  const addFormBarcodeRef = useRef<HTMLInputElement>(null);
 
   const canAddMoreProducts = user?.plan !== 'free' || products.length < 10;
 
   // Filter products
   const filteredProducts = products.filter((product) =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.category.toLowerCase().includes(searchTerm.toLowerCase())
+    product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (product.barcode && product.barcode.includes(searchTerm))
   );
 
   const handleDeleteProduct = (id: string) => {
@@ -30,22 +35,46 @@ export function Products() {
     }
   };
 
+  const handleBarcodeScanned = (barcode: string) => {
+    if (scanningFor === 'search') {
+      setSearchTerm(barcode);
+      setShowBarcodeScanner(false);
+    } else if (scanningFor === 'add' && addFormBarcodeRef.current) {
+      addFormBarcodeRef.current.value = barcode;
+      setShowBarcodeScanner(false);
+    }
+  };
+
   const ProductForm = ({ product, onClose }: { product?: Product; onClose: () => void }) => {
-    const [formData, setFormData] = React.useState({
+    const [formData, setFormData] = useState({
       name: product?.name || '',
       category: product?.category || '',
       price: product?.price || 0,
       cost: product?.cost || 0,
       currentStock: product?.currentStock || 0,
       minStock: product?.minStock || 10,
+      barcode: product?.barcode || '',
     });
-    const [showCategoryDropdown, setShowCategoryDropdown] = React.useState(false);
-    const [customCategory, setCustomCategory] = React.useState('');
+    const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+    const [customCategory, setCustomCategory] = useState('');
+    const [barcodeError, setBarcodeError] = useState('');
 
     const existingCategories = getProductCategories();
 
     const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault();
+      
+      // Validate barcode uniqueness if provided
+      if (formData.barcode) {
+        const existingProduct = products.find(p => 
+          p.barcode === formData.barcode && (!product || p.id !== product.id)
+        );
+        
+        if (existingProduct) {
+          setBarcodeError(`Barcode already used by product: ${existingProduct.name}`);
+          return;
+        }
+      }
       
       const finalCategory = customCategory || formData.category;
       
@@ -62,6 +91,11 @@ export function Products() {
       setFormData(prev => ({ ...prev, category }));
       setCustomCategory('');
       setShowCategoryDropdown(false);
+    };
+
+    const handleScanBarcode = () => {
+      setScanningFor('add');
+      setShowBarcodeScanner(true);
     };
 
     // Safe calculation for profit margin display
@@ -205,6 +239,41 @@ export function Products() {
               </div>
             </div>
 
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Barcode
+              </label>
+              <div className="flex">
+                <input
+                  type="text"
+                  value={formData.barcode}
+                  onChange={(e) => {
+                    setBarcodeError('');
+                    setFormData(prev => ({ ...prev, barcode: e.target.value }));
+                  }}
+                  ref={addFormBarcodeRef}
+                  className="flex-1 rounded-l-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  placeholder="Enter product barcode"
+                />
+                <button
+                  type="button"
+                  onClick={handleScanBarcode}
+                  className="rounded-r-lg border border-l-0 border-gray-300 dark:border-gray-600 px-3 py-2 bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors"
+                >
+                  <Barcode className="h-5 w-5" />
+                </button>
+              </div>
+              {barcodeError && (
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center">
+                  <AlertTriangle className="h-4 w-4 mr-1" />
+                  {barcodeError}
+                </p>
+              )}
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Optional. Used for quick scanning during sales and inventory.
+              </p>
+            </div>
+
             {/* Profit Margin Display */}
             <div className="rounded-lg bg-gray-50 dark:bg-gray-700 p-3">
               <div className="flex justify-between items-center text-sm">
@@ -261,18 +330,31 @@ export function Products() {
             )}
           </p>
         </div>
-        <button
-          onClick={() => setShowAddForm(true)}
-          disabled={!canAddMoreProducts}
-          className={`flex items-center space-x-2 rounded-lg px-4 py-2 text-white transition-colors ${
-            canAddMoreProducts
-              ? 'bg-blue-600 hover:bg-blue-700'
-              : 'bg-gray-400 cursor-not-allowed'
-          }`}
-        >
-          <Plus className="h-5 w-5" />
-          <span>Add Product</span>
-        </button>
+        <div className="flex space-x-2">
+          <button
+            onClick={() => {
+              setSearchTerm('');
+              setScanningFor('search');
+              setShowBarcodeScanner(true);
+            }}
+            className="flex items-center space-x-2 rounded-lg bg-gray-200 dark:bg-gray-700 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+          >
+            <Barcode className="h-5 w-5" />
+            <span>Scan Barcode</span>
+          </button>
+          <button
+            onClick={() => setShowAddForm(true)}
+            disabled={!canAddMoreProducts}
+            className={`flex items-center space-x-2 rounded-lg px-4 py-2 text-white transition-colors ${
+              canAddMoreProducts
+                ? 'bg-blue-600 hover:bg-blue-700'
+                : 'bg-gray-400 cursor-not-allowed'
+            }`}
+          >
+            <Plus className="h-5 w-5" />
+            <span>Add Product</span>
+          </button>
+        </div>
       </div>
 
       {/* Plan Limit Warning */}
@@ -296,7 +378,7 @@ export function Products() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
           <input
             type="text"
-            placeholder="Search products..."
+            placeholder="Search products or scan barcode..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full sm:w-80 rounded-lg border border-gray-300 dark:border-gray-600 pl-10 pr-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -347,6 +429,12 @@ export function Products() {
                       {product.name}
                     </h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">{product.category}</p>
+                    {product.barcode && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 flex items-center">
+                        <Barcode className="h-3 w-3 mr-1" />
+                        {product.barcode}
+                      </p>
+                    )}
                     <span className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${stockStatus.color}`}>
                       {stockStatus.text}
                     </span>
@@ -409,6 +497,9 @@ export function Products() {
                     Category
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    Barcode
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
                     Price
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
@@ -438,6 +529,16 @@ export function Products() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
                         {product.category}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                        {product.barcode ? (
+                          <div className="flex items-center">
+                            <Barcode className="h-4 w-4 mr-1 text-gray-500 dark:text-gray-400" />
+                            <span>{product.barcode}</span>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 dark:text-gray-500">Not set</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                         ₱{safePrice.toLocaleString()}
@@ -502,6 +603,15 @@ export function Products() {
         <ProductForm
           product={editingProduct}
           onClose={() => setEditingProduct(null)}
+        />
+      )}
+      {showBarcodeScanner && (
+        <BarcodeScanner
+          onScan={handleBarcodeScanned}
+          onClose={() => {
+            setShowBarcodeScanner(false);
+            setScanningFor(null);
+          }}
         />
       )}
     </div>

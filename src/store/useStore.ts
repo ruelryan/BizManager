@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import localforage from 'localforage';
 import { supabase, handleSupabaseError, transformSupabaseData, transformToSupabaseData } from '../lib/supabase';
-import { User, Product, Sale, InventoryTransaction, Expense, UserSettings, Customer, Return } from '../types';
+import { User, Product, Sale, InventoryTransaction, Expense, UserSettings, Customer, Return, ReturnItem } from '../types';
 
 interface StoreState {
   // Auth
@@ -15,11 +15,11 @@ interface StoreState {
   sales: Sale[];
   inventoryTransactions: InventoryTransaction[];
   expenses: Expense[];
+  userSettings: UserSettings | null;
   customers: Customer[];
   returns: Return[];
-  userSettings: UserSettings | null;
   
-  // Offline sync
+  // Offline sync (removed functionality)
   isOnline: boolean;
   
   // Settings
@@ -38,7 +38,6 @@ interface StoreState {
   updateProduct: (id: string, product: Partial<Product>) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
   getProductCategories: () => string[];
-  getProductByBarcode: (barcode: string) => Product | undefined;
   
   // Sale actions
   addSale: (sale: Omit<Sale, 'id'>) => Promise<void>;
@@ -55,13 +54,13 @@ interface StoreState {
   getExpenseCategories: () => string[];
   
   // Customer actions
-  addCustomer: (customer: Omit<Customer, 'id' | 'createdAt' | 'balance'>) => Promise<void>;
+  addCustomer: (customer: Omit<Customer, 'id' | 'createdAt' | 'balance' | 'isActive' | 'specialPricing'>) => Promise<void>;
   updateCustomer: (id: string, customer: Partial<Customer>) => Promise<void>;
   deleteCustomer: (id: string) => Promise<void>;
   updateCustomerSpecialPricing: (customerId: string, specialPrices: any[]) => Promise<void>;
   getCustomerSpecialPricing: (customerId: string) => Promise<any[]>;
   
-  // Return/Refund actions
+  // Return actions
   addReturn: (returnData: Omit<Return, 'id'>) => Promise<void>;
   
   // Settings actions
@@ -155,22 +154,6 @@ const deserializeState = (str: string) => {
     }));
   }
   
-  // Convert customer dates
-  if (state.customers) {
-    state.customers = state.customers.map((customer: any) => ({
-      ...customer,
-      createdAt: customer.createdAt ? safeParseDate(customer.createdAt) : undefined,
-    }));
-  }
-  
-  // Convert return dates
-  if (state.returns) {
-    state.returns = state.returns.map((returnData: any) => ({
-      ...returnData,
-      date: returnData.date ? safeParseDate(returnData.date) : undefined,
-    }));
-  }
-  
   // Convert user settings dates
   if (state.userSettings) {
     if (state.userSettings.createdAt) {
@@ -182,6 +165,22 @@ const deserializeState = (str: string) => {
     if (state.userSettings.subscriptionExpiry) {
       state.userSettings.subscriptionExpiry = safeParseDate(state.userSettings.subscriptionExpiry);
     }
+  }
+  
+  // Convert customer dates
+  if (state.customers) {
+    state.customers = state.customers.map((customer: any) => ({
+      ...customer,
+      createdAt: customer.createdAt ? safeParseDate(customer.createdAt) : new Date(),
+    }));
+  }
+  
+  // Convert return dates
+  if (state.returns) {
+    state.returns = state.returns.map((returnData: any) => ({
+      ...returnData,
+      date: returnData.date ? safeParseDate(returnData.date) : new Date(),
+    }));
   }
   
   return state;
@@ -198,9 +197,9 @@ const useStore = create<StoreState>()(
       sales: [],
       inventoryTransactions: [],
       expenses: [],
+      userSettings: null,
       customers: [],
       returns: [],
-      userSettings: null,
       isOnline: navigator.onLine,
       monthlyGoal: 50000,
 
@@ -262,9 +261,9 @@ const useStore = create<StoreState>()(
               sales: [],
               inventoryTransactions: [],
               expenses: [],
+              userSettings: null,
               customers: [],
               returns: [],
-              userSettings: null,
             });
           }
         } catch (error) {
@@ -277,9 +276,9 @@ const useStore = create<StoreState>()(
             sales: [],
             inventoryTransactions: [],
             expenses: [],
+            userSettings: null,
             customers: [],
             returns: [],
-            userSettings: null,
           });
         } finally {
           set({ isLoading: false });
@@ -413,9 +412,9 @@ const useStore = create<StoreState>()(
             sales: [],
             inventoryTransactions: [],
             expenses: [],
+            userSettings: null,
             customers: [],
             returns: [],
-            userSettings: null,
           });
         } catch (error: any) {
           throw new Error(error.message || 'Sign out failed');
@@ -526,11 +525,6 @@ const useStore = create<StoreState>()(
         return categories.sort();
       },
 
-      getProductByBarcode: (barcode: string) => {
-        const { products } = get();
-        return products.find(p => p.barcode === barcode);
-      },
-
       // Customer actions
       addCustomer: async (customerData) => {
         const { user } = get();
@@ -540,7 +534,10 @@ const useStore = create<StoreState>()(
           id: crypto.randomUUID(),
           ...customerData,
           balance: 0,
+          creditLimit: customerData.creditLimit || 0,
+          isActive: true,
           createdAt: new Date(),
+          specialPricing: {}
         };
 
         // Update local state immediately
@@ -551,18 +548,7 @@ const useStore = create<StoreState>()(
         // Persist to database if not demo user
         if (user.id !== 'demo-user-id') {
           try {
-            const supabaseData = {
-              id: customer.id,
-              name: customer.name,
-              phone: customer.phone || null,
-              email: customer.email || null,
-              address: customer.address || null,
-              balance: customer.balance,
-              credit_limit: customer.creditLimit,
-              is_active: customer.isActive,
-              user_id: user.id
-            };
-            
+            const supabaseData = transformToSupabaseData.customer(customer, user.id);
             const { error } = await supabase
               .from('customers')
               .insert(supabaseData);
@@ -578,28 +564,25 @@ const useStore = create<StoreState>()(
       },
 
       updateCustomer: async (id: string, updates) => {
-        const { user } = get();
+        const { user, customers } = get();
         if (!user) throw new Error('User not authenticated');
+
+        const existingCustomer = customers.find(c => c.id === id);
+        if (!existingCustomer) throw new Error('Customer not found');
+
+        const updatedCustomer = { ...existingCustomer, ...updates };
 
         // Update local state immediately
         set(state => ({
           customers: state.customers.map(c => 
-            c.id === id ? { ...c, ...updates } : c
+            c.id === id ? updatedCustomer : c
           )
         }));
 
         // Persist to database if not demo user
         if (user.id !== 'demo-user-id') {
           try {
-            const supabaseData = {
-              name: updates.name,
-              phone: updates.phone || null,
-              email: updates.email || null,
-              address: updates.address || null,
-              credit_limit: updates.creditLimit,
-              is_active: updates.isActive
-            };
-            
+            const supabaseData = transformToSupabaseData.customer(updatedCustomer, user.id);
             const { error } = await supabase
               .from('customers')
               .update(supabaseData)
@@ -649,55 +632,64 @@ const useStore = create<StoreState>()(
         const customer = customers.find(c => c.id === customerId);
         if (!customer) throw new Error('Customer not found');
 
-        // Convert array to object for easier lookup
+        // Convert special prices array to object format
         const specialPricingObj: Record<string, number> = {};
         specialPrices.forEach(item => {
           specialPricingObj[item.productId] = item.specialPrice;
         });
 
-        // Update local state immediately
+        // Update local state
+        const updatedCustomer = {
+          ...customer,
+          specialPricing: specialPricingObj
+        };
+
         set(state => ({
           customers: state.customers.map(c => 
-            c.id === customerId ? { ...c, specialPricing: specialPricingObj } : c
+            c.id === customerId ? updatedCustomer : c
           )
         }));
 
-        // In a real implementation, this would be persisted to the database
+        // Persist to database if not demo user
         if (user.id !== 'demo-user-id') {
           try {
-            // This would be a real database call in a production app
-            console.log('Saving special pricing to database:', specialPrices);
-            // Simulate API delay
-            await new Promise(resolve => setTimeout(resolve, 500));
+            const { error } = await supabase
+              .from('customers')
+              .update({ 
+                special_pricing: specialPricingObj 
+              })
+              .eq('id', customerId);
+            
+            if (error) {
+              handleSupabaseError(error);
+            }
           } catch (error) {
-            console.error('Failed to update special pricing:', error);
+            console.error('Failed to update customer special pricing:', error);
             throw error;
           }
         }
       },
 
       getCustomerSpecialPricing: async (customerId: string) => {
-        const { user, customers, products } = get();
-        if (!user) throw new Error('User not authenticated');
-
+        const { customers, products } = get();
+        
         const customer = customers.find(c => c.id === customerId);
-        if (!customer) return [];
-
-        // If customer has special pricing, convert to array format
-        if (customer.specialPricing) {
-          return Object.entries(customer.specialPricing).map(([productId, specialPrice]) => {
-            const product = products.find(p => p.id === productId);
-            return {
-              productId,
-              productName: product?.name || 'Unknown Product',
-              regularPrice: product?.price || 0,
-              specialPrice
-            };
-          });
+        if (!customer || !customer.specialPricing) {
+          return [];
         }
-
-        // Otherwise return empty array
-        return [];
+        
+        // Convert object format to array format with product details
+        const specialPrices = Object.entries(customer.specialPricing).map(([productId, specialPrice]) => {
+          const product = products.find(p => p.id === productId);
+          return {
+            productId,
+            productName: product?.name || 'Unknown Product',
+            regularPrice: product?.price || 0,
+            specialPrice
+          };
+        });
+        
+        return specialPrices;
       },
 
       // Helper function to find or create customer
@@ -735,7 +727,8 @@ const useStore = create<StoreState>()(
             credit_limit: 0,
             is_active: true,
             user_id: userId,
-            created_at: new Date().toISOString()
+            created_at: new Date().toISOString(),
+            special_pricing: {}
           };
 
           const { data: createdCustomer, error: createError } = await supabase
@@ -803,26 +796,44 @@ const useStore = create<StoreState>()(
         }));
 
         // Update customer balance if using credit
-        if (sale.customerId && sale.status === 'pending' && sale.useCredit) {
-          const updatedCustomers = customers.map(customer => {
-            if (customer.id === sale.customerId) {
-              return {
-                ...customer,
-                balance: customer.balance + sale.total
-              };
+        if (sale.status === 'pending' && sale.useCredit && sale.customerId) {
+          const customer = customers.find(c => c.id === sale.customerId);
+          if (customer) {
+            const updatedCustomer = {
+              ...customer,
+              balance: customer.balance + sale.total
+            };
+            
+            set(state => ({
+              customers: state.customers.map(c => 
+                c.id === sale.customerId ? updatedCustomer : c
+              )
+            }));
+            
+            // Update customer balance in database
+            if (user.id !== 'demo-user-id') {
+              try {
+                const { error } = await supabase
+                  .from('customers')
+                  .update({ balance: updatedCustomer.balance })
+                  .eq('id', sale.customerId);
+                
+                if (error) {
+                  console.error('Failed to update customer balance:', error);
+                }
+              } catch (error) {
+                console.error('Failed to update customer balance:', error);
+              }
             }
-            return customer;
-          });
-          
-          set({ customers: updatedCustomers });
+          }
         }
 
         // Persist to database if not demo user
         if (user.id !== 'demo-user-id') {
           try {
             // Handle customer creation/lookup
-            let customerId = sale.customerId;
-            if (!customerId && sale.customerName && sale.customerName !== 'Walk-in Customer') {
+            let customerId = null;
+            if (sale.customerName && sale.customerName !== 'Walk-in Customer') {
               customerId = await get().findOrCreateCustomer(sale.customerName, sale.customerEmail, user.id);
             }
 
@@ -883,24 +894,6 @@ const useStore = create<StoreState>()(
                 }
               }
             }
-
-            // Update customer balance if using credit
-            if (sale.customerId && sale.status === 'pending' && sale.useCredit) {
-              const customer = customers.find(c => c.id === sale.customerId);
-              if (customer) {
-                const { error: customerError } = await supabase
-                  .from('customers')
-                  .update({ 
-                    balance: customer.balance + sale.total
-                  })
-                  .eq('id', sale.customerId)
-                  .eq('user_id', user.id);
-                
-                if (customerError) {
-                  console.error('Failed to update customer balance:', customerError);
-                }
-              }
-            }
           } catch (error) {
             console.error('Failed to save sale to database:', error);
             throw new Error('Failed to save sale to database: ' + error.message);
@@ -924,7 +917,7 @@ const useStore = create<StoreState>()(
           try {
             // Handle customer creation/lookup if customer name is being updated
             let customerId = updates.customerId;
-            if (!customerId && updates.customerName && updates.customerName !== 'Walk-in Customer') {
+            if (updates.customerName && updates.customerName !== 'Walk-in Customer') {
               customerId = await get().findOrCreateCustomer(updates.customerName, updates.customerEmail, user.id);
             } else if (updates.customerName === 'Walk-in Customer') {
               customerId = null;
@@ -975,9 +968,9 @@ const useStore = create<StoreState>()(
         }
       },
 
-      // Return/Refund actions
+      // Return actions
       addReturn: async (returnData) => {
-        const { user, products, customers } = get();
+        const { user, products, customers, sales } = get();
         if (!user) throw new Error('User not authenticated');
 
         const returnRecord: Return = {
@@ -991,18 +984,17 @@ const useStore = create<StoreState>()(
         }));
 
         // Update product stock for returned items
-        const updatedProducts = products.map(product => {
-          const returnItem = returnData.items.find(item => item.productId === product.id);
-          if (returnItem) {
-            return {
-              ...product,
-              currentStock: product.currentStock + returnItem.quantity,
-              updatedAt: new Date(),
+        const updatedProducts = [...products];
+        for (const item of returnData.items) {
+          const productIndex = updatedProducts.findIndex(p => p.id === item.productId);
+          if (productIndex >= 0) {
+            updatedProducts[productIndex] = {
+              ...updatedProducts[productIndex],
+              currentStock: updatedProducts[productIndex].currentStock + item.quantity,
+              updatedAt: new Date()
             };
           }
-          return product;
-        });
-
+        }
         set({ products: updatedProducts });
 
         // Add inventory transactions for returned items
@@ -1021,24 +1013,85 @@ const useStore = create<StoreState>()(
         }));
 
         // Update customer balance if refunding to store credit
-        if (returnData.originalSale?.customerId && returnData.refundMethod === 'store_credit') {
-          const updatedCustomers = customers.map(customer => {
-            if (customer.id === returnData.originalSale.customerId) {
-              return {
-                ...customer,
-                balance: Math.max(0, customer.balance - returnData.total)
-              };
+        if (returnData.refundMethod === 'store_credit' && returnData.originalSale?.customerId) {
+          const customer = customers.find(c => c.id === returnData.originalSale?.customerId);
+          if (customer) {
+            const updatedCustomer = {
+              ...customer,
+              balance: Math.max(0, customer.balance - returnData.total)
+            };
+            
+            set(state => ({
+              customers: state.customers.map(c => 
+                c.id === customer.id ? updatedCustomer : c
+              )
+            }));
+            
+            // Update customer balance in database
+            if (user.id !== 'demo-user-id') {
+              try {
+                const { error } = await supabase
+                  .from('customers')
+                  .update({ balance: updatedCustomer.balance })
+                  .eq('id', customer.id);
+                
+                if (error) {
+                  console.error('Failed to update customer balance:', error);
+                }
+              } catch (error) {
+                console.error('Failed to update customer balance:', error);
+              }
             }
-            return customer;
-          });
-          
-          set({ customers: updatedCustomers });
+          }
         }
 
-        // In a real implementation, this would be persisted to the database
+        // Persist to database if not demo user
         if (user.id !== 'demo-user-id') {
-          // This would be a real database call in a production app
-          console.log('Saving return to database:', returnRecord);
+          try {
+            const supabaseData = {
+              id: returnRecord.id,
+              original_sale_id: returnRecord.originalSaleId,
+              date: returnRecord.date.toISOString(),
+              items: returnRecord.items,
+              total: returnRecord.total,
+              refund_method: returnRecord.refundMethod,
+              status: returnRecord.status,
+              reason: returnRecord.reason,
+              user_id: user.id,
+              created_at: new Date().toISOString()
+            };
+
+            const { error } = await supabase
+              .from('returns')
+              .insert(supabaseData);
+            
+            if (error) {
+              handleSupabaseError(error);
+            }
+
+            // Update product stock in database
+            for (const item of returnData.items) {
+              const product = products.find(p => p.id === item.productId);
+              if (product) {
+                const newStock = product.currentStock + item.quantity;
+                const { error: stockError } = await supabase
+                  .from('products')
+                  .update({ 
+                    stock: newStock, 
+                    updated_at: new Date().toISOString() 
+                  })
+                  .eq('id', item.productId)
+                  .eq('user_id', user.id);
+                
+                if (stockError) {
+                  console.error('Failed to update product stock:', stockError);
+                }
+              }
+            }
+          } catch (error) {
+            console.error('Failed to save return to database:', error);
+            throw error;
+          }
         }
       },
 
@@ -1268,7 +1321,7 @@ const useStore = create<StoreState>()(
               cost: 150,
               currentStock: 100,
               minStock: 20,
-              barcode: '1234567890123',
+              barcode: '8901234567890',
               createdAt: new Date(),
               updatedAt: new Date(),
             },
@@ -1280,7 +1333,7 @@ const useStore = create<StoreState>()(
               cost: 80,
               currentStock: 50,
               minStock: 10,
-              barcode: '2345678901234',
+              barcode: '8901234567891',
               createdAt: new Date(),
               updatedAt: new Date(),
             },
@@ -1289,10 +1342,10 @@ const useStore = create<StoreState>()(
               name: 'Herbal Tea Blend',
               category: 'Food & Beverage',
               price: 180,
-              cost: 100,
+              cost: 120,
               currentStock: 75,
               minStock: 15,
-              barcode: '3456789012345',
+              barcode: '8901234567892',
               createdAt: new Date(),
               updatedAt: new Date(),
             },
@@ -1310,7 +1363,7 @@ const useStore = create<StoreState>()(
               isActive: true,
               createdAt: new Date(),
               specialPricing: {
-                '1': 225, // Special price for Premium Coffee Beans
+                '1': 230, // Special price for Premium Coffee Beans
               }
             },
             {
@@ -1319,8 +1372,8 @@ const useStore = create<StoreState>()(
               phone: '+63 917 234 5678',
               email: 'jane.smith@example.com',
               address: '456 Oak Ave, Quezon City',
-              balance: 2000,
-              creditLimit: 10000,
+              balance: 1500,
+              creditLimit: 3000,
               isActive: true,
               createdAt: new Date(),
             },
@@ -1331,7 +1384,6 @@ const useStore = create<StoreState>()(
               id: '1',
               customerId: '1',
               customerName: 'John Doe',
-              customerEmail: 'john.doe@example.com',
               items: [
                 {
                   productId: '1',
@@ -1347,43 +1399,14 @@ const useStore = create<StoreState>()(
               date: new Date(),
               invoiceNumber: 'INV-001',
             },
-            {
-              id: '2',
-              customerId: '2',
-              customerName: 'Jane Smith',
-              customerEmail: 'jane.smith@example.com',
-              items: [
-                {
-                  productId: '2',
-                  productName: 'Artisan Pastry',
-                  quantity: 5,
-                  price: 120,
-                  total: 600,
-                },
-                {
-                  productId: '3',
-                  productName: 'Herbal Tea Blend',
-                  quantity: 1,
-                  price: 180,
-                  total: 180,
-                },
-              ],
-              total: 780,
-              paymentType: 'cash',
-              status: 'pending',
-              date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-              dueDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000), // 5 days from now
-              invoiceNumber: 'INV-002',
-              useCredit: true,
-            },
           ];
 
           set({
             products: demoProducts,
             sales: demoSales,
-            customers: demoCustomers,
             expenses: [],
             inventoryTransactions: [],
+            customers: demoCustomers,
             returns: [],
           });
         } else {
@@ -1391,70 +1414,67 @@ const useStore = create<StoreState>()(
           try {
             console.log('Loading data for user:', user.id);
             
-            const [productsResult, salesResult, expensesResult, customersResult, settingsResult] = await Promise.all([
+            const [productsResult, salesResult, expensesResult, settingsResult, customersResult, returnsResult] = await Promise.all([
               supabase.from('products').select('*').eq('user_id', user.id),
               supabase.from('sales').select('*').eq('user_id', user.id),
               supabase.from('expenses').select('*').eq('user_id', user.id),
-              supabase.from('customers').select('*').eq('user_id', user.id),
               supabase.from('user_settings').select('*').eq('user_id', user.id).single(),
+              supabase.from('customers').select('*').eq('user_id', user.id),
+              supabase.from('returns').select('*').eq('user_id', user.id),
             ]);
 
             console.log('Products result:', productsResult);
             console.log('Sales result:', salesResult);
             console.log('Expenses result:', expensesResult);
-            console.log('Customers result:', customersResult);
             console.log('Settings result:', settingsResult);
+            console.log('Customers result:', customersResult);
+            console.log('Returns result:', returnsResult);
 
             const products = productsResult.data?.map(transformSupabaseData.product) || [];
             const sales = salesResult.data?.map(transformSupabaseData.sale) || [];
             const expenses = expensesResult.data?.map(transformSupabaseData.expense) || [];
-            const customers = customersResult.data?.map((c: any) => ({
-              id: c.id,
-              name: c.name,
-              phone: c.phone,
-              email: c.email,
-              address: c.address,
-              balance: parseFloat(c.balance) || 0,
-              creditLimit: parseFloat(c.credit_limit) || 0,
-              isActive: c.is_active,
-              createdAt: new Date(c.created_at),
-              specialPricing: c.special_pricing || {}
-            })) || [];
             const userSettings = settingsResult.data ? transformSupabaseData.userSettings(settingsResult.data) : null;
+            const customers = customersResult.data?.map(transformSupabaseData.customer) || [];
+            
+            // For returns, we need to transform the data
+            const returns = returnsResult.data?.map((returnData: any) => ({
+              id: returnData.id,
+              originalSaleId: returnData.original_sale_id,
+              date: new Date(returnData.date),
+              items: returnData.items,
+              total: returnData.total,
+              refundMethod: returnData.refund_method,
+              status: returnData.status,
+              reason: returnData.reason,
+            })) || [];
 
-            // Update user with plan information from user_settings
-            if (userSettings) {
-              const updatedUser = {
-                ...user,
-                plan: userSettings.plan || user.plan,
-                subscriptionExpiry: userSettings.subscriptionExpiry || user.subscriptionExpiry
-              };
-              
-              set({
-                user: updatedUser,
-                products,
-                sales,
-                expenses,
-                customers,
-                userSettings,
-                monthlyGoal: userSettings?.monthlyGoal || 50000,
-              });
-            } else {
-              set({
-                products,
-                sales,
-                expenses,
-                customers,
-                userSettings,
-                monthlyGoal: userSettings?.monthlyGoal || 50000,
-              });
+            set({
+              products,
+              sales,
+              expenses,
+              userSettings,
+              customers,
+              returns,
+              monthlyGoal: userSettings?.monthlyGoal || 50000,
+            });
+
+            // If user settings has a plan, update the user object
+            if (userSettings?.plan) {
+              set(state => ({
+                user: state.user ? {
+                  ...state.user,
+                  plan: userSettings.plan as any,
+                  subscriptionExpiry: userSettings.subscriptionExpiry
+                } : state.user
+              }));
             }
 
             console.log('Data loaded successfully:', { 
               products: products.length, 
               sales: sales.length, 
               expenses: expenses.length,
-              customers: customers.length
+              customers: customers.length,
+              returns: returns.length
             });
           } catch (error) {
             console.error('Failed to load data:', error);
@@ -1475,9 +1495,9 @@ const useStore = create<StoreState>()(
         sales: state.sales,
         inventoryTransactions: state.inventoryTransactions,
         expenses: state.expenses,
+        userSettings: state.userSettings,
         customers: state.customers,
         returns: state.returns,
-        userSettings: state.userSettings,
         monthlyGoal: state.monthlyGoal,
       }),
       deserialize: deserializeState,
