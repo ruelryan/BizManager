@@ -13,6 +13,11 @@ import { Pricing } from './pages/Pricing';
 import { Upgrade } from './pages/Upgrade';
 import { Login } from './pages/Login';
 import { Landing } from './pages/Landing';
+import { About } from './pages/About';
+import { Contact } from './pages/Contact';
+import { Features } from './pages/Features';
+import { Demo } from './pages/Demo';
+import { Integrations } from './pages/Integrations';
 import { useStore } from './store/useStore';
 import { ThemeProvider } from './contexts/ThemeContext';
 
@@ -43,6 +48,11 @@ function App() {
           <Route path="/signup" element={user ? <Navigate to="/dashboard" /> : <Login />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/upgrade" element={<Upgrade />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/features" element={<Features />} />
+          <Route path="/demo" element={<Demo />} />
+          <Route path="/integrations" element={<Integrations />} />
           
           {/* Redirect root to landing if not authenticated, dashboard if authenticated */}
           <Route path="/" element={user ? <Navigate to="/dashboard" /> : <Navigate to="/landing" />} />
