@@ -10,7 +10,7 @@ export function Careers() {
       location: 'Remote (Philippines)',
       type: 'Full-time',
       salary: '₱80,000 - ₱120,000/month',
-      description: 'We're looking for an experienced frontend developer to help build and improve our React-based web application. You'll work closely with our design and backend teams to create intuitive, responsive interfaces.',
+      description: 'We\'re looking for an experienced frontend developer to help build and improve our React-based web application. You'll work closely with our design and backend teams to create intuitive, responsive interfaces.',
       requirements: [
         'At least 4 years of experience with modern JavaScript and React',
         'Strong understanding of TypeScript, state management, and responsive design',
@@ -25,7 +25,7 @@ export function Careers() {
       location: 'Makati City, Philippines',
       type: 'Full-time',
       salary: '₱70,000 - ₱100,000/month',
-      description: 'Join our backend team to develop and maintain the APIs and services that power our business management platform. You'll work with modern technologies to build scalable, reliable systems.',
+      description: 'Join our backend team to develop and maintain the APIs and services that power our business management platform. You\'ll work with modern technologies to build scalable, reliable systems.',
       requirements: [
         'At least 3 years of experience with Node.js and PostgreSQL',
         'Experience with RESTful API design and implementation',
@@ -40,7 +40,7 @@ export function Careers() {
       location: 'Hybrid (Manila, Philippines)',
       type: 'Full-time',
       salary: '₱60,000 - ₱90,000/month',
-      description: 'We're seeking a creative and data-driven Product Marketing Manager to help us reach more small businesses in the Philippines. You'll develop marketing strategies, create compelling content, and work with our sales team to drive growth.',
+      description: 'We\'re seeking a creative and data-driven Product Marketing Manager to help us reach more small businesses in the Philippines. You'll develop marketing strategies, create compelling content, and work with our sales team to drive growth.',
       requirements: [
         'At least 3 years of experience in B2B SaaS marketing',
         'Strong understanding of the Philippine small business market',
@@ -55,7 +55,7 @@ export function Careers() {
       location: 'Manila, Philippines',
       type: 'Full-time',
       salary: '₱35,000 - ₱50,000/month',
-      description: 'Help our customers get the most out of BizManager by providing exceptional support and training. You'll be the voice of our company, ensuring customers are successful and satisfied with our platform.',
+      description: 'Help our customers get the most out of BizManager by providing exceptional support and training. You\'ll be the voice of our company, ensuring customers are successful and satisfied with our platform.',
       requirements: [
         'At least 2 years of customer support experience, preferably in SaaS',
         'Strong problem-solving skills and patience',
