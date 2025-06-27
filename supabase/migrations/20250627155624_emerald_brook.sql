@@ -1,69 +1,69 @@
-/*
-  # Fix User Settings and PayPal Integration Schema
-
-  1. Schema Updates
-    - Add missing columns to user_settings table
-    - Create webhook_events table for PayPal webhook handling
-    - Create payment_transactions table for payment tracking
-    - Create notification_queue table for user notifications
-
-  2. Security
-    - Enable RLS on all new tables
-    - Create appropriate policies for data access
-
-  3. Functions
-    - Update initialize_user_data function to prevent duplicate key errors
-    - Add updated_at trigger function
-
-  4. Performance
-    - Add indexes for better query performance
-*/
-
--- Add new columns to user_settings table
+-- Create or replace the update_updated_at_column function
 DO $$
 BEGIN
-  -- Add plan column if it doesn't exist
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_name = 'user_settings' AND column_name = 'plan'
-  ) THEN
+  CREATE OR REPLACE FUNCTION update_updated_at_column()
+  RETURNS TRIGGER AS $func$
+  BEGIN
+      NEW.updated_at = CURRENT_TIMESTAMP;
+      RETURN NEW;
+  END;
+  $func$ language 'plpgsql';
+END $$;
+
+-- Create or replace the initialize_user_data function
+DO $$
+BEGIN
+  CREATE OR REPLACE FUNCTION initialize_user_data()
+  RETURNS TRIGGER AS $$
+  BEGIN
+    -- Create user settings record with all default values, or do nothing if it already exists
+    -- This prevents duplicate key errors during OAuth flows and ensures all columns have proper defaults
+    INSERT INTO user_settings (
+      user_id, 
+      monthly_goal, 
+      currency, 
+      plan, 
+      payment_status
+    )
+    VALUES (
+      NEW.id, 
+      50000, 
+      'PHP', 
+      'free', 
+      'active'
+    )
+    ON CONFLICT (user_id) DO NOTHING;
+    
+    RETURN NEW;
+  END;
+  $$ LANGUAGE plpgsql SECURITY DEFINER;
+END $$;
+
+-- Add new columns to user_settings table if they don't exist
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'user_settings' AND column_name = 'plan') THEN
     ALTER TABLE user_settings ADD COLUMN plan text DEFAULT 'free';
   END IF;
 
-  -- Add subscription_expiry column if it doesn't exist
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_name = 'user_settings' AND column_name = 'subscription_expiry'
-  ) THEN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'user_settings' AND column_name = 'subscription_expiry') THEN
     ALTER TABLE user_settings ADD COLUMN subscription_expiry timestamptz;
   END IF;
 
-  -- Add paypal_subscription_id column if it doesn't exist
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_name = 'user_settings' AND column_name = 'paypal_subscription_id'
-  ) THEN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'user_settings' AND column_name = 'paypal_subscription_id') THEN
     ALTER TABLE user_settings ADD COLUMN paypal_subscription_id text;
   END IF;
 
-  -- Add payment_status column if it doesn't exist
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_name = 'user_settings' AND column_name = 'payment_status'
-  ) THEN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'user_settings' AND column_name = 'payment_status') THEN
     ALTER TABLE user_settings ADD COLUMN payment_status text DEFAULT 'active';
   END IF;
 
-  -- Add last_payment_date column if it doesn't exist
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_name = 'user_settings' AND column_name = 'last_payment_date'
-  ) THEN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'user_settings' AND column_name = 'last_payment_date') THEN
     ALTER TABLE user_settings ADD COLUMN last_payment_date timestamptz;
   END IF;
 END $$;
 
--- Create webhook_events table for audit trail and idempotency
+-- Create webhook_events table for audit trail and idempotency if it doesn't exist
 CREATE TABLE IF NOT EXISTS webhook_events (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   event_id text UNIQUE NOT NULL,
@@ -77,7 +77,7 @@ CREATE TABLE IF NOT EXISTS webhook_events (
   processed_at timestamptz
 );
 
--- Create payment_transactions table
+-- Create payment_transactions table if it doesn't exist
 CREATE TABLE IF NOT EXISTS payment_transactions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -98,7 +98,7 @@ CREATE TABLE IF NOT EXISTS payment_transactions (
   updated_at timestamptz DEFAULT now()
 );
 
--- Create notification_queue table for user notifications
+-- Create notification_queue table for user notifications if it doesn't exist
 CREATE TABLE IF NOT EXISTS notification_queue (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -111,75 +111,63 @@ CREATE TABLE IF NOT EXISTS notification_queue (
   sent_at timestamptz
 );
 
--- Enable RLS on new tables (only if not already enabled)
+-- Enable RLS on new tables if not already enabled
 DO $$
 BEGIN
-  -- Enable RLS on webhook_events if not already enabled
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_class 
-    WHERE relname = 'webhook_events' AND relrowsecurity = true
-  ) THEN
+  IF NOT EXISTS (SELECT 1 FROM pg_class WHERE relname = 'webhook_events' AND relrowsecurity = true) THEN
     ALTER TABLE webhook_events ENABLE ROW LEVEL SECURITY;
   END IF;
 
-  -- Enable RLS on payment_transactions if not already enabled
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_class 
-    WHERE relname = 'payment_transactions' AND relrowsecurity = true
-  ) THEN
+  IF NOT EXISTS (SELECT 1 FROM pg_class WHERE relname = 'payment_transactions' AND relrowsecurity = true) THEN
     ALTER TABLE payment_transactions ENABLE ROW LEVEL SECURITY;
   END IF;
 
-  -- Enable RLS on notification_queue if not already enabled
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_class 
-    WHERE relname = 'notification_queue' AND relrowsecurity = true
-  ) THEN
+  IF NOT EXISTS (SELECT 1 FROM pg_class WHERE relname = 'notification_queue' AND relrowsecurity = true) THEN
     ALTER TABLE notification_queue ENABLE ROW LEVEL SECURITY;
   END IF;
 END $$;
 
--- Drop existing policies and recreate them to avoid conflicts
+-- Drop existing policies to ensure clean recreation
 DO $$
 BEGIN
-  -- Drop and recreate webhook_events policies
-  DROP POLICY IF EXISTS "Service role can manage webhook events" ON webhook_events;
+  DROP POLICY IF EXISTS "Service role can manage webhook events" ON public.webhook_events;
+  DROP POLICY IF EXISTS "Users can view own payment transactions" ON public.payment_transactions;
+  DROP POLICY IF EXISTS "Service role can manage payment transactions" ON public.payment_transactions;
+  DROP POLICY IF EXISTS "Users can view own notifications" ON public.notification_queue;
+  DROP POLICY IF EXISTS "Service role can manage notifications" ON public.notification_queue;
+END $$;
+
+-- Create RLS policies
+DO $$
+BEGIN
   CREATE POLICY "Service role can manage webhook events"
-    ON webhook_events
+    ON public.webhook_events
     FOR ALL
     TO service_role
     USING (true)
     WITH CHECK (true);
 
-  -- Drop and recreate payment_transactions policies
-  DROP POLICY IF EXISTS "Users can view own payment transactions" ON payment_transactions;
-  DROP POLICY IF EXISTS "Service role can manage payment transactions" ON payment_transactions;
-  
   CREATE POLICY "Users can view own payment transactions"
-    ON payment_transactions
+    ON public.payment_transactions
     FOR SELECT
     TO authenticated
     USING (auth.uid() = user_id);
 
   CREATE POLICY "Service role can manage payment transactions"
-    ON payment_transactions
+    ON public.payment_transactions
     FOR ALL
     TO service_role
     USING (true)
     WITH CHECK (true);
 
-  -- Drop and recreate notification_queue policies
-  DROP POLICY IF EXISTS "Users can view own notifications" ON notification_queue;
-  DROP POLICY IF EXISTS "Service role can manage notifications" ON notification_queue;
-  
   CREATE POLICY "Users can view own notifications"
-    ON notification_queue
+    ON public.notification_queue
     FOR SELECT
     TO authenticated
     USING (auth.uid() = user_id);
 
   CREATE POLICY "Service role can manage notifications"
-    ON notification_queue
+    ON public.notification_queue
     FOR ALL
     TO service_role
     USING (true)
@@ -195,32 +183,6 @@ CREATE INDEX IF NOT EXISTS idx_payment_transactions_subscription_id ON payment_t
 CREATE INDEX IF NOT EXISTS idx_notification_queue_user_id ON notification_queue(user_id);
 CREATE INDEX IF NOT EXISTS idx_notification_queue_sent ON notification_queue(sent);
 
--- Update the initialize_user_data function to include all new columns with proper defaults
-CREATE OR REPLACE FUNCTION initialize_user_data()
-RETURNS TRIGGER AS $$
-BEGIN
-  -- Create user settings record with all default values, or do nothing if it already exists
-  -- This prevents duplicate key errors during OAuth flows and ensures all columns have proper defaults
-  INSERT INTO user_settings (
-    user_id, 
-    monthly_goal, 
-    currency, 
-    plan, 
-    payment_status
-  )
-  VALUES (
-    NEW.id, 
-    50000, 
-    'PHP', 
-    'free', 
-    'active'
-  )
-  ON CONFLICT (user_id) DO NOTHING;
-  
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
 -- Ensure the trigger exists for user initialization
 DO $$
 BEGIN
@@ -230,15 +192,6 @@ BEGIN
     AFTER INSERT ON auth.users
     FOR EACH ROW EXECUTE FUNCTION initialize_user_data();
 END $$;
-
--- Create or update the updated_at trigger function
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = now();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
 
 -- Create trigger for payment_transactions updated_at
 DO $$
