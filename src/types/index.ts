@@ -19,8 +19,17 @@ export interface Product {
   cost: number;
   currentStock: number;
   minStock: number;
+  barcode?: string;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface SaleItem {
+  productId: string;
+  productName: string;
+  quantity: number;
+  price: number;
+  total: number;
 }
 
 export interface Sale {
@@ -35,21 +44,14 @@ export interface Sale {
   date: Date;
   dueDate?: Date;
   invoiceNumber?: string;
-}
-
-export interface SaleItem {
-  productId: string;
-  productName: string;
-  quantity: number;
-  price: number;
-  total: number;
+  useCredit?: boolean;
 }
 
 export interface InventoryTransaction {
   id: string;
   productId: string;
   productName: string;
-  type: 'stock-in' | 'stock-out';
+  type: 'stock-in' | 'stock-out' | 'return';
   quantity: number;
   reason: string;
   date: Date;
@@ -64,6 +66,40 @@ export interface Expense {
   paymentMethod: 'cash' | 'card' | 'transfer' | 'gcash';
   receipt?: string;
   notes?: string;
+}
+
+export interface Customer {
+  id: string;
+  name: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  balance: number;
+  creditLimit: number;
+  isActive: boolean;
+  createdAt: Date;
+  specialPricing?: Record<string, number>; // productId -> special price
+}
+
+export interface Return {
+  id: string;
+  originalSaleId: string;
+  date: Date;
+  items: ReturnItem[];
+  total: number;
+  refundMethod: 'original' | 'store_credit' | 'cash';
+  status: 'completed' | 'pending';
+  reason: string;
+}
+
+export interface ReturnItem {
+  productId: string;
+  productName: string;
+  quantity: number;
+  price: number;
+  total: number;
+  reason: string;
+  isDefective: boolean;
 }
 
 export interface UserSettings {

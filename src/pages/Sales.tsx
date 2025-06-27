@@ -1,17 +1,23 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { format } from 'date-fns';
-import { Plus, Filter, Eye, Edit, Trash2, ChevronDown, X, AlertTriangle } from 'lucide-react';
+import { Plus, Filter, Eye, Edit, Trash2, ChevronDown, X, AlertTriangle, Barcode, FileText, RotateCcw } from 'lucide-react';
 import { useStore } from '../store/useStore';
-import { Sale } from '../types';
+import { Sale, SaleItem } from '../types';
+import { BarcodeScanner } from '../components/BarcodeScanner';
+import { DigitalReceipt } from '../components/DigitalReceipt';
+import { ReturnRefundForm } from '../components/ReturnRefundForm';
 
 export function Sales() {
-  const { sales, products, addSale, updateSale, deleteSale } = useStore();
-  const [showAddForm, setShowAddForm] = React.useState(false);
-  const [editingSale, setEditingSale] = React.useState<Sale | null>(null);
-  const [viewingSale, setViewingSale] = React.useState<Sale | null>(null);
-  const [filterStatus, setFilterStatus] = React.useState<'all' | 'paid' | 'pending' | 'overdue'>('all');
-  const [deleteConfirm, setDeleteConfirm] = React.useState<string | null>(null);
-  const [deleteCountdown, setDeleteCountdown] = React.useState<number>(0);
+  const { sales, products, customers, addSale, updateSale, deleteSale } = useStore();
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editingSale, setEditingSale] = useState<Sale | null>(null);
+  const [viewingSale, setViewingSale] = useState<Sale | null>(null);
+  const [filterStatus, setFilterStatus] = useState<'all' | 'paid' | 'pending' | 'overdue'>('all');
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleteCountdown, setDeleteCountdown] = useState<number>(0);
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+  const [showDigitalReceipt, setShowDigitalReceipt] = useState(false);
+  const [showReturnForm, setShowReturnForm] = useState(false);
 
   // Filter sales
   const filteredSales = sales.filter((sale) => {
@@ -63,27 +69,72 @@ export function Sales() {
     }
   };
 
+  const handleBarcodeScanned = (barcode: string) => {
+    setShowBarcodeScanner(false);
+    
+    // Find product by barcode
+    const product = products.find(p => p.barcode === barcode);
+    
+    if (product) {
+      // If we're in add/edit mode, add the product to the sale
+      if (showAddForm || editingSale) {
+        // This would add the product to the current sale form
+        alert(`Product found: ${product.name}`);
+      } else {
+        // Otherwise, just show product details
+        alert(`Product found: ${product.name}\nPrice: ₱${product.price}\nStock: ${product.currentStock}`);
+      }
+    } else {
+      alert(`No product found with barcode: ${barcode}`);
+    }
+  };
+
+  const handleShowDigitalReceipt = (sale: Sale) => {
+    setViewingSale(sale);
+    setShowDigitalReceipt(true);
+  };
+
+  const handleSendReceiptEmail = () => {
+    // In a real implementation, this would send an email
+    alert('Receipt sent to customer email');
+    setShowDigitalReceipt(false);
+  };
+
+  const handleReturnComplete = (returnData: any) => {
+    // In a real implementation, this would process the return/refund
+    console.log('Return data:', returnData);
+    alert('Return processed successfully');
+    setShowReturnForm(false);
+  };
+
   const SearchableProductSelect = ({ 
     value, 
     onChange, 
     onPriceChange,
     placeholder = "Search and select product...",
-    required = false 
+    required = false,
+    customerId = ''
   }: {
     value: string;
     onChange: (productId: string) => void;
     onPriceChange?: (price: number) => void;
     placeholder?: string;
     required?: boolean;
+    customerId?: string;
   }) => {
-    const [isOpen, setIsOpen] = React.useState(false);
-    const [searchTerm, setSearchTerm] = React.useState('');
+    const [isOpen, setIsOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
     const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+    // Get customer special pricing if available
+    const customer = customers.find(c => c.id === customerId);
+    const hasSpecialPricing = customer?.specialPricing && Object.keys(customer.specialPricing).length > 0;
 
     // Filter products based on search term
     const filteredProducts = products.filter(product =>
       product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.category.toLowerCase().includes(searchTerm.toLowerCase())
+      product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (product.barcode && product.barcode.includes(searchTerm))
     );
 
     const selectedProduct = products.find(p => p.id === value);
@@ -103,7 +154,12 @@ export function Sales() {
     const handleSelect = (product: any) => {
       onChange(product.id);
       if (onPriceChange) {
-        onPriceChange(product.price);
+        // Check if customer has special pricing for this product
+        if (hasSpecialPricing && customer?.specialPricing?.[product.id]) {
+          onPriceChange(customer.specialPricing[product.id]);
+        } else {
+          onPriceChange(product.price);
+        }
       }
       setIsOpen(false);
       setSearchTerm('');
@@ -115,6 +171,11 @@ export function Sales() {
         onPriceChange(0);
       }
       setSearchTerm('');
+    };
+
+    const handleScanBarcode = () => {
+      setIsOpen(false);
+      setShowBarcodeScanner(true);
     };
 
     return (
@@ -141,6 +202,14 @@ export function Sales() {
             )}
             <button
               type="button"
+              onClick={handleScanBarcode}
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              title="Scan Barcode"
+            >
+              <Barcode className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
               onClick={() => setIsOpen(!isOpen)}
               className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
             >
@@ -152,28 +221,48 @@ export function Sales() {
         {isOpen && (
           <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
             {filteredProducts.length > 0 ? (
-              filteredProducts.map((product) => (
-                <button
-                  key={product.id}
-                  type="button"
-                  onClick={() => handleSelect(product)}
-                  className="w-full text-left px-3 py-3 hover:bg-gray-100 dark:hover:bg-gray-600 border-b border-gray-100 dark:border-gray-600 last:border-b-0"
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="font-medium text-gray-900 dark:text-white text-sm">
-                        {product.name}
+              filteredProducts.map((product) => {
+                // Check if this product has special pricing for the selected customer
+                const hasSpecialPrice = hasSpecialPricing && customer?.specialPricing?.[product.id];
+                const specialPrice = hasSpecialPrice ? customer?.specialPricing?.[product.id] : null;
+                
+                return (
+                  <button
+                    key={product.id}
+                    type="button"
+                    onClick={() => handleSelect(product)}
+                    className="w-full text-left px-3 py-3 hover:bg-gray-100 dark:hover:bg-gray-600 border-b border-gray-100 dark:border-gray-600 last:border-b-0"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900 dark:text-white text-sm">
+                          {product.name}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {product.category} • Stock: {product.currentStock}
+                          {product.barcode && ` • Barcode: ${product.barcode}`}
+                        </div>
                       </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        {product.category} • Stock: {product.currentStock}
+                      <div className="text-sm font-medium ml-2">
+                        {hasSpecialPrice ? (
+                          <div>
+                            <span className="line-through text-gray-400 dark:text-gray-500 text-xs">
+                              ₱{product.price.toFixed(2)}
+                            </span>
+                            <span className="text-green-600 dark:text-green-400 ml-1">
+                              ₱{specialPrice.toFixed(2)}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-gray-900 dark:text-white">
+                            ₱{product.price.toFixed(2)}
+                          </span>
+                        )}
                       </div>
                     </div>
-                    <div className="text-sm font-medium text-gray-900 dark:text-white ml-2">
-                      ₱{product.price.toLocaleString()}
-                    </div>
-                  </div>
-                </button>
-              ))
+                  </button>
+                );
+              })
             ) : (
               <div className="px-3 py-3 text-sm text-gray-500 dark:text-gray-400 text-center">
                 {searchTerm ? 'No products found' : 'No products available'}
@@ -186,14 +275,25 @@ export function Sales() {
   };
 
   const AddSaleForm = ({ sale, onClose }: { sale?: Sale; onClose: () => void }) => {
-    const [formData, setFormData] = React.useState({
+    const [formData, setFormData] = useState({
       customerName: sale?.customerName || '',
       customerEmail: sale?.customerEmail || '',
-      items: sale?.items || [{ productId: '', quantity: 1, price: 0 }],
+      customerId: sale?.customerId || '',
+      items: sale?.items || [{ productId: '', quantity: 1, price: 0, total: 0 }],
       paymentType: sale?.paymentType || 'cash' as const,
       status: sale?.status || 'paid' as const,
+      useCredit: false
     });
-    const [isSubmitting, setIsSubmitting] = React.useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [selectedCustomer, setSelectedCustomer] = useState(customers.find(c => c.id === sale?.customerId) || null);
+
+    // Calculate if customer has available credit
+    const hasAvailableCredit = selectedCustomer && 
+      selectedCustomer.creditLimit > 0 && 
+      selectedCustomer.balance < selectedCustomer.creditLimit;
+    
+    const availableCredit = selectedCustomer ? 
+      Math.max(0, selectedCustomer.creditLimit - selectedCustomer.balance) : 0;
 
     const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
@@ -207,12 +307,19 @@ export function Sales() {
           .filter(item => item.productId)
           .map(item => {
             const product = products.find(p => p.id === item.productId);
+            
+            // Check if customer has special pricing for this product
+            let price = item.price || product?.price || 0;
+            if (selectedCustomer?.specialPricing?.[item.productId]) {
+              price = selectedCustomer.specialPricing[item.productId];
+            }
+            
             return {
               productId: item.productId,
               productName: product?.name || '',
               quantity: item.quantity,
-              price: item.price || product?.price || 0,
-              total: item.quantity * (item.price || product?.price || 0),
+              price: price,
+              total: item.quantity * price,
             };
           });
 
@@ -229,7 +336,19 @@ export function Sales() {
 
         if (stockErrors.length > 0) {
           alert(`Stock Error:\n${stockErrors.join('\n')}`);
+          setIsSubmitting(false);
           return;
+        }
+
+        // Check credit limit if using credit
+        if (formData.status === 'pending' && formData.useCredit && selectedCustomer) {
+          const newBalance = selectedCustomer.balance + total;
+          if (newBalance > selectedCustomer.creditLimit) {
+            if (!confirm(`This sale will exceed the customer's credit limit. Proceed anyway?`)) {
+              setIsSubmitting(false);
+              return;
+            }
+          }
         }
 
         const dueDate = formData.status === 'pending' 
@@ -237,7 +356,7 @@ export function Sales() {
           : undefined;
 
         const saleData = {
-          customerId: sale?.customerId || crypto.randomUUID(),
+          customerId: formData.customerId || sale?.customerId || '',
           customerName,
           customerEmail: formData.customerEmail || undefined,
           items: saleItems,
@@ -246,6 +365,7 @@ export function Sales() {
           status: formData.status,
           date: sale?.date || new Date(),
           dueDate,
+          useCredit: formData.useCredit
         };
 
         if (sale) {
@@ -258,9 +378,11 @@ export function Sales() {
         setFormData({
           customerName: '',
           customerEmail: '',
-          items: [{ productId: '', quantity: 1, price: 0 }],
+          customerId: '',
+          items: [{ productId: '', quantity: 1, price: 0, total: 0 }],
           paymentType: 'cash',
           status: 'paid',
+          useCredit: false
         });
       } catch (error: any) {
         console.error('Failed to save sale:', error);
@@ -273,7 +395,7 @@ export function Sales() {
     const addItem = () => {
       setFormData(prev => ({
         ...prev,
-        items: [...prev.items, { productId: '', quantity: 1, price: 0 }],
+        items: [...prev.items, { productId: '', quantity: 1, price: 0, total: 0 }],
       }));
     };
 
@@ -285,11 +407,28 @@ export function Sales() {
     };
 
     const updateItem = (index: number, field: string, value: any) => {
+      setFormData(prev => {
+        const updatedItems = [...prev.items];
+        updatedItems[index] = { ...updatedItems[index], [field]: value };
+        
+        // Recalculate total if quantity or price changes
+        if (field === 'quantity' || field === 'price') {
+          updatedItems[index].total = updatedItems[index].quantity * updatedItems[index].price;
+        }
+        
+        return { ...prev, items: updatedItems };
+      });
+    };
+
+    const handleCustomerSelect = (customerId: string) => {
+      const customer = customers.find(c => c.id === customerId);
+      setSelectedCustomer(customer || null);
+      
       setFormData(prev => ({
         ...prev,
-        items: prev.items.map((item, i) => 
-          i === index ? { ...item, [field]: value } : item
-        ),
+        customerId,
+        customerName: customer?.name || '',
+        customerEmail: customer?.email || ''
       }));
     };
 
@@ -307,15 +446,20 @@ export function Sales() {
             <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Customer Name
+                  Customer
                 </label>
-                <input
-                  type="text"
-                  value={formData.customerName}
-                  onChange={(e) => setFormData(prev => ({ ...prev, customerName: e.target.value }))}
-                  placeholder="Walk-in Customer"
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                />
+                <select
+                  value={formData.customerId}
+                  onChange={(e) => handleCustomerSelect(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value="">Walk-in Customer</option>
+                  {customers.map((customer) => (
+                    <option key={customer.id} value={customer.id}>
+                      {customer.name} {customer.creditLimit > 0 ? `(Credit: ₱${customer.creditLimit})` : ''}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -329,6 +473,24 @@ export function Sales() {
                 />
               </div>
             </div>
+
+            {/* Credit Limit Info (if applicable) */}
+            {selectedCustomer && selectedCustomer.creditLimit > 0 && (
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <div className="flex justify-between mb-2">
+                  <span className="text-blue-700 dark:text-blue-300 font-medium">Credit Limit:</span>
+                  <span className="text-blue-700 dark:text-blue-300">₱{selectedCustomer.creditLimit.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between mb-2">
+                  <span className="text-blue-700 dark:text-blue-300 font-medium">Current Balance:</span>
+                  <span className="text-blue-700 dark:text-blue-300">₱{selectedCustomer.balance.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-blue-700 dark:text-blue-300 font-medium">Available Credit:</span>
+                  <span className="text-blue-700 dark:text-blue-300">₱{availableCredit.toFixed(2)}</span>
+                </div>
+              </div>
+            )}
 
             {/* Items */}
             <div>
@@ -353,6 +515,7 @@ export function Sales() {
                         onPriceChange={(price) => updateItem(index, 'price', price)}
                         placeholder="Search products..."
                         required
+                        customerId={formData.customerId}
                       />
                     </div>
                     <div>
@@ -378,7 +541,7 @@ export function Sales() {
                     </div>
                     <div className="flex items-center space-x-2">
                       <span className="text-sm font-medium text-gray-900 dark:text-white">
-                        ₱{(item.quantity * item.price).toLocaleString()}
+                        ₱{item.total.toFixed(2)}
                       </span>
                       {formData.items.length > 1 && (
                         <button
@@ -427,11 +590,36 @@ export function Sales() {
               </div>
             </div>
 
+            {/* Credit Option */}
+            {formData.status === 'pending' && selectedCustomer && selectedCustomer.creditLimit > 0 && (
+              <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={formData.useCredit}
+                    onChange={(e) => setFormData(prev => ({ ...prev, useCredit: e.target.checked }))}
+                    className="h-4 w-4 text-blue-600 dark:text-blue-500 border-gray-300 dark:border-gray-600 focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-yellow-800 dark:text-yellow-300">
+                    Use customer credit for this sale
+                  </span>
+                </label>
+                <p className="mt-2 text-sm text-yellow-700 dark:text-yellow-400">
+                  {hasAvailableCredit 
+                    ? `Available credit: ₱${availableCredit.toFixed(2)}`
+                    : `Warning: Customer has reached their credit limit of ₱${selectedCustomer.creditLimit.toFixed(2)}`
+                  }
+                </p>
+              </div>
+            )}
+
             {/* Total */}
             <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
               <div className="flex justify-between items-center text-lg font-semibold">
                 <span className="text-gray-900 dark:text-white">Total:</span>
-                <span className="text-gray-900 dark:text-white">₱{formData.items.reduce((sum, item) => sum + (item.quantity * item.price), 0).toLocaleString()}</span>
+                <span className="text-gray-900 dark:text-white">
+                  ₱{formData.items.reduce((sum, item) => sum + item.total, 0).toFixed(2)}
+                </span>
               </div>
             </div>
 
@@ -475,12 +663,21 @@ export function Sales() {
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
               Sale Details - {sale.invoiceNumber}
             </h2>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-            >
-              ✕
-            </button>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => handleShowDigitalReceipt(sale)}
+                className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 p-1"
+                title="View Digital Receipt"
+              >
+                <FileText className="h-5 w-5" />
+              </button>
+              <button
+                onClick={onClose}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                ✕
+              </button>
+            </div>
           </div>
         </div>
         
@@ -538,10 +735,10 @@ export function Sales() {
                       {item.quantity}
                     </td>
                     <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-300">
-                      ₱{item.price.toLocaleString()}
+                      ₱{item.price.toFixed(2)}
                     </td>
                     <td className="px-4 py-3 text-sm text-right font-medium text-gray-900 dark:text-white">
-                      ₱{item.total.toLocaleString()}
+                      ₱{item.total.toFixed(2)}
                     </td>
                   </tr>
                 ))}
@@ -555,7 +752,7 @@ export function Sales() {
               <div className="w-64">
                 <div className="flex justify-between text-lg font-semibold">
                   <span className="text-gray-900 dark:text-white">Total:</span>
-                  <span className="text-gray-900 dark:text-white">₱{sale.total.toLocaleString()}</span>
+                  <span className="text-gray-900 dark:text-white">₱{sale.total.toFixed(2)}</span>
                 </div>
               </div>
             </div>
@@ -574,6 +771,27 @@ export function Sales() {
               </div>
             </div>
           </div>
+
+          {/* Action Buttons */}
+          <div className="flex justify-between">
+            <button
+              onClick={() => {
+                onClose();
+                setShowReturnForm(true);
+              }}
+              className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors flex items-center"
+            >
+              <RotateCcw className="h-4 w-4 mr-1" />
+              Process Return
+            </button>
+            <button
+              onClick={() => handleShowDigitalReceipt(sale)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+            >
+              <FileText className="h-4 w-4 mr-1" />
+              View Receipt
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -587,13 +805,29 @@ export function Sales() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Sales</h1>
           <p className="text-gray-600 dark:text-gray-400">Manage your sales and transactions</p>
         </div>
-        <button
-          onClick={() => setShowAddForm(true)}
-          className="flex items-center space-x-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 transition-colors"
-        >
-          <Plus className="h-5 w-5" />
-          <span>Add Sale</span>
-        </button>
+        <div className="flex space-x-2">
+          <button
+            onClick={() => setShowBarcodeScanner(true)}
+            className="flex items-center space-x-2 rounded-lg bg-gray-200 dark:bg-gray-700 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+          >
+            <Barcode className="h-5 w-5" />
+            <span>Scan Barcode</span>
+          </button>
+          <button
+            onClick={() => setShowReturnForm(true)}
+            className="flex items-center space-x-2 rounded-lg bg-yellow-600 px-4 py-2 text-white hover:bg-yellow-700 transition-colors"
+          >
+            <RotateCcw className="h-5 w-5" />
+            <span>Return/Refund</span>
+          </button>
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="flex items-center space-x-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="h-5 w-5" />
+            <span>Add Sale</span>
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -664,7 +898,7 @@ export function Sales() {
                       {format(sale.date, 'MMM dd, yyyy')}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                      ₱{sale.total.toLocaleString()}
+                      ₱{sale.total.toFixed(2)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300 capitalize">
                       {sale.paymentType}
@@ -743,6 +977,25 @@ export function Sales() {
         <SaleViewModal 
           sale={viewingSale} 
           onClose={() => setViewingSale(null)} 
+        />
+      )}
+      {showBarcodeScanner && (
+        <BarcodeScanner 
+          onScan={handleBarcodeScanned} 
+          onClose={() => setShowBarcodeScanner(false)} 
+        />
+      )}
+      {showDigitalReceipt && viewingSale && (
+        <DigitalReceipt 
+          sale={viewingSale} 
+          onClose={() => setShowDigitalReceipt(false)}
+          onSendEmail={handleSendReceiptEmail}
+        />
+      )}
+      {showReturnForm && (
+        <ReturnRefundForm 
+          onClose={() => setShowReturnForm(false)}
+          onComplete={handleReturnComplete}
         />
       )}
     </div>
