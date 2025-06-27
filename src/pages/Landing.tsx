@@ -13,10 +13,15 @@ import {
   ChevronRight,
   Shield,
   Zap,
-  Globe
+  Globe,
+  Moon,
+  Sun
 } from 'lucide-react';
+import { useTheme } from '../contexts/ThemeContext';
 
 export function Landing() {
+  const { theme, toggleTheme } = useTheme();
+  
   const features = [
     {
       icon: Package,
@@ -139,9 +144,9 @@ export function Landing() {
   ];
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-200">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100">
+      <header className="sticky top-0 z-50 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-b border-gray-100 dark:border-gray-800">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
@@ -149,18 +154,18 @@ export function Landing() {
               <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
                 <BarChart3 className="h-5 w-5 text-white" />
               </div>
-              <span className="text-xl font-bold text-gray-900">BizManager</span>
+              <span className="text-xl font-bold text-gray-900 dark:text-white">BizManager</span>
             </Link>
 
             {/* Navigation */}
             <nav className="hidden md:flex items-center space-x-8">
-              <Link to="/about" className="text-gray-600 hover:text-gray-900 transition-colors">
+              <Link to="/about" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
                 About
               </Link>
-              <Link to="/pricing" className="text-gray-600 hover:text-gray-900 transition-colors">
+              <Link to="/pricing" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
                 Pricing
               </Link>
-              <Link to="/login" className="text-gray-600 hover:text-gray-900 transition-colors">
+              <Link to="/login" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
                 Login
               </Link>
               <Link 
@@ -169,32 +174,56 @@ export function Landing() {
               >
                 Get Started Free
               </Link>
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+              >
+                {theme === 'light' ? (
+                  <Moon className="h-5 w-5" />
+                ) : (
+                  <Sun className="h-5 w-5" />
+                )}
+              </button>
             </nav>
 
-            {/* Mobile menu button */}
-            <button className="md:hidden p-2 rounded-lg hover:bg-gray-100">
-              <div className="w-6 h-6 flex flex-col justify-center space-y-1">
-                <div className="w-full h-0.5 bg-gray-600"></div>
-                <div className="w-full h-0.5 bg-gray-600"></div>
-                <div className="w-full h-0.5 bg-gray-600"></div>
-              </div>
-            </button>
+            {/* Mobile menu button and theme toggle */}
+            <div className="flex items-center space-x-2 md:hidden">
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+              >
+                {theme === 'light' ? (
+                  <Moon className="h-5 w-5" />
+                ) : (
+                  <Sun className="h-5 w-5" />
+                )}
+              </button>
+              <button className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
+                <div className="w-6 h-6 flex flex-col justify-center space-y-1">
+                  <div className="w-full h-0.5 bg-gray-600 dark:bg-gray-400"></div>
+                  <div className="w-full h-0.5 bg-gray-600 dark:bg-gray-400"></div>
+                  <div className="w-full h-0.5 bg-gray-600 dark:bg-gray-400"></div>
+                </div>
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-white to-purple-50 py-20 sm:py-32">
+      <section className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 py-20 sm:py-32 transition-colors duration-200">
         <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
           <div className="text-center max-w-4xl mx-auto">
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white mb-6 leading-tight">
               BizManager
             </h1>
-            <p className="text-xl sm:text-2xl text-gray-600 mb-8 font-medium">
+            <p className="text-xl sm:text-2xl text-gray-600 dark:text-gray-300 mb-8 font-medium">
               The Complete Business Management Solution for Modern Entrepreneurs
             </p>
-            <p className="text-lg text-gray-600 mb-10 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-lg text-gray-600 dark:text-gray-400 mb-10 max-w-2xl mx-auto leading-relaxed">
               Streamline your operations, boost sales, and grow your business with our all-in-one platform. 
               From inventory management to customer insights, everything you need is here.
             </p>
@@ -208,12 +237,12 @@ export function Landing() {
               </Link>
               <Link 
                 to="/demo" 
-                className="border-2 border-gray-300 text-gray-700 px-8 py-4 rounded-lg font-semibold text-lg hover:border-gray-400 hover:bg-gray-50 transition-all duration-200"
+                className="border-2 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 px-8 py-4 rounded-lg font-semibold text-lg hover:border-gray-400 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200"
               >
                 Watch Demo
               </Link>
             </div>
-            <p className="text-sm text-gray-500 mt-6">
+            <p className="text-sm text-gray-500 dark:text-gray-500 mt-6">
               No credit card required • 30-day free trial • Cancel anytime
             </p>
           </div>
@@ -221,13 +250,13 @@ export function Landing() {
       </section>
 
       {/* Features Grid */}
-      <section className="py-20 bg-white">
+      <section className="py-20 bg-white dark:bg-gray-900 transition-colors duration-200">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-4">
               Everything You Need to Succeed
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
               Powerful features designed to help you manage, grow, and scale your business efficiently.
             </p>
           </div>
@@ -236,15 +265,15 @@ export function Landing() {
             {features.map((feature, index) => (
               <div 
                 key={index} 
-                className="text-center p-6 rounded-xl hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border border-gray-100 hover:border-gray-200"
+                className="text-center p-6 rounded-xl hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border border-gray-100 dark:border-gray-800 hover:border-gray-200 dark:hover:border-gray-700"
               >
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-purple-100 rounded-xl flex items-center justify-center mx-auto mb-4">
-                  <feature.icon className="h-8 w-8 text-blue-600" />
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-xl flex items-center justify-center mx-auto mb-4">
+                  <feature.icon className="h-8 w-8 text-blue-600 dark:text-blue-400" />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
                   {feature.title}
                 </h3>
-                <p className="text-gray-600 leading-relaxed">
+                <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
                   {feature.description}
                 </p>
               </div>
@@ -254,13 +283,13 @@ export function Landing() {
       </section>
 
       {/* How It Works */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-20 bg-gray-50 dark:bg-gray-800 transition-colors duration-200">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-4">
               How It Works
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
               Get up and running in minutes with our simple, intuitive process.
             </p>
           </div>
@@ -270,21 +299,21 @@ export function Landing() {
             <div className="hidden lg:block">
               <div className="flex items-center justify-between relative">
                 {/* Connection Line */}
-                <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-200 to-purple-200 transform -translate-y-1/2 z-0"></div>
+                <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-200 to-purple-200 dark:from-blue-700 dark:to-purple-700 transform -translate-y-1/2 z-0"></div>
                 
                 {steps.map((step, index) => (
                   <div key={index} className="relative z-10 flex flex-col items-center max-w-xs">
                     <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-xl mb-4 shadow-lg">
                       {step.number}
                     </div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2 text-center">
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2 text-center">
                       {step.title}
                     </h3>
-                    <p className="text-gray-600 text-center leading-relaxed">
+                    <p className="text-gray-600 dark:text-gray-400 text-center leading-relaxed">
                       {step.description}
                     </p>
                     {index < steps.length - 1 && (
-                      <ChevronRight className="absolute -right-8 top-6 h-6 w-6 text-blue-400" />
+                      <ChevronRight className="absolute -right-8 top-6 h-6 w-6 text-blue-400 dark:text-blue-500" />
                     )}
                   </div>
                 ))}
@@ -299,10 +328,10 @@ export function Landing() {
                     {step.number}
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
                       {step.title}
                     </h3>
-                    <p className="text-gray-600">
+                    <p className="text-gray-600 dark:text-gray-400">
                       {step.description}
                     </p>
                   </div>
@@ -314,13 +343,13 @@ export function Landing() {
       </section>
 
       {/* Social Proof */}
-      <section className="py-20 bg-white">
+      <section className="py-20 bg-white dark:bg-gray-900 transition-colors duration-200">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-4">
               Trusted by Business Owners Everywhere
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
               See how BizManager is helping businesses like yours achieve remarkable results.
             </p>
           </div>
@@ -329,14 +358,14 @@ export function Landing() {
             {testimonials.map((testimonial, index) => (
               <div 
                 key={index} 
-                className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300"
+                className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-all duration-300"
               >
                 <div className="flex items-center mb-4">
                   {[...Array(5)].map((_, i) => (
                     <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
                   ))}
                 </div>
-                <blockquote className="text-gray-700 mb-6 leading-relaxed">
+                <blockquote className="text-gray-700 dark:text-gray-300 mb-6 leading-relaxed">
                   "{testimonial.quote}"
                 </blockquote>
                 <div className="flex items-center">
@@ -346,8 +375,8 @@ export function Landing() {
                     className="w-12 h-12 rounded-full object-cover mr-4"
                   />
                   <div>
-                    <div className="font-semibold text-gray-900">{testimonial.name}</div>
-                    <div className="text-sm text-gray-600">{testimonial.role}, {testimonial.company}</div>
+                    <div className="font-semibold text-gray-900 dark:text-white">{testimonial.name}</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">{testimonial.role}, {testimonial.company}</div>
                   </div>
                 </div>
               </div>
@@ -357,13 +386,13 @@ export function Landing() {
       </section>
 
       {/* Pricing Preview */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-20 bg-gray-50 dark:bg-gray-800 transition-colors duration-200">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-4">
               Simple, Transparent Pricing
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
               Choose the plan that fits your business needs. Start free and upgrade as you grow.
             </p>
           </div>
@@ -372,10 +401,10 @@ export function Landing() {
             {pricingTiers.map((tier, index) => (
               <div 
                 key={index} 
-                className={`relative bg-white rounded-xl shadow-lg border-2 p-8 ${
+                className={`relative bg-white dark:bg-gray-900 rounded-xl shadow-lg border-2 p-8 ${
                   tier.popular 
-                    ? 'border-blue-500 ring-2 ring-blue-100' 
-                    : 'border-gray-200'
+                    ? 'border-blue-500 ring-2 ring-blue-100 dark:ring-blue-900/30' 
+                    : 'border-gray-200 dark:border-gray-700'
                 } hover:shadow-xl transition-all duration-300`}
               >
                 {tier.popular && (
@@ -387,19 +416,19 @@ export function Landing() {
                 )}
                 
                 <div className="text-center mb-8">
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">{tier.name}</h3>
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{tier.name}</h3>
                   <div className="mb-2">
-                    <span className="text-4xl font-bold text-gray-900">{tier.price}</span>
-                    <span className="text-gray-600 ml-1">/{tier.period}</span>
+                    <span className="text-4xl font-bold text-gray-900 dark:text-white">{tier.price}</span>
+                    <span className="text-gray-600 dark:text-gray-400 ml-1">/{tier.period}</span>
                   </div>
-                  <p className="text-gray-600">{tier.description}</p>
+                  <p className="text-gray-600 dark:text-gray-400">{tier.description}</p>
                 </div>
 
                 <ul className="space-y-3 mb-8">
                   {tier.features.map((feature, featureIndex) => (
                     <li key={featureIndex} className="flex items-center">
                       <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
-                      <span className="text-gray-700">{feature}</span>
+                      <span className="text-gray-700 dark:text-gray-300">{feature}</span>
                     </li>
                   ))}
                 </ul>
@@ -409,7 +438,7 @@ export function Landing() {
                   className={`w-full py-3 px-6 rounded-lg font-semibold text-center block transition-all duration-200 ${
                     tier.popular
                       ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl'
-                      : 'border-2 border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50'
+                      : 'border-2 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800'
                   }`}
                 >
                   {tier.cta}
@@ -421,7 +450,7 @@ export function Landing() {
           <div className="text-center mt-12">
             <Link 
               to="/pricing" 
-              className="inline-flex items-center text-blue-600 hover:text-blue-700 font-medium"
+              className="inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
             >
               See full pricing details
               <ArrowRight className="ml-2 h-4 w-4" />
