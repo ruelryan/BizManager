@@ -4,6 +4,8 @@ import { FileText, Download, Send, Eye, Search } from 'lucide-react';
 import { Document, Page, Text, View, StyleSheet, PDFDownloadLink, Image } from '@react-pdf/renderer';
 import { useStore } from '../store/useStore';
 import { FeatureGate } from '../components/FeatureGate';
+import { CurrencyDisplay } from '../components/CurrencyDisplay';
+import { useCurrency } from '../hooks/useCurrency';
 
 // PDF Styles
 const styles = StyleSheet.create({
@@ -456,9 +458,7 @@ export function Invoices() {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [filterStatus, setFilterStatus] = React.useState<'all' | 'paid' | 'pending' | 'overdue'>('all');
   const [viewingSale, setViewingSale] = React.useState<any>(null);
-
-  const currency = userSettings?.currency || 'PHP';
-  const currencySymbol = currency === 'USD' ? '$' : currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : currency === 'JPY' ? '¥' : '₱';
+  const { formatAmount, symbol } = useCurrency();
 
   // Filter invoices
   const filteredInvoices = sales.filter((sale) => {
@@ -570,10 +570,10 @@ export function Invoices() {
                       {Number(item.quantity || 0)}
                     </td>
                     <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-300">
-                      {currencySymbol} {Number(item.price || 0).toLocaleString()}
+                      <CurrencyDisplay amount={Number(item.price || 0)} />
                     </td>
                     <td className="px-4 py-3 text-sm text-right font-medium text-gray-900 dark:text-white">
-                      {currencySymbol} {Number(item.total || (item.price || 0) * (item.quantity || 0)).toLocaleString()}
+                      <CurrencyDisplay amount={Number(item.total || (item.price || 0) * (item.quantity || 0))} />
                     </td>
                   </tr>
                 ))}
@@ -587,23 +587,31 @@ export function Invoices() {
               <div className="w-64 space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600 dark:text-gray-400">Subtotal:</span>
-                  <span className="text-gray-900 dark:text-white">{currencySymbol} {Number(sale.subtotal || sale.total || 0).toLocaleString()}</span>
+                  <span className="text-gray-900 dark:text-white">
+                    <CurrencyDisplay amount={Number(sale.subtotal || sale.total || 0)} />
+                  </span>
                 </div>
                 {sale.tax && Number(sale.tax) > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600 dark:text-gray-400">Tax:</span>
-                    <span className="text-gray-900 dark:text-white">{currencySymbol} {Number(sale.tax || 0).toLocaleString()}</span>
+                    <span className="text-gray-900 dark:text-white">
+                      <CurrencyDisplay amount={Number(sale.tax || 0)} />
+                    </span>
                   </div>
                 )}
                 {sale.discount && Number(sale.discount) > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600 dark:text-gray-400">Discount:</span>
-                    <span className="text-gray-900 dark:text-white">-{currencySymbol} {Number(sale.discount || 0).toLocaleString()}</span>
+                    <span className="text-gray-900 dark:text-white">
+                      -<CurrencyDisplay amount={Number(sale.discount || 0)} />
+                    </span>
                   </div>
                 )}
                 <div className="flex justify-between text-lg font-semibold border-t border-gray-200 dark:border-gray-700 pt-2">
                   <span className="text-gray-900 dark:text-white">Total:</span>
-                  <span className="text-gray-900 dark:text-white">{currencySymbol} {Number(sale.total || 0).toLocaleString()}</span>
+                  <span className="text-gray-900 dark:text-white">
+                    <CurrencyDisplay amount={Number(sale.total || 0)} />
+                  </span>
                 </div>
               </div>
             </div>
@@ -720,7 +728,7 @@ export function Invoices() {
                     {invoice.dueDate ? format(new Date(invoice.dueDate), 'MMM dd, yyyy') : '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                    {currencySymbol} {Number(invoice.total || 0).toLocaleString()}
+                    <CurrencyDisplay amount={Number(invoice.total || 0)} />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${getStatusColor(invoice.status)}`}>
