@@ -267,8 +267,9 @@ const styles = StyleSheet.create({
 
 // Invoice PDF Component
 const InvoicePDF = ({ sale, userSettings }: { sale: any; userSettings: any }) => {
-  const { currency, formatAmount } = useCurrency();
-  const currencySymbol = currency?.symbol || '₱';
+  // Use the currency hook to get the user's currency preferences
+  const { convertAmount, symbol, currency } = useCurrency();
+  
   const businessName = userSettings?.businessName || 'BizManager';
   const businessAddress = userSettings?.businessAddress;
   const businessPhone = userSettings?.businessPhone;
@@ -285,9 +286,14 @@ const InvoicePDF = ({ sale, userSettings }: { sale: any; userSettings: any }) =>
   const qrCodeData = `INV:${invoiceNumber}|DATE:${format(new Date(sale.date || sale.created_at), 'yyyyMMdd')}|AMT:${sale.total || 0}`;
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(qrCodeData)}`;
 
-  // Format number with commas
+  // Format number with commas and convert to user's currency
   const formatNumber = (num: number) => {
-    return num.toLocaleString();
+    // Convert the amount from PHP to the user's currency
+    const convertedAmount = convertAmount(num, 'PHP');
+    return convertedAmount.toLocaleString(undefined, {
+      minimumFractionDigits: currency?.code === 'JPY' ? 0 : 2,
+      maximumFractionDigits: currency?.code === 'JPY' ? 0 : 2
+    });
   };
 
   return (
@@ -366,12 +372,12 @@ const InvoicePDF = ({ sale, userSettings }: { sale: any; userSettings: any }) =>
               </View>
               <View style={styles.tableCol3}>
                 <Text style={styles.tableRowText}>
-                  {currencySymbol} {formatNumber(Number(item.price || 0))}
+                  {symbol} {formatNumber(Number(item.price || 0))}
                 </Text>
               </View>
               <View style={styles.tableCol4}>
                 <Text style={styles.tableRowTextBold}>
-                  {currencySymbol} {formatNumber(Number(item.total || (item.price || 0) * (item.quantity || 0)))}
+                  {symbol} {formatNumber(Number(item.total || (item.price || 0) * (item.quantity || 0)))}
                 </Text>
               </View>
             </View>
@@ -383,14 +389,14 @@ const InvoicePDF = ({ sale, userSettings }: { sale: any; userSettings: any }) =>
           <View style={styles.totalRow}>
             <Text style={styles.totalText}>Subtotal:</Text>
             <Text style={styles.totalText}>
-              {currencySymbol} {formatNumber(Number(sale.subtotal || sale.total || 0))}
+              {symbol} {formatNumber(Number(sale.subtotal || sale.total || 0))}
             </Text>
           </View>
           {sale.tax && Number(sale.tax) > 0 && (
             <View style={styles.totalRow}>
               <Text style={styles.totalText}>Tax:</Text>
               <Text style={styles.totalText}>
-                {currencySymbol} {formatNumber(Number(sale.tax || 0))}
+                {symbol} {formatNumber(Number(sale.tax || 0))}
               </Text>
             </View>
           )}
@@ -398,14 +404,14 @@ const InvoicePDF = ({ sale, userSettings }: { sale: any; userSettings: any }) =>
             <View style={styles.totalRow}>
               <Text style={styles.totalText}>Discount:</Text>
               <Text style={styles.totalText}>
-                -{currencySymbol} {formatNumber(Number(sale.discount || 0))}
+                -{symbol} {formatNumber(Number(sale.discount || 0))}
               </Text>
             </View>
           )}
           <View style={styles.totalRowLarge}>
             <Text style={styles.totalTextBold}>Total:</Text>
             <Text style={styles.totalAmountLarge}>
-              {currencySymbol} {formatNumber(Number(sale.total || 0))}
+              {symbol} {formatNumber(Number(sale.total || 0))}
             </Text>
           </View>
         </View>
@@ -427,6 +433,10 @@ const InvoicePDF = ({ sale, userSettings }: { sale: any; userSettings: any }) =>
               <Text style={styles.paymentValue}>{dueDate}</Text>
             </View>
           )}
+          <View style={styles.paymentRow}>
+            <Text style={styles.paymentLabel}>Currency:</Text>
+            <Text style={styles.paymentValue}>{currency?.name} ({currency?.code})</Text>
+          </View>
         </View>
 
         {/* QR Code */}
