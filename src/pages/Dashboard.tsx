@@ -22,19 +22,37 @@ export function Dashboard() {
   const [newGoal, setNewGoal] = React.useState(monthlyGoal);
   const { formatAmount, convertAmount, symbol } = useCurrency();
 
+  // Helper function to ensure valid date
+  const isValidDate = (date: any): date is Date => {
+    return date instanceof Date && !isNaN(date.getTime());
+  };
+
+  // Helper function to safely convert to date
+  const safeDate = (dateValue: any): Date | null => {
+    if (isValidDate(dateValue)) return dateValue;
+    if (typeof dateValue === 'string' || typeof dateValue === 'number') {
+      const parsed = new Date(dateValue);
+      return isValidDate(parsed) ? parsed : null;
+    }
+    return null;
+  };
+
   // Calculate current month stats
   const currentMonth = new Date();
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
   
-  const currentMonthSales = sales.filter(sale => 
-    sale.date >= monthStart && sale.date <= monthEnd && sale.status === 'paid'
-  );
+  const currentMonthSales = sales.filter(sale => {
+    const saleDate = safeDate(sale.date);
+    return saleDate && saleDate >= monthStart && saleDate <= monthEnd && sale.status === 'paid';
+  });
   
   const currentRevenue = currentMonthSales.reduce((sum, sale) => sum + sale.total, 0);
-  const todaySales = sales.filter(sale => 
-    format(sale.date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd') && sale.status === 'paid'
-  );
+  
+  const todaySales = sales.filter(sale => {
+    const saleDate = safeDate(sale.date);
+    return saleDate && format(saleDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd') && sale.status === 'paid';
+  });
   const todayRevenue = todaySales.reduce((sum, sale) => sum + sale.total, 0);
   
   // Low stock products (excluding out of stock)
@@ -58,9 +76,10 @@ export function Dashboard() {
     const date = new Date();
     date.setDate(date.getDate() - (6 - i));
     const dayName = format(date, 'EEE');
-    const daySales = sales.filter(sale => 
-      format(sale.date, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd') && sale.status === 'paid'
-    );
+    const daySales = sales.filter(sale => {
+      const saleDate = safeDate(sale.date);
+      return saleDate && format(saleDate, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd') && sale.status === 'paid';
+    });
     const revenue = daySales.reduce((sum, sale) => sum + sale.total, 0);
     return { day: dayName, revenue: convertAmount(revenue, 'PHP'), sales: daySales.length };
   });
