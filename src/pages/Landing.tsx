@@ -22,6 +22,11 @@ export function Landing() {
   const { theme, toggleTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isVisible, setIsVisible] = useState({
+    header: false,
+    navItems: Array(5).fill(false),
+    ctaButtons: false,
+  });
   
   // Track scroll position for header styling
   useEffect(() => {
@@ -31,6 +36,55 @@ export function Landing() {
     
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Animation timing for elements
+  useEffect(() => {
+    // Header text animation
+    setTimeout(() => {
+      setIsVisible(prev => ({ ...prev, header: true }));
+    }, 500);
+
+    // Navigation items staggered animation
+    isVisible.navItems.forEach((_, index) => {
+      setTimeout(() => {
+        setIsVisible(prev => {
+          const newNavItems = [...prev.navItems];
+          newNavItems[index] = true;
+          return { ...prev, navItems: newNavItems };
+        });
+      }, 200 * (index + 1));
+    });
+
+    // CTA buttons animation
+    setTimeout(() => {
+      setIsVisible(prev => ({ ...prev, ctaButtons: true }));
+    }, 700);
+  }, []);
+
+  // Scroll animation observer
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('animate-fade-in');
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.1 }
+    );
+
+    document.querySelectorAll('.scroll-animation').forEach(el => {
+      observer.observe(el);
+    });
+
+    return () => {
+      document.querySelectorAll('.scroll-animation').forEach(el => {
+        observer.unobserve(el);
+      });
+    };
   }, []);
   
   const features = [
@@ -170,27 +224,30 @@ export function Landing() {
 
             {/* Navigation */}
             <nav className="hidden md:flex items-center space-x-8">
-              <Link to="/about" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
-                About
-              </Link>
-              <Link to="/features" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
-                Features
-              </Link>
-              <Link to="/pricing" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
-                Pricing
-              </Link>
-              <Link to="/login" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
-                Login
-              </Link>
+              {['About', 'Features', 'Pricing', 'Login'].map((item, index) => (
+                <Link 
+                  key={item} 
+                  to={`/${item.toLowerCase()}`} 
+                  className={`text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors transform transition-opacity duration-500 ${
+                    isVisible.navItems[index] ? 'opacity-100' : 'opacity-0'
+                  }`}
+                >
+                  {item}
+                </Link>
+              ))}
               <Link 
                 to="/signup" 
-                className="bg-blue-600 dark:bg-blue-500 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-blue-700 dark:hover:bg-blue-600 transition-all duration-200 shadow-md"
+                className={`bg-blue-600 dark:bg-blue-500 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-blue-700 dark:hover:bg-blue-600 transition-all duration-200 shadow-md transform transition-opacity duration-500 ${
+                  isVisible.navItems[4] ? 'opacity-100' : 'opacity-0'
+                }`}
               >
                 Get Started Free
               </Link>
               <button
                 onClick={toggleTheme}
-                className="p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                className={`p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors transform transition-opacity duration-500 ${
+                  isVisible.navItems[4] ? 'opacity-100' : 'opacity-0'
+                }`}
                 aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
               >
                 {theme === 'light' ? (
@@ -230,12 +287,13 @@ export function Landing() {
 
       {/* Hero Section */}
       <section className="relative overflow-hidden pt-20 pb-32">
-        {/* Background */}
-        <div className="absolute inset-0 bg-gray-50 dark:bg-gray-800"></div>
-        
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
           <div className="text-center max-w-4xl mx-auto">
-            <h1 className="text-5xl sm:text-6xl font-bold mb-6 leading-tight text-gray-900 dark:text-white">
+            <h1 
+              className={`text-4xl sm:text-5xl md:text-6xl font-bold mb-6 leading-tight text-gray-900 dark:text-white transition-opacity duration-500 ${
+                isVisible.header ? 'opacity-100' : 'opacity-0'
+              }`}
+            >
               Manage Your Business
               <br />
               <span className="text-blue-600 dark:text-blue-400">
@@ -243,11 +301,19 @@ export function Landing() {
               </span>
             </h1>
             
-            <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
+            <p 
+              className={`text-lg sm:text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto transition-opacity duration-500 ${
+                isVisible.header ? 'opacity-100' : 'opacity-0'
+              }`}
+            >
               The complete business management solution for modern entrepreneurs in the Philippines
             </p>
             
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <div 
+              className={`flex flex-col sm:flex-row gap-4 justify-center items-center transition-opacity duration-500 ${
+                isVisible.ctaButtons ? 'opacity-100' : 'opacity-0'
+              }`}
+            >
               <Link 
                 to="/signup" 
                 className="bg-blue-600 dark:bg-blue-500 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-all duration-200 shadow-md flex items-center w-full sm:w-auto justify-center"
@@ -267,22 +333,11 @@ export function Landing() {
               No credit card required • 30-day free trial • Cancel anytime
             </p>
           </div>
-          
-          {/* Hero Image */}
-          <div className="mt-16 max-w-5xl mx-auto">
-            <div className="relative rounded-lg overflow-hidden shadow-lg">
-              <img 
-                src="https://images.pexels.com/photos/8636626/pexels-photo-8636626.jpeg?auto=compress&cs=tinysrgb&w=1280&h=720&fit=crop" 
-                alt="BizManager Dashboard" 
-                className="w-full h-auto"
-              />
-            </div>
-          </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="py-20 bg-white dark:bg-gray-900">
+      <section className="py-20 bg-white dark:bg-gray-900 scroll-animation">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
@@ -297,7 +352,8 @@ export function Landing() {
             {features.map((feature, index) => (
               <div 
                 key={index} 
-                className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-md border border-gray-100 dark:border-gray-700 hover:shadow-lg transition-all duration-300"
+                className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-md border border-gray-100 dark:border-gray-700 hover:shadow-lg transition-all duration-300 scroll-animation"
+                style={{ animationDelay: `${index * 100}ms` }}
               >
                 <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center mb-4">
                   <feature.icon className="h-6 w-6 text-blue-600 dark:text-blue-400" />
@@ -325,7 +381,7 @@ export function Landing() {
       </section>
 
       {/* How It Works */}
-      <section className="py-20 bg-gray-50 dark:bg-gray-800">
+      <section className="py-20 bg-gray-50 dark:bg-gray-800 scroll-animation">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
@@ -344,7 +400,7 @@ export function Landing() {
                 <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-gray-200 dark:bg-gray-700 transform -translate-y-1/2 z-0"></div>
                 
                 {steps.map((step, index) => (
-                  <div key={index} className="relative z-10 flex flex-col items-center max-w-xs">
+                  <div key={index} className="relative z-10 flex flex-col items-center max-w-xs scroll-animation" style={{ animationDelay: `${index * 150}ms` }}>
                     <div className="w-16 h-16 bg-blue-600 dark:bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-xl mb-4 shadow-md">
                       {step.number}
                     </div>
@@ -365,7 +421,7 @@ export function Landing() {
             {/* Mobile Timeline */}
             <div className="lg:hidden space-y-8">
               {steps.map((step, index) => (
-                <div key={index} className="flex items-start space-x-4">
+                <div key={index} className="flex items-start space-x-4 scroll-animation" style={{ animationDelay: `${index * 150}ms` }}>
                   <div className="w-12 h-12 bg-blue-600 dark:bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
                     {step.number}
                   </div>
@@ -395,7 +451,7 @@ export function Landing() {
       </section>
 
       {/* Testimonials Section */}
-      <section className="py-20 bg-white dark:bg-gray-900">
+      <section className="py-20 bg-white dark:bg-gray-900 scroll-animation">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
@@ -410,7 +466,8 @@ export function Landing() {
             {testimonials.map((testimonial, index) => (
               <div 
                 key={index} 
-                className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow-md border border-gray-100 dark:border-gray-700"
+                className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow-md border border-gray-100 dark:border-gray-700 scroll-animation"
+                style={{ animationDelay: `${index * 200}ms` }}
               >
                 <div className="flex items-center mb-4">
                   {[...Array(5)].map((_, i) => (
@@ -438,7 +495,7 @@ export function Landing() {
       </section>
 
       {/* Pricing Preview */}
-      <section className="py-20 bg-gray-50 dark:bg-gray-800">
+      <section className="py-20 bg-gray-50 dark:bg-gray-800 scroll-animation">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
@@ -457,7 +514,8 @@ export function Landing() {
                   tier.popular 
                     ? 'border-blue-500 ring-2 ring-blue-100 dark:ring-blue-900/30' 
                     : 'border-gray-200 dark:border-gray-700'
-                }`}
+                } scroll-animation`}
+                style={{ animationDelay: `${index * 200}ms` }}
               >
                 {tier.popular && (
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
@@ -487,7 +545,7 @@ export function Landing() {
 
                   <Link 
                     to="/signup"
-                    className={`w-full py-3 px-6 rounded-lg font-semibold text-center block transition-all duration-200 ${
+                    className={`w-full py-3 px-6 rounded-lg font-semibold text-center block transition-all ${
                       tier.popular
                         ? 'bg-blue-600 dark:bg-blue-500 text-white hover:bg-blue-700 dark:hover:bg-blue-600 shadow-md'
                         : 'border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800'
@@ -513,33 +571,32 @@ export function Landing() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-blue-600 dark:bg-blue-700">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-3xl font-bold text-white mb-6">
-              Ready to Transform Your Business?
-            </h2>
-            <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-              Join thousands of successful businesses using BizManager to streamline operations and boost growth.
-            </p>
-            
+      <section className="py-20 bg-gradient-to-br from-blue-600 to-purple-600 scroll-animation">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-3xl font-bold text-white mb-6">Ready to Experience BizManager?</h2>
+          <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
+            Start your free trial today and see how BizManager can transform your business operations.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link 
               to="/signup" 
-              className="bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold text-lg hover:bg-gray-100 transition-all duration-200 shadow-md inline-flex items-center"
+              className="bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold text-lg hover:bg-gray-100 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center"
             >
-              Start Your Free Trial Today
+              Start Free Trial
               <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
-            
-            <p className="text-blue-100 mt-4 text-sm">
-              No credit card required • 30-day free trial • Cancel anytime
-            </p>
+            <Link 
+              to="/pricing" 
+              className="bg-transparent text-white border-2 border-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-white/10 transition-all duration-200"
+            >
+              View Pricing
+            </Link>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
+      <footer className="bg-gray-900 text-white py-12 scroll-animation">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             {/* Company Info */}
@@ -595,7 +652,7 @@ export function Landing() {
                 Login
               </Link>
               <Link to="/signup" className="text-gray-400 hover:text-white transition-colors text-sm">
-                Sign Up
+                Sign Up Free
               </Link>
             </div>
           </div>
