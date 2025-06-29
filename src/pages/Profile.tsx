@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Mail, Crown, Save, ArrowLeft, Building, Calendar, AlertCircle, Bell, CreditCard } from 'lucide-react';
+import { User, Mail, Crown, Save, ArrowLeft, Building, Calendar, AlertCircle, Bell, CreditCard, MapPin, Wifi, WifiOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useStore, isInFreeTrial } from '../store/useStore';
 import { plans } from '../utils/plans';
@@ -242,17 +242,59 @@ export function Profile() {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Currency
                 </label>
+                
+                {/* Location Detection Status */}
+                {locationInfo.loading && (
+                  <div className="mb-3 flex items-center text-sm text-blue-600 dark:text-blue-400">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 dark:border-blue-400 mr-2"></div>
+                    <span>Detecting your location for currency auto-selection...</span>
+                  </div>
+                )}
+                
+                {locationInfo.error && (
+                  <div className="mb-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-3">
+                    <div className="flex items-start">
+                      <WifiOff className="h-4 w-4 text-yellow-600 dark:text-yellow-400 mr-2 mt-0.5 flex-shrink-0" />
+                      <div className="text-sm">
+                        <p className="font-medium text-yellow-800 dark:text-yellow-300 mb-1">
+                          Automatic location detection failed
+                        </p>
+                        <p className="text-yellow-700 dark:text-yellow-400 mb-2">
+                          {locationInfo.error}
+                        </p>
+                        <p className="text-yellow-600 dark:text-yellow-500 text-xs">
+                          This might be due to network issues, ad blockers, or privacy settings. 
+                          Please manually select your preferred currency below.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {locationInfo.country && locationInfo.currency && !locationInfo.error && (
+                  <div className="mb-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-3">
+                    <div className="flex items-center text-sm text-green-700 dark:text-green-300">
+                      <Wifi className="h-4 w-4 mr-2" />
+                      <span>
+                        Location detected: <strong>{locationInfo.country}</strong> - Currency auto-selected: <strong>{locationInfo.currency}</strong>
+                      </span>
+                    </div>
+                  </div>
+                )}
+                
                 <CurrencySelector 
                   value={formData.currency}
                   onChange={(currency) => setFormData(prev => ({ ...prev, currency }))}
                   autoDetect={!userSettings?.currency}
                 />
-                {locationInfo.currency && formData.currency === locationInfo.currency && (
+                
+                {locationInfo.currency && formData.currency === locationInfo.currency && !locationInfo.error && (
                   <p className="mt-1 text-xs text-green-600 dark:text-green-400 flex items-center">
                     <MapPin className="h-3 w-3 mr-1" />
                     Auto-detected from your location: {locationInfo.country}
                   </p>
                 )}
+                
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                   This will be used throughout the application and in PDF invoices.
                 </p>
