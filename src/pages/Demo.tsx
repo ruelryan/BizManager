@@ -1,11 +1,14 @@
-import React, { useState, useRef } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowLeft, Play, Pause, BarChart3, Package, Users, TrendingUp, FileText, ArrowRight } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Play, Pause, BarChart3, Package, Users, TrendingUp, FileText, ArrowRight, Crown } from 'lucide-react';
+import { useStore } from '../store/useStore';
 
 export function Demo() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentFeature, setCurrentFeature] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const navigate = useNavigate();
+  const { setUser } = useStore();
 
   const features = [
     {
@@ -83,6 +86,21 @@ export function Demo() {
   // Get the current feature's icon component
   const CurrentFeatureIcon = features[currentFeature].icon;
 
+  // Start interactive tour
+  const startInteractiveTour = () => {
+    // Set up demo Pro account
+    setUser({
+      id: 'demo-user-id',
+      name: 'Demo User',
+      email: 'demo@businessmanager.com',
+      plan: 'pro',
+      subscriptionExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+    });
+    
+    // Navigate to dashboard with tour parameter
+    navigate('/dashboard?tour=true');
+  };
+
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-200">
       {/* Header with back button */}
@@ -99,14 +117,35 @@ export function Demo() {
       <section className="py-16 bg-gradient-to-b from-blue-50 to-white dark:from-gray-800 dark:to-gray-900">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">See BizManager in Action</h1>
-          <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
+          <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto mb-8">
             Watch our demo to see how BizManager can transform your business operations and help you grow.
           </p>
+          
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <button
+              onClick={startInteractiveTour}
+              className="bg-blue-600 dark:bg-blue-500 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-all duration-200 shadow-md flex items-center justify-center"
+            >
+              <Crown className="mr-2 h-5 w-5" />
+              Start Interactive Pro Demo
+            </button>
+            <button
+              onClick={() => {
+                const videoSection = document.getElementById('video-demo');
+                if (videoSection) {
+                  videoSection.scrollIntoView({ behavior: 'smooth' });
+                }
+              }}
+              className="border-2 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 px-8 py-4 rounded-lg font-semibold text-lg hover:border-gray-400 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200"
+            >
+              Watch Video Demo
+            </button>
+          </div>
         </div>
       </section>
 
       {/* Video Demo Section */}
-      <section className="py-12">
+      <section id="video-demo" className="py-12">
         <div className="container mx-auto px-4">
           <div className="max-w-5xl mx-auto">
             {/* Video Player */}
@@ -207,139 +246,21 @@ export function Demo() {
         </div>
       </section>
 
-      {/* Feature Highlights */}
-      <section className="py-16 bg-gray-50 dark:bg-gray-800">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-12 text-center">
-            Key Features Highlighted
-          </h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-            <div className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-md">
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                <BarChart3 className="h-6 w-6 text-blue-600 dark:text-blue-400 mr-2" />
-                Real-time Dashboard
-              </h3>
-              <ul className="space-y-2 text-gray-600 dark:text-gray-400">
-                <li className="flex items-start">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Live sales and revenue tracking
-                </li>
-                <li className="flex items-start">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Inventory alerts and notifications
-                </li>
-                <li className="flex items-start">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Daily, weekly, and monthly comparisons
-                </li>
-                <li className="flex items-start">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Customizable KPI widgets
-                </li>
-              </ul>
-            </div>
-            
-            <div className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-md">
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                <Package className="h-6 w-6 text-blue-600 dark:text-blue-400 mr-2" />
-                Smart Inventory
-              </h3>
-              <ul className="space-y-2 text-gray-600 dark:text-gray-400">
-                <li className="flex items-start">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Automatic stock updates with sales
-                </li>
-                <li className="flex items-start">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Low stock alerts and reorder suggestions
-                </li>
-                <li className="flex items-start">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Barcode scanning support
-                </li>
-                <li className="flex items-start">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Product categorization and search
-                </li>
-              </ul>
-            </div>
-            
-            <div className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-md">
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                <TrendingUp className="h-6 w-6 text-blue-600 dark:text-blue-400 mr-2" />
-                Advanced Analytics
-              </h3>
-              <ul className="space-y-2 text-gray-600 dark:text-gray-400">
-                <li className="flex items-start">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Sales trends and forecasting
-                </li>
-                <li className="flex items-start">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Product performance analysis
-                </li>
-                <li className="flex items-start">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Customer buying patterns
-                </li>
-                <li className="flex items-start">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Exportable reports in multiple formats
-                </li>
-              </ul>
-            </div>
-            
-            <div className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-md">
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                <FileText className="h-6 w-6 text-blue-600 dark:text-blue-400 mr-2" />
-                Professional Documents
-              </h3>
-              <ul className="space-y-2 text-gray-600 dark:text-gray-400">
-                <li className="flex items-start">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Customizable invoice templates
-                </li>
-                <li className="flex items-start">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Digital receipts with your branding
-                </li>
-                <li className="flex items-start">
-                  <span className="text-green-500 mr-2">✓</span>
-                  PDF generation and email sending
-                </li>
-                <li className="flex items-start">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Payment tracking and reminders
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
+      {/* Interactive Demo CTA */}
       <section className="py-16 bg-gradient-to-br from-blue-600 to-purple-600">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold text-white mb-6">Ready to Experience BizManager?</h2>
+          <h2 className="text-3xl font-bold text-white mb-6">Ready to Try It Yourself?</h2>
           <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-            Start your free trial today and see how BizManager can transform your business operations.
+            Experience all Pro features with our interactive demo. No sign-up required!
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link 
-              to="/signup" 
-              className="bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold text-lg hover:bg-gray-100 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center"
-            >
-              Start Free Trial
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Link>
-            <Link 
-              to="/pricing" 
-              className="bg-transparent text-white border-2 border-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-white/10 transition-all duration-200"
-            >
-              View Pricing
-            </Link>
-          </div>
+          <button
+            onClick={startInteractiveTour}
+            className="bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold text-lg hover:bg-gray-100 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center mx-auto"
+          >
+            <Crown className="mr-2 h-5 w-5" />
+            Start Interactive Pro Demo
+            <ArrowRight className="ml-2 h-5 w-5" />
+          </button>
         </div>
       </section>
 

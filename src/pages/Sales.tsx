@@ -643,6 +643,7 @@ export function Sales() {
                 type="submit"
                 disabled={isSubmitting}
                 className="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-white font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                data-tour="add-sale-submit"
               >
                 {isSubmitting ? (
                   <div className="flex items-center justify-center">
@@ -843,6 +844,7 @@ export function Sales() {
           </button>
           <button
             onClick={() => setShowAddForm(true)}
+            data-tour="add-sale"
             className="flex items-center space-x-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 transition-colors"
           >
             <Plus className="h-5 w-5" />

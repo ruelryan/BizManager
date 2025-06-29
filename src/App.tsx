@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { Dashboard } from './pages/Dashboard';
@@ -22,9 +22,19 @@ import { ProductLabelDemo } from './pages/ProductLabelDemo';
 import { Customers } from './pages/Customers';
 import { useStore } from './store/useStore';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { ProductTour } from './components/ProductTour';
 
 function App() {
   const { user, isLoading, isInitialized } = useStore();
+  const [showTour, setShowTour] = useState(false);
+  
+  // Check URL parameters for tour
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('tour') === 'true') {
+      setShowTour(true);
+    }
+  }, []);
 
   // Show loading spinner while initializing auth
   if (!isInitialized || isLoading) {
@@ -43,6 +53,7 @@ function App() {
   return (
     <ThemeProvider>
       <Router>
+        {showTour && <ProductTour />}
         <Routes>
           {/* Public Routes */}
           <Route path="/landing" element={<Landing />} />

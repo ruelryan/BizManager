@@ -23,14 +23,14 @@ import { useStore, isInFreeTrial, getEffectivePlan } from '../store/useStore';
 import { ThemeToggle } from './ThemeToggle';
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: Home },
-  { name: 'Sales', href: '/sales', icon: ShoppingCart },
-  { name: 'Products', href: '/products', icon: Package },
-  { name: 'Customers', href: '/customers', icon: Users },
-  { name: 'Inventory', href: '/inventory', icon: BarChart3 },
-  { name: 'Expenses', href: '/expenses', icon: Receipt },
-  { name: 'Invoices', href: '/invoices', icon: FileText },
-  { name: 'Reports', href: '/reports', icon: TrendingUp },
+  { name: 'Dashboard', href: '/dashboard', icon: Home, tourId: 'dashboard' },
+  { name: 'Sales', href: '/sales', icon: ShoppingCart, tourId: 'sales' },
+  { name: 'Products', href: '/products', icon: Package, tourId: 'products' },
+  { name: 'Customers', href: '/customers', icon: Users, tourId: 'customers' },
+  { name: 'Inventory', href: '/inventory', icon: BarChart3, tourId: 'inventory' },
+  { name: 'Expenses', href: '/expenses', icon: Receipt, tourId: 'expenses' },
+  { name: 'Invoices', href: '/invoices', icon: FileText, tourId: 'invoices' },
+  { name: 'Reports', href: '/reports', icon: TrendingUp, tourId: 'reports' },
 ];
 
 export function Layout() {
@@ -127,6 +127,7 @@ export function Layout() {
                 <Link
                   key={item.name}
                   to={item.href}
+                  data-tour={item.tourId}
                   className={`flex items-center space-x-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
                     isActive
                       ? 'bg-blue-50 text-blue-700 shadow-sm dark:bg-blue-900/20 dark:text-blue-300'
@@ -163,6 +164,7 @@ export function Layout() {
             <div className="relative">
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
+                data-tour="settings"
                 className="w-full flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors"
               >
                 <div className="flex items-center space-x-3 min-w-0 flex-1">
