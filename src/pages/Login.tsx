@@ -7,7 +7,7 @@ import { ThemeToggle } from '../components/ThemeToggle';
 export function Login() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { signIn, signInWithGoogle, signInWithFacebook, signUp, isLoading } = useStore();
+  const { signIn, signInWithGoogle, signInWithFacebook, signUp, isLoading, user } = useStore();
   
   // Check if we're on the signup page
   const isSignupPage = location.pathname === '/signup';
