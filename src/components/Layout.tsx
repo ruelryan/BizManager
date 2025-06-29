@@ -31,7 +31,6 @@ const navigation = [
   { name: 'Expenses', href: '/expenses', icon: Receipt },
   { name: 'Invoices', href: '/invoices', icon: FileText },
   { name: 'Reports', href: '/reports', icon: TrendingUp },
-  { name: 'Product Labels', href: '/product-labels', icon: Tag },
 ];
 
 export function Layout() {
