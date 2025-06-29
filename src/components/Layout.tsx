@@ -1,5 +1,5 @@
 import React from 'react';
-import { Outlet, Link, useLocation, Navigate } from 'react-router-dom';
+import { Outlet, Link, useLocation, Navigate, useNavigate } from 'react-router-dom';
 import { 
   Home, 
   ShoppingCart, 
@@ -21,7 +21,7 @@ import { useStore, isInFreeTrial, getEffectivePlan } from '../store/useStore';
 import { ThemeToggle } from './ThemeToggle';
 
 const navigation = [
-  { name: 'Dashboard', href: '/', icon: Home },
+  { name: 'Dashboard', href: '/dashboard', icon: Home },
   { name: 'Sales', href: '/sales', icon: ShoppingCart },
   { name: 'Products', href: '/products', icon: Package },
   { name: 'Inventory', href: '/inventory', icon: BarChart3 },
@@ -34,6 +34,7 @@ export function Layout() {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [showUserMenu, setShowUserMenu] = React.useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const { user, signOut, isOnline } = useStore();
 
   if (!user) {
@@ -43,8 +44,8 @@ export function Layout() {
   const handleLogout = async () => {
     try {
       await signOut();
-      // The signOut function will clear the user state, which will trigger a redirect to /landing
-      // due to the Navigate component above
+      // Navigate to landing page after logout
+      navigate('/landing');
     } catch (error) {
       console.error('Logout failed:', error);
     }
