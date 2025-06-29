@@ -17,6 +17,87 @@ export const currencies: Record<string, CurrencyInfo> = {
   THB: { code: 'THB', name: 'Thai Baht', symbol: '฿', rate: 0.606 }, // 1 PHP = 0.606 THB
 };
 
+// Fetch latest exchange rates from API
+export const fetchExchangeRates = async (): Promise<void> => {
+  try {
+    // In a production app, you would use a real API like:
+    // const response = await fetch('https://api.exchangerate-api.com/v4/latest/PHP');
+    // const data = await response.json();
+    
+    // For demo purposes, we'll simulate an API response with slightly different rates
+    const mockApiResponse = {
+      base: 'PHP',
+      date: new Date().toISOString().split('T')[0],
+      rates: {
+        USD: 0.0178,
+        EUR: 0.0163,
+        GBP: 0.0140,
+        JPY: 2.75,
+        SGD: 0.0240,
+        MYR: 0.0800,
+        THB: 0.605
+      }
+    };
+    
+    // Update our currency rates with the latest values
+    Object.keys(mockApiResponse.rates).forEach(code => {
+      if (currencies[code]) {
+        currencies[code].rate = mockApiResponse.rates[code];
+      }
+    });
+    
+    console.log('Exchange rates updated:', mockApiResponse.date);
+    
+    // Store the last update time and rates in localStorage for offline use
+    localStorage.setItem('exchangeRatesLastUpdate', new Date().toISOString());
+    localStorage.setItem('exchangeRates', JSON.stringify(mockApiResponse.rates));
+    
+  } catch (error) {
+    console.error('Failed to fetch exchange rates:', error);
+    
+    // If we have cached rates, use those
+    const cachedRates = localStorage.getItem('exchangeRates');
+    if (cachedRates) {
+      const rates = JSON.parse(cachedRates);
+      Object.keys(rates).forEach(code => {
+        if (currencies[code]) {
+          currencies[code].rate = rates[code];
+        }
+      });
+      console.log('Using cached exchange rates');
+    }
+  }
+};
+
+// Initialize exchange rates from localStorage if available
+export const initExchangeRates = (): void => {
+  const cachedRates = localStorage.getItem('exchangeRates');
+  const lastUpdate = localStorage.getItem('exchangeRatesLastUpdate');
+  
+  if (cachedRates) {
+    try {
+      const rates = JSON.parse(cachedRates);
+      Object.keys(rates).forEach(code => {
+        if (currencies[code]) {
+          currencies[code].rate = rates[code];
+        }
+      });
+      
+      console.log('Initialized with cached exchange rates from:', lastUpdate);
+    } catch (error) {
+      console.error('Failed to parse cached exchange rates:', error);
+    }
+  }
+  
+  // Check if we need to update rates (e.g., if last update was more than 24 hours ago)
+  const shouldUpdate = !lastUpdate || 
+    (new Date().getTime() - new Date(lastUpdate).getTime() > 24 * 60 * 60 * 1000);
+  
+  if (shouldUpdate) {
+    fetchExchangeRates();
+  }
+};
+
 // Convert amount from PHP to target currency
 export const convertFromPHP = (amount: number, targetCurrency: string): number => {
   const currency = currencies[targetCurrency];
@@ -79,3 +160,6 @@ export const useCurrencyConverter = (userCurrency: string = 'PHP') => {
     currency: currencies[userCurrency],
   };
 };
+
+// Initialize exchange rates when this module is imported
+initExchangeRates();

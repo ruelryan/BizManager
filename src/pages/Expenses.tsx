@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { Plus, Search, Edit, Trash2, Receipt, DollarSign, ChevronDown, AlertTriangle } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { Expense } from '../types';
+import { CurrencyDisplay } from '../components/CurrencyDisplay';
 
 export function Expenses() {
   const { expenses, addExpense, updateExpense, deleteExpense, getExpenseCategories } = useStore();
@@ -117,7 +118,7 @@ export function Expenses() {
             <div className="grid gap-4 grid-cols-2">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Amount (₱) *
+                  Amount (PHP) *
                 </label>
                 <input
                   type="number"
@@ -261,7 +262,9 @@ export function Expenses() {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Expenses</p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">₱{totalExpenses.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              <CurrencyDisplay amount={totalExpenses} />
+            </p>
           </div>
           <div className="rounded-lg bg-red-100 dark:bg-red-900/30 p-3">
             <DollarSign className="h-6 w-6 text-red-600 dark:text-red-400" />
@@ -339,7 +342,7 @@ export function Expenses() {
                     {expense.category}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-red-600 dark:text-red-400">
-                    -₱{expense.amount.toLocaleString()}
+                    -<CurrencyDisplay amount={expense.amount} />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
                     {format(expense.date, 'MMM dd, yyyy')}

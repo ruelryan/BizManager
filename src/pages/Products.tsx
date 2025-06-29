@@ -4,6 +4,7 @@ import { useStore } from '../store/useStore';
 import { Product } from '../types';
 import { BarcodeScanner } from '../components/BarcodeScanner';
 import { Link } from 'react-router-dom';
+import { CurrencyDisplay } from '../components/CurrencyDisplay';
 
 export function Products() {
   const { products, addProduct, updateProduct, deleteProduct, user, getProductCategories } = useStore();
@@ -168,7 +169,7 @@ export function Products() {
             <div className="grid gap-4 grid-cols-2">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Selling Price (₱) *
+                  Selling Price (PHP) *
                 </label>
                 <input
                   type="number"
@@ -185,7 +186,7 @@ export function Products() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Cost Price (₱) *
+                  Cost Price (PHP) *
                 </label>
                 <input
                   type="number"
@@ -266,7 +267,7 @@ export function Products() {
               <div className="flex justify-between items-center text-sm">
                 <span className="text-gray-600 dark:text-gray-400">Profit Margin:</span>
                 <span className="font-medium text-gray-900 dark:text-white">
-                  ₱{profitMargin.toFixed(2)} ({profitPercentage.toFixed(1)}%)
+                  <CurrencyDisplay amount={profitMargin} /> ({profitPercentage.toFixed(1)}%)
                 </span>
               </div>
             </div>
@@ -457,16 +458,20 @@ export function Products() {
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600 dark:text-gray-400">Selling Price:</span>
-                    <span className="font-semibold text-gray-900 dark:text-white">₱{safePrice.toLocaleString()}</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">
+                      <CurrencyDisplay amount={safePrice} />
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600 dark:text-gray-400">Cost Price:</span>
-                    <span className="text-gray-900 dark:text-gray-300">₱{safeCost.toLocaleString()}</span>
+                    <span className="text-gray-900 dark:text-gray-300">
+                      <CurrencyDisplay amount={safeCost} />
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600 dark:text-gray-400">Profit:</span>
                     <span className="font-medium text-green-600 dark:text-green-400">
-                      ₱{profitMargin.toLocaleString()} ({profitPercentage.toFixed(1)}%)
+                      <CurrencyDisplay amount={profitMargin} /> ({profitPercentage.toFixed(1)}%)
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
@@ -535,10 +540,10 @@ export function Products() {
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                        ₱{safePrice.toLocaleString()}
+                        <CurrencyDisplay amount={safePrice} />
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
-                        ₱{safeCost.toLocaleString()}
+                        <CurrencyDisplay amount={safeCost} />
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
                         {product.currentStock || 0}

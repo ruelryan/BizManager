@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { Font } from '@react-pdf/renderer';
 import App from './App.tsx';
 import './index.css';
+import { fetchExchangeRates } from './utils/currency';
 
 // Flag to prevent multiple font registrations
 let fontsRegistered = false;
@@ -20,6 +21,11 @@ if (!fontsRegistered) {
   });
   fontsRegistered = true;
 }
+
+// Fetch latest exchange rates
+fetchExchangeRates().catch(error => {
+  console.error('Failed to fetch exchange rates:', error);
+});
 
 // Only register service worker if supported (not in StackBlitz environment)
 if ('serviceWorker' in navigator && !window.location.hostname.includes('webcontainer')) {

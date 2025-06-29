@@ -1,21 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { User, Mail, Crown, Save, ArrowLeft, Globe, Building, Calendar, AlertCircle, Bell, CreditCard } from 'lucide-react';
+import { User, Mail, Crown, Save, ArrowLeft, Building, Calendar, AlertCircle, Bell, CreditCard } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useStore, isInFreeTrial } from '../store/useStore';
 import { plans } from '../utils/plans';
 import { format } from 'date-fns';
 import { supabase } from '../lib/supabase';
-
-const currencies = [
-  { code: 'PHP', name: 'Philippine Peso', symbol: '₱' },
-  { code: 'USD', name: 'US Dollar', symbol: '$' },
-  { code: 'EUR', name: 'Euro', symbol: '€' },
-  { code: 'GBP', name: 'British Pound', symbol: '£' },
-  { code: 'JPY', name: 'Japanese Yen', symbol: '¥' },
-  { code: 'SGD', name: 'Singapore Dollar', symbol: 'S$' },
-  { code: 'MYR', name: 'Malaysian Ringgit', symbol: 'RM' },
-  { code: 'THB', name: 'Thai Baht', symbol: '฿' },
-];
+import { CurrencySelector } from '../components/CurrencySelector';
+import { CurrencyDisplay } from '../components/CurrencyDisplay';
 
 interface PaymentTransaction {
   id: string;
@@ -144,13 +135,7 @@ export function Profile() {
   };
 
   const currentPlan = plans.find(p => p.id === user?.plan);
-  const selectedCurrency = currencies.find(c => c.code === formData.currency);
   const inFreeTrial = user ? isInFreeTrial(user) : false;
-
-  const formatPaymentAmount = (amount: number, currency: string) => {
-    const symbol = currencies.find(c => c.code === currency)?.symbol || currency;
-    return `${symbol}${amount.toFixed(2)}`;
-  };
 
   const getPaymentStatusBadge = (status: string) => {
     switch (status.toLowerCase()) {
@@ -244,20 +229,10 @@ export function Profile() {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Currency
                 </label>
-                <div className="relative">
-                  <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 dark:text-gray-500" />
-                  <select
-                    value={formData.currency}
-                    onChange={(e) => setFormData(prev => ({ ...prev, currency: e.target.value }))}
-                    className="w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors duration-200"
-                  >
-                    {currencies.map((currency) => (
-                      <option key={currency.code} value={currency.code}>
-                        {currency.symbol} {currency.name} ({currency.code})
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <CurrencySelector 
+                  value={formData.currency}
+                  onChange={(currency) => setFormData(prev => ({ ...prev, currency }))}
+                />
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                   This will be used throughout the application and in PDF invoices.
                 </p>
@@ -349,7 +324,7 @@ export function Profile() {
         <div className="space-y-6">
           {/* Free Trial Status */}
           {inFreeTrial && (
-            <div className="rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 p-6 text-white">
+            <div className="rounded-xl bg-blue-600 p-6 text-white">
               <div className="flex items-center mb-3">
                 <Crown className="h-6 w-6 mr-2" />
                 <h3 className="text-lg font-semibold">Free Trial Active</h3>
@@ -385,7 +360,14 @@ export function Profile() {
               </div>
               
               <div className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                {currentPlan?.price === 0 ? 'Free' : `${selectedCurrency?.symbol}${currentPlan?.price}/month`}
+                {currentPlan?.price === 0 ? 'Free' : (
+                  <CurrencyDisplay 
+                    amount={currentPlan?.price || 0} 
+                    fromCurrency="PHP"
+                    showCurrencyCode={true}
+                  />
+                )}
+                {currentPlan?.price !== 0 && '/month'}
               </div>
               
               <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
@@ -467,7 +449,10 @@ export function Profile() {
                               {transaction.plan_id && ` (${transaction.plan_id})`}
                             </td>
                             <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-300">
-                              {formatPaymentAmount(transaction.amount, transaction.currency)}
+                              <CurrencyDisplay 
+                                amount={transaction.amount} 
+                                fromCurrency={transaction.currency}
+                              />
                             </td>
                             <td className="px-4 py-2 whitespace-nowrap text-sm">
                               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPaymentStatusBadge(transaction.status)}`}>
@@ -527,20 +512,20 @@ export function Profile() {
               <div className="flex justify-between">
                 <span className="text-gray-600 dark:text-gray-400">Selected Currency:</span>
                 <span className="font-medium text-gray-900 dark:text-white">
-                  {selectedCurrency?.name} ({selectedCurrency?.code})
+                  {formData.currency}
                 </span>
               </div>
               
               <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-400">Symbol:</span>
-                <span className="font-medium text-gray-900 dark:text-white text-lg">
-                  {selectedCurrency?.symbol}
+                <span className="text-gray-600 dark:text-gray-400">Example Amount:</span>
+                <span className="font-medium text-gray-900 dark:text-white">
+                  <CurrencyDisplay amount={1234.56} />
                 </span>
               </div>
               
               <div className="border-t border-gray-200 dark:border-gray-700 pt-3 mt-3">
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Example: {selectedCurrency?.symbol}1,234.56
+                  All financial data is stored in PHP and converted for display.
                 </p>
               </div>
             </div>

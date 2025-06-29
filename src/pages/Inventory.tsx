@@ -2,6 +2,7 @@ import React from 'react';
 import { format } from 'date-fns';
 import { Plus, Package, TrendingUp, TrendingDown, History } from 'lucide-react';
 import { useStore } from '../store/useStore';
+import { CurrencyDisplay } from '../components/CurrencyDisplay';
 
 export function Inventory() {
   const { products, inventoryTransactions, addInventoryTransaction } = useStore();
@@ -170,7 +171,9 @@ export function Inventory() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Stock Value</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">₱{totalStockValue.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                <CurrencyDisplay amount={totalStockValue} />
+              </p>
             </div>
             <div className="rounded-lg bg-green-100 dark:bg-green-900/30 p-3">
               <TrendingUp className="h-6 w-6 text-green-600 dark:text-green-400" />
@@ -261,7 +264,7 @@ export function Inventory() {
                       {product.minStock}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
-                      ₱{stockValue.toLocaleString()}
+                      <CurrencyDisplay amount={stockValue} />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${statusColor}`}>
