@@ -6,8 +6,8 @@ import { Sales } from './pages/Sales';
 import { Products } from './pages/Products';
 import { Inventory } from './pages/Inventory';
 import { Expenses } from './pages/Expenses';
-import { Reports } from './pages/Reports';
 import { Invoices } from './pages/Invoices';
+import { Reports } from './pages/Reports';
 import { Profile } from './pages/Profile';
 import { Pricing } from './pages/Pricing';
 import { Upgrade } from './pages/Upgrade';
@@ -19,6 +19,7 @@ import { Features } from './pages/Features';
 import { Demo } from './pages/Demo';
 import { Integrations } from './pages/Integrations';
 import { ProductLabelDemo } from './pages/ProductLabelDemo';
+import { Customers } from './pages/Customers';
 import { useStore } from './store/useStore';
 import { ThemeProvider } from './contexts/ThemeContext';
 
@@ -68,8 +69,8 @@ function App() {
           <Route path="/products" element={user ? <Layout /> : <Navigate to="/landing" />}>
             <Route index element={<Products />} />
           </Route>
-          <Route path="/product-labels" element={user ? <Layout /> : <Navigate to="/landing" />}>
-            <Route index element={<ProductLabelDemo />} />
+          <Route path="/customers" element={user ? <Layout /> : <Navigate to="/landing" />}>
+            <Route index element={<Customers />} />
           </Route>
           <Route path="/inventory" element={user ? <Layout /> : <Navigate to="/landing" />}>
             <Route index element={<Inventory />} />
@@ -85,6 +86,9 @@ function App() {
           </Route>
           <Route path="/profile" element={user ? <Layout /> : <Navigate to="/landing" />}>
             <Route index element={<Profile />} />
+          </Route>
+          <Route path="/product-labels" element={user ? <Layout /> : <Navigate to="/landing" />}>
+            <Route index element={<ProductLabelDemo />} />
           </Route>
         </Routes>
       </Router>

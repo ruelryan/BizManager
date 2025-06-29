@@ -16,7 +16,8 @@ import {
   WifiOff,
   Receipt,
   User,
-  Tag
+  Tag,
+  Users
 } from 'lucide-react';
 import { useStore, isInFreeTrial, getEffectivePlan } from '../store/useStore';
 import { ThemeToggle } from './ThemeToggle';
@@ -25,6 +26,7 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
   { name: 'Sales', href: '/sales', icon: ShoppingCart },
   { name: 'Products', href: '/products', icon: Package },
+  { name: 'Customers', href: '/customers', icon: Users },
   { name: 'Inventory', href: '/inventory', icon: BarChart3 },
   { name: 'Expenses', href: '/expenses', icon: Receipt },
   { name: 'Invoices', href: '/invoices', icon: FileText },
