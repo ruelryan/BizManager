@@ -1,18 +1,20 @@
 import React from 'react';
 import { format } from 'date-fns';
-import { Plus, Search, Edit, Trash2, Receipt, DollarSign, ChevronDown, AlertTriangle } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Receipt, DollarSign, ChevronDown, AlertTriangle, Settings } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { Expense } from '../types';
 import { CurrencyDisplay } from '../components/CurrencyDisplay';
+import { PaymentTypeManager } from '../components/PaymentTypeManager';
 
 export function Expenses() {
-  const { expenses, addExpense, updateExpense, deleteExpense, getExpenseCategories } = useStore();
+  const { expenses, addExpense, updateExpense, deleteExpense, getExpenseCategories, paymentTypes } = useStore();
   const [showAddForm, setShowAddForm] = React.useState(false);
   const [editingExpense, setEditingExpense] = React.useState<Expense | null>(null);
   const [searchTerm, setSearchTerm] = React.useState('');
   const [filterCategory, setFilterCategory] = React.useState<string>('all');
   const [deleteConfirm, setDeleteConfirm] = React.useState<string | null>(null);
   const [deleteCountdown, setDeleteCountdown] = React.useState<number>(0);
+  const [showPaymentTypeManager, setShowPaymentTypeManager] = React.useState(false);
 
   // Get unique categories
   const categories = getExpenseCategories();
@@ -57,7 +59,7 @@ export function Expenses() {
       amount: expense?.amount || 0,
       category: expense?.category || '',
       date: expense?.date ? format(expense.date, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
-      paymentMethod: expense?.paymentMethod || 'cash' as const,
+      paymentMethod: expense?.paymentMethod || paymentTypes[0]?.id || 'cash',
       notes: expense?.notes || '',
     });
     const [showCategoryDropdown, setShowCategoryDropdown] = React.useState(false);
@@ -187,18 +189,32 @@ export function Expenses() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Payment Method
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Payment Method
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      setShowPaymentTypeManager(true);
+                    }}
+                    className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center"
+                  >
+                    <Settings className="h-3 w-3 mr-1" />
+                    Manage
+                  </button>
+                </div>
                 <select
                   value={formData.paymentMethod}
                   onChange={(e) => setFormData(prev => ({ ...prev, paymentMethod: e.target.value as any }))}
                   className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 >
-                  <option value="cash">Cash</option>
-                  <option value="card">Card</option>
-                  <option value="transfer">Bank Transfer</option>
-                  <option value="gcash">GCash</option>
+                  {paymentTypes.map((type) => (
+                    <option key={type.id} value={type.id}>
+                      {type.name}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -298,6 +314,14 @@ export function Expenses() {
               </option>
             ))}
           </select>
+          
+          <button
+            onClick={() => setShowPaymentTypeManager(true)}
+            className="flex items-center space-x-1 rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+          >
+            <Settings className="h-4 w-4" />
+            <span>Payment Types</span>
+          </button>
         </div>
       </div>
 
@@ -328,59 +352,64 @@ export function Expenses() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
-              {filteredExpenses.map((expense) => (
-                <tr key={expense.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900 dark:text-white">
-                      {expense.description}
-                    </div>
-                    {expense.notes && (
-                      <div className="text-sm text-gray-500 dark:text-gray-400">{expense.notes}</div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
-                    {expense.category}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-red-600 dark:text-red-400">
-                    -<CurrencyDisplay amount={expense.amount} />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
-                    {format(expense.date, 'MMM dd, yyyy')}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300 capitalize">
-                    {expense.paymentMethod}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex items-center space-x-2">
-                      <button 
-                        onClick={() => setEditingExpense(expense)}
-                        className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300"
-                        title="Edit Expense"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </button>
-                      <button 
-                        onClick={() => handleDeleteExpense(expense.id)}
-                        className={`relative transition-colors ${
-                          deleteConfirm === expense.id
-                            ? 'text-red-600 dark:text-red-400'
-                            : 'text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400'
-                        }`}
-                        title={deleteConfirm === expense.id ? `Click again to confirm (${deleteCountdown}s)` : 'Delete Expense'}
-                      >
-                        {deleteConfirm === expense.id ? (
-                          <div className="flex items-center space-x-1">
-                            <AlertTriangle className="h-4 w-4" />
-                            <span className="text-xs font-medium">{deleteCountdown}</span>
-                          </div>
-                        ) : (
-                          <Trash2 className="h-4 w-4" />
-                        )}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {filteredExpenses.map((expense) => {
+                // Find the payment type name
+                const paymentTypeName = paymentTypes.find(pt => pt.id === expense.paymentMethod)?.name || expense.paymentMethod;
+                
+                return (
+                  <tr key={expense.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900 dark:text-white">
+                        {expense.description}
+                      </div>
+                      {expense.notes && (
+                        <div className="text-sm text-gray-500 dark:text-gray-400">{expense.notes}</div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                      {expense.category}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-red-600 dark:text-red-400">
+                      -<CurrencyDisplay amount={expense.amount} />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                      {format(expense.date, 'MMM dd, yyyy')}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300 capitalize">
+                      {paymentTypeName}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex items-center space-x-2">
+                        <button 
+                          onClick={() => setEditingExpense(expense)}
+                          className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300"
+                          title="Edit Expense"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteExpense(expense.id)}
+                          className={`relative transition-colors ${
+                            deleteConfirm === expense.id
+                              ? 'text-red-600 dark:text-red-400'
+                              : 'text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400'
+                          }`}
+                          title={deleteConfirm === expense.id ? `Click again to confirm (${deleteCountdown}s)` : 'Delete Expense'}
+                        >
+                          {deleteConfirm === expense.id ? (
+                            <div className="flex items-center space-x-1">
+                              <AlertTriangle className="h-4 w-4" />
+                              <span className="text-xs font-medium">{deleteCountdown}</span>
+                            </div>
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -405,6 +434,11 @@ export function Expenses() {
         <ExpenseForm
           expense={editingExpense}
           onClose={() => setEditingExpense(null)}
+        />
+      )}
+      {showPaymentTypeManager && (
+        <PaymentTypeManager
+          onClose={() => setShowPaymentTypeManager(false)}
         />
       )}
     </div>

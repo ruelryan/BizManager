@@ -39,7 +39,7 @@ export interface Sale {
   customerEmail?: string;
   items: SaleItem[];
   total: number;
-  paymentType: 'cash' | 'card' | 'transfer' | 'gcash';
+  paymentType: string;
   status: 'paid' | 'pending' | 'overdue';
   date: Date;
   dueDate?: Date;
@@ -63,7 +63,7 @@ export interface Expense {
   amount: number;
   category: string;
   date: Date;
-  paymentMethod: 'cash' | 'card' | 'transfer' | 'gcash';
+  paymentMethod: string;
   receipt?: string;
   notes?: string;
 }
@@ -119,6 +119,12 @@ export interface UserSettings {
   paypalSubscriptionId?: string;
   paymentStatus?: string;
   lastPaymentDate?: Date;
+}
+
+export interface PaymentType {
+  id: string;
+  name: string;
+  isDefault?: boolean;
 }
 
 export interface PlanFeatures {

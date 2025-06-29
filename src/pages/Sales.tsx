@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import { format } from 'date-fns';
-import { Plus, Filter, Eye, Edit, Trash2, ChevronDown, X, AlertTriangle, Tag, FileText, RotateCcw } from 'lucide-react';
+import { Plus, Filter, Eye, Edit, Trash2, ChevronDown, X, AlertTriangle, Tag, FileText, RotateCcw, Settings } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { Sale, SaleItem } from '../types';
 import { BarcodeScanner } from '../components/BarcodeScanner';
 import { DigitalReceipt } from '../components/DigitalReceipt';
 import { ReturnRefundForm } from '../components/ReturnRefundForm';
+import { PaymentTypeManager } from '../components/PaymentTypeManager';
+import { CurrencyDisplay } from '../components/CurrencyDisplay';
 
 export function Sales() {
-  const { sales, products, customers, addSale, updateSale, deleteSale } = useStore();
+  const { sales, products, customers, addSale, updateSale, deleteSale, paymentTypes } = useStore();
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
   const [viewingSale, setViewingSale] = useState<Sale | null>(null);
@@ -18,6 +20,7 @@ export function Sales() {
   const [showCodeScanner, setShowCodeScanner] = useState(false);
   const [showDigitalReceipt, setShowDigitalReceipt] = useState(false);
   const [showReturnForm, setShowReturnForm] = useState(false);
+  const [showPaymentTypeManager, setShowPaymentTypeManager] = useState(false);
 
   // Filter sales
   const filteredSales = sales.filter((sale) => {
@@ -82,7 +85,7 @@ export function Sales() {
         alert(`Product found: ${product.name}`);
       } else {
         // Otherwise, just show product details
-        alert(`Product found: ${product.name}\nPrice: ₱${product.price}\nStock: ${product.currentStock}`);
+        alert(`Product found: ${product.name}\nPrice: ${product.price}\nStock: ${product.currentStock}`);
       }
     } else {
       alert(`No product found with code: ${code}`);
@@ -247,15 +250,15 @@ export function Sales() {
                         {hasSpecialPrice ? (
                           <div>
                             <span className="line-through text-gray-400 dark:text-gray-500 text-sm">
-                              ₱{product.price.toFixed(2)}
+                              <CurrencyDisplay amount={product.price} />
                             </span>
                             <span className="text-green-600 dark:text-green-400 ml-1 block">
-                              ₱{specialPrice.toFixed(2)}
+                              <CurrencyDisplay amount={specialPrice} />
                             </span>
                           </div>
                         ) : (
                           <span className="text-gray-900 dark:text-white">
-                            ₱{product.price.toFixed(2)}
+                            <CurrencyDisplay amount={product.price} />
                           </span>
                         )}
                       </div>
@@ -280,7 +283,7 @@ export function Sales() {
       customerEmail: sale?.customerEmail || '',
       customerId: sale?.customerId || '',
       items: sale?.items || [{ productId: '', quantity: 1, price: 0, total: 0 }],
-      paymentType: sale?.paymentType || 'cash' as const,
+      paymentType: sale?.paymentType || paymentTypes[0]?.id || 'cash',
       status: sale?.status || 'paid' as const,
       useCredit: false
     });
@@ -380,7 +383,7 @@ export function Sales() {
           customerEmail: '',
           customerId: '',
           items: [{ productId: '', quantity: 1, price: 0, total: 0 }],
-          paymentType: 'cash',
+          paymentType: paymentTypes[0]?.id || 'cash',
           status: 'paid',
           useCredit: false
         });
@@ -456,7 +459,7 @@ export function Sales() {
                   <option value="">Walk-in Customer</option>
                   {customers.map((customer) => (
                     <option key={customer.id} value={customer.id}>
-                      {customer.name} {customer.creditLimit > 0 ? `(Credit: ₱${customer.creditLimit})` : ''}
+                      {customer.name} {customer.creditLimit > 0 ? `(Credit: ${customer.creditLimit})` : ''}
                     </option>
                   ))}
                 </select>
@@ -479,15 +482,15 @@ export function Sales() {
               <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                 <div className="flex justify-between mb-2">
                   <span className="text-blue-700 dark:text-blue-300 font-medium">Credit Limit:</span>
-                  <span className="text-blue-700 dark:text-blue-300">₱{selectedCustomer.creditLimit.toFixed(2)}</span>
+                  <span className="text-blue-700 dark:text-blue-300"><CurrencyDisplay amount={selectedCustomer.creditLimit} /></span>
                 </div>
                 <div className="flex justify-between mb-2">
                   <span className="text-blue-700 dark:text-blue-300 font-medium">Current Balance:</span>
-                  <span className="text-blue-700 dark:text-blue-300">₱{selectedCustomer.balance.toFixed(2)}</span>
+                  <span className="text-blue-700 dark:text-blue-300"><CurrencyDisplay amount={selectedCustomer.balance} /></span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-blue-700 dark:text-blue-300 font-medium">Available Credit:</span>
-                  <span className="text-blue-700 dark:text-blue-300">₱{availableCredit.toFixed(2)}</span>
+                  <span className="text-blue-700 dark:text-blue-300"><CurrencyDisplay amount={availableCredit} /></span>
                 </div>
               </div>
             )}
@@ -541,7 +544,7 @@ export function Sales() {
                     </div>
                     <div className="col-span-3 flex items-center space-x-2">
                       <span className="text-sm font-medium text-gray-900 dark:text-white min-w-[100px]">
-                        ₱{item.total.toFixed(2)}
+                        <CurrencyDisplay amount={item.total} />
                       </span>
                       {formData.items.length > 1 && (
                         <button
@@ -561,18 +564,29 @@ export function Sales() {
             {/* Payment & Status */}
             <div className="grid gap-4 md:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Payment Type
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Payment Type
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowPaymentTypeManager(true)}
+                    className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center"
+                  >
+                    <Settings className="h-3 w-3 mr-1" />
+                    Manage
+                  </button>
+                </div>
                 <select
                   value={formData.paymentType}
-                  onChange={(e) => setFormData(prev => ({ ...prev, paymentType: e.target.value as any }))}
+                  onChange={(e) => setFormData(prev => ({ ...prev, paymentType: e.target.value }))}
                   className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 >
-                  <option value="cash">Cash</option>
-                  <option value="card">Card</option>
-                  <option value="transfer">Bank Transfer</option>
-                  <option value="gcash">GCash</option>
+                  {paymentTypes.map((type) => (
+                    <option key={type.id} value={type.id}>
+                      {type.name}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div>
@@ -606,8 +620,8 @@ export function Sales() {
                 </label>
                 <p className="mt-2 text-sm text-yellow-700 dark:text-yellow-400">
                   {hasAvailableCredit 
-                    ? `Available credit: ₱${availableCredit.toFixed(2)}`
-                    : `Warning: Customer has reached their credit limit of ₱${selectedCustomer.creditLimit.toFixed(2)}`
+                    ? `Available credit: ${availableCredit}`
+                    : `Warning: Customer has reached their credit limit of ${selectedCustomer.creditLimit}`
                   }
                 </p>
               </div>
@@ -618,7 +632,7 @@ export function Sales() {
               <div className="flex justify-between items-center text-lg font-semibold">
                 <span className="text-gray-900 dark:text-white">Total:</span>
                 <span className="text-gray-900 dark:text-white">
-                  ₱{formData.items.reduce((sum, item) => sum + item.total, 0).toFixed(2)}
+                  <CurrencyDisplay amount={formData.items.reduce((sum, item) => sum + item.total, 0)} />
                 </span>
               </div>
             </div>
@@ -655,147 +669,154 @@ export function Sales() {
   };
 
   // Sale View Modal
-  const SaleViewModal = ({ sale, onClose }: { sale: Sale; onClose: () => void }) => (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-700">
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-              Sale Details - {sale.invoiceNumber}
-            </h2>
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => handleShowDigitalReceipt(sale)}
-                className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 p-1"
-                title="View Digital Receipt"
-              >
-                <FileText className="h-5 w-5" />
-              </button>
-              <button
-                onClick={onClose}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-              >
-                ✕
-              </button>
+  const SaleViewModal = ({ sale, onClose }: { sale: Sale; onClose: () => void }) => {
+    // Find the payment type name
+    const paymentTypeName = paymentTypes.find(pt => pt.id === sale.paymentType)?.name || sale.paymentType;
+    
+    return (
+      <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-700">
+          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                Sale Details - {sale.invoiceNumber}
+              </h2>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => handleShowDigitalReceipt(sale)}
+                  className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 p-1"
+                  title="View Digital Receipt"
+                >
+                  <FileText className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={onClose}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-        
-        <div className="p-6 space-y-6">
-          {/* Sale Header */}
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Customer:</h3>
-              <p className="text-gray-900 dark:text-white font-medium">{sale.customerName || 'Walk-in Customer'}</p>
-              {sale.customerEmail && (
-                <p className="text-gray-600 dark:text-gray-400">{sale.customerEmail}</p>
-              )}
-            </div>
-            <div className="text-right">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Date: {format(sale.date, 'MMM dd, yyyy')}
-              </p>
-              {sale.dueDate && (
+          
+          <div className="p-6 space-y-6">
+            {/* Sale Header */}
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Customer:</h3>
+                <p className="text-gray-900 dark:text-white font-medium">{sale.customerName || 'Walk-in Customer'}</p>
+                {sale.customerEmail && (
+                  <p className="text-gray-600 dark:text-gray-400">{sale.customerEmail}</p>
+                )}
+              </div>
+              <div className="text-right">
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Due: {format(sale.dueDate, 'MMM dd, yyyy')}
+                  Date: {format(sale.date, 'MMM dd, yyyy')}
                 </p>
-              )}
-              <span className={`inline-flex rounded-full px-2 py-1 text-xs font-medium mt-2 ${getStatusColor(getCalculatedStatus(sale))}`}>
-                {getCalculatedStatus(sale)}
-              </span>
+                {sale.dueDate && (
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Due: {format(sale.dueDate, 'MMM dd, yyyy')}
+                  </p>
+                )}
+                <span className={`inline-flex rounded-full px-2 py-1 text-xs font-medium mt-2 ${getStatusColor(getCalculatedStatus(sale))}`}>
+                  {getCalculatedStatus(sale)}
+                </span>
+              </div>
             </div>
-          </div>
 
-          {/* Items */}
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead className="bg-gray-50 dark:bg-gray-700/50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                    Item
-                  </th>
-                  <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                    Qty
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                    Price
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                    Total
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
-                {sale.items.map((item, index) => (
-                  <tr key={index}>
-                    <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
-                      {item.productName}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-center text-gray-900 dark:text-gray-300">
-                      {item.quantity}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-300">
-                      ₱{item.price.toFixed(2)}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right font-medium text-gray-900 dark:text-white">
-                      ₱{item.total.toFixed(2)}
-                    </td>
+            {/* Items */}
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-700/50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                      Item
+                    </th>
+                    <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                      Qty
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                      Price
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                      Total
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
+                  {sale.items.map((item, index) => (
+                    <tr key={index}>
+                      <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
+                        {item.productName}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-center text-gray-900 dark:text-gray-300">
+                        {item.quantity}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-300">
+                        <CurrencyDisplay amount={item.price} />
+                      </td>
+                      <td className="px-4 py-3 text-sm text-right font-medium text-gray-900 dark:text-white">
+                        <CurrencyDisplay amount={item.total} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-          {/* Total */}
-          <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-            <div className="flex justify-end">
-              <div className="w-64">
-                <div className="flex justify-between text-lg font-semibold">
-                  <span className="text-gray-900 dark:text-white">Total:</span>
-                  <span className="text-gray-900 dark:text-white">₱{sale.total.toFixed(2)}</span>
+            {/* Total */}
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+              <div className="flex justify-end">
+                <div className="w-64">
+                  <div className="flex justify-between text-lg font-semibold">
+                    <span className="text-gray-900 dark:text-white">Total:</span>
+                    <span className="text-gray-900 dark:text-white">
+                      <CurrencyDisplay amount={sale.total} />
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Payment Info */}
-          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-            <div className="grid gap-2 md:grid-cols-2">
-              <div>
-                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Payment Method:</span>
-                <p className="text-gray-900 dark:text-white capitalize">{sale.paymentType}</p>
-              </div>
-              <div>
-                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Status:</span>
-                <p className="text-gray-900 dark:text-white capitalize">{getCalculatedStatus(sale)}</p>
+            {/* Payment Info */}
+            <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+              <div className="grid gap-2 md:grid-cols-2">
+                <div>
+                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Payment Method:</span>
+                  <p className="text-gray-900 dark:text-white capitalize">{paymentTypeName}</p>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Status:</span>
+                  <p className="text-gray-900 dark:text-white capitalize">{getCalculatedStatus(sale)}</p>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Action Buttons */}
-          <div className="flex justify-between">
-            <button
-              onClick={() => {
-                onClose();
-                setShowReturnForm(true);
-              }}
-              className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors flex items-center"
-            >
-              <RotateCcw className="h-4 w-4 mr-1" />
-              Process Return
-            </button>
-            <button
-              onClick={() => handleShowDigitalReceipt(sale)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-            >
-              <FileText className="h-4 w-4 mr-1" />
-              View Receipt
-            </button>
+            {/* Action Buttons */}
+            <div className="flex justify-between">
+              <button
+                onClick={() => {
+                  onClose();
+                  setShowReturnForm(true);
+                }}
+                className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors flex items-center"
+              >
+                <RotateCcw className="h-4 w-4 mr-1" />
+                Process Return
+              </button>
+              <button
+                onClick={() => handleShowDigitalReceipt(sale)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+              >
+                <FileText className="h-4 w-4 mr-1" />
+                View Receipt
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="space-y-6 p-6">
@@ -879,6 +900,9 @@ export function Sales() {
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
               {filteredSales.map((sale) => {
                 const calculatedStatus = getCalculatedStatus(sale);
+                // Find the payment type name
+                const paymentTypeName = paymentTypes.find(pt => pt.id === sale.paymentType)?.name || sale.paymentType;
+                
                 return (
                   <tr key={sale.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -898,10 +922,10 @@ export function Sales() {
                       {format(sale.date, 'MMM dd, yyyy')}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                      ₱{sale.total.toFixed(2)}
+                      <CurrencyDisplay amount={sale.total} />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300 capitalize">
-                      {sale.paymentType}
+                      {paymentTypeName}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${getStatusColor(calculatedStatus)}`}>
@@ -996,6 +1020,11 @@ export function Sales() {
         <ReturnRefundForm 
           onClose={() => setShowReturnForm(false)}
           onComplete={handleReturnComplete}
+        />
+      )}
+      {showPaymentTypeManager && (
+        <PaymentTypeManager
+          onClose={() => setShowPaymentTypeManager(false)}
         />
       )}
     </div>

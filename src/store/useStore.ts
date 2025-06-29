@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase, handleSupabaseError, transformSupabaseData, transformToSupabaseData } from '../lib/supabase';
-import { User, Product, Sale, Customer, Expense, InventoryTransaction, UserSettings, Return } from '../types';
+import { User, Product, Sale, Customer, Expense, InventoryTransaction, UserSettings, Return, PaymentType } from '../types';
 import { plans } from '../utils/plans';
 
 // Helper function to generate a unique invoice number
@@ -11,6 +11,14 @@ const generateInvoiceNumber = () => {
   const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
   return `${prefix}-${timestamp}-${random}`;
 };
+
+// Default payment types
+const defaultPaymentTypes: PaymentType[] = [
+  { id: 'cash', name: 'Cash', isDefault: true },
+  { id: 'card', name: 'Card', isDefault: true },
+  { id: 'transfer', name: 'Bank Transfer', isDefault: true },
+  { id: 'gcash', name: 'GCash', isDefault: true },
+];
 
 // Helper function to check if user is in free trial
 export const isInFreeTrial = (user: User | null) => {
@@ -41,6 +49,7 @@ interface StoreState {
   returns: Return[];
   userSettings: UserSettings | null;
   monthlyGoal: number;
+  paymentTypes: PaymentType[];
 
   // Auth actions
   signIn: (email: string, password: string, plan?: string) => Promise<void>;
@@ -80,6 +89,11 @@ interface StoreState {
   // Return actions
   addReturn: (returnData: Omit<Return, 'id'>) => Promise<void>;
 
+  // Payment type actions
+  addPaymentType: (name: string) => Promise<void>;
+  updatePaymentType: (id: string, name: string) => Promise<void>;
+  deletePaymentType: (id: string) => Promise<void>;
+
   // User settings
   updateUserProfile: (data: Partial<User>) => Promise<void>;
   updateUserSettings: (data: Partial<UserSettings>) => Promise<void>;
@@ -110,6 +124,7 @@ export const useStore = create<StoreState>()(
       returns: [],
       userSettings: null,
       monthlyGoal: 50000,
+      paymentTypes: [...defaultPaymentTypes],
 
       // Auth actions
       signIn: async (email, password, plan = 'free') => {
@@ -917,6 +932,89 @@ export const useStore = create<StoreState>()(
         }
       },
 
+      // Payment type actions
+      addPaymentType: async (name) => {
+        try {
+          const { paymentTypes } = get();
+          
+          // Check if payment type already exists
+          if (paymentTypes.some(pt => pt.name.toLowerCase() === name.toLowerCase())) {
+            throw new Error('Payment type already exists');
+          }
+          
+          // Create new payment type
+          const newPaymentType: PaymentType = {
+            id: `payment-type-${Date.now()}`,
+            name,
+          };
+          
+          set({ paymentTypes: [...paymentTypes, newPaymentType] });
+          
+          // In a real app, you would save to database here
+          // For now, we're just using local state
+        } catch (error) {
+          console.error('Add payment type error:', error);
+          throw error;
+        }
+      },
+      
+      updatePaymentType: async (id, name) => {
+        try {
+          const { paymentTypes } = get();
+          
+          // Check if this is a default payment type
+          const isDefault = defaultPaymentTypes.some(pt => pt.id === id);
+          if (isDefault) {
+            throw new Error('Cannot modify default payment types');
+          }
+          
+          // Check if payment type already exists
+          if (paymentTypes.some(pt => pt.id !== id && pt.name.toLowerCase() === name.toLowerCase())) {
+            throw new Error('Payment type already exists');
+          }
+          
+          // Update payment type
+          const updatedPaymentTypes = paymentTypes.map(pt => 
+            pt.id === id ? { ...pt, name } : pt
+          );
+          
+          set({ paymentTypes: updatedPaymentTypes });
+          
+          // In a real app, you would save to database here
+        } catch (error) {
+          console.error('Update payment type error:', error);
+          throw error;
+        }
+      },
+      
+      deletePaymentType: async (id) => {
+        try {
+          const { paymentTypes, sales } = get();
+          
+          // Check if this is a default payment type
+          const isDefault = defaultPaymentTypes.some(pt => pt.id === id);
+          if (isDefault) {
+            throw new Error('Cannot delete default payment types');
+          }
+          
+          // Check if payment type is in use
+          const isInUse = sales.some(sale => sale.paymentType === id);
+          if (isInUse) {
+            throw new Error('Cannot delete payment type that is in use');
+          }
+          
+          // Delete payment type
+          const filteredPaymentTypes = paymentTypes.filter(pt => pt.id !== id);
+          
+          set({ paymentTypes: filteredPaymentTypes });
+          
+          // In a real app, you would delete from database here
+        } catch (error) {
+          console.error('Delete payment type error:', error);
+          throw error;
+        }
+      },
+
       // User settings
       updateUserProfile: async (data) => {
         try {
@@ -1384,6 +1482,13 @@ export const useStore = create<StoreState>()(
             plan: 'pro', // Demo users get pro features
           };
           
+          // Generate additional payment types
+          const additionalPaymentTypes: PaymentType[] = [
+            { id: 'payment-type-1', name: 'PayMaya' },
+            { id: 'payment-type-2', name: 'Grab Pay' },
+            { id: 'payment-type-3', name: 'WeChat Pay' }
+          ];
+          
           // Set demo data
           set({
             products: demoProducts,
@@ -1394,6 +1499,7 @@ export const useStore = create<StoreState>()(
             monthlyGoal: demoUserSettings.monthlyGoal,
             inventoryTransactions: [],
             returns: [],
+            paymentTypes: [...defaultPaymentTypes, ...additionalPaymentTypes]
           });
         } catch (error) {
           console.error('Load demo data error:', error);
@@ -1412,6 +1518,7 @@ export const useStore = create<StoreState>()(
         returns: state.returns,
         userSettings: state.userSettings,
         monthlyGoal: state.monthlyGoal,
+        paymentTypes: state.paymentTypes,
       }),
     }
   )
