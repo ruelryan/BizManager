@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { X, Moon, Sun } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
@@ -66,15 +66,6 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
             </li>
             <li>
               <Link
-                to="/integrations"
-                className="block py-2 px-4 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
-                onClick={onClose}
-              >
-                Integrations
-              </Link>
-            </li>
-            <li>
-              <Link
                 to="/contact"
                 className="block py-2 px-4 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
                 onClick={onClose}
@@ -94,7 +85,7 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
             </Link>
             <Link
               to="/signup"
-              className="block py-2 px-4 mt-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:from-blue-700 hover:to-purple-700"
+              className="block py-2 px-4 mt-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-700 dark:hover:bg-blue-600"
               onClick={onClose}
             >
               Sign Up Free
