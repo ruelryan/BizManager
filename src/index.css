@@ -450,3 +450,27 @@ p {
   transform: translateX(100%);
   transition: opacity 300ms, transform 300ms;
 }
+
+/* Smooth animations */
+@keyframes fadeIn {
+  from { 
+    opacity: 0; 
+    transform: translateY(10px);
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0);
+  }
+}
+
+/* Staggered animation for features */
+.stagger-animation > * {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+}
+
+.stagger-animation > *.animate-fade-in {
+  opacity: 1;
+  transform: translateY(0);
+}
