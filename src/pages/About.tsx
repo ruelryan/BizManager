@@ -42,7 +42,7 @@ export function About() {
                 My career path has been defined by a passion for precision, analytical thinking, and problem-solving. Beginning in laboratory science as a Registered Chemist, I developed a meticulous approach to technical challenges that has proven invaluable in my transition to web development and business ownership.
               </p>
               <p className="text-gray-700 dark:text-gray-300 mt-4">
-                As Laboratory Head at Cebu Agua Lab and Methods Development Manager at PASAR Corporation, I honed my skills in quality control, technical leadership, and systematic problem-solving. These experiences taught me to approach complex challenges methodically, maintain rigorous standards, and effectively lead technical teams—skills that translate seamlessly to web development.
+                As Methods Development Manager at PASAR Corporation and later as Laboratory Head at Cebu Agua Lab, I honed my skills in quality control, technical leadership, and systematic problem-solving. These experiences taught me to approach complex challenges methodically, maintain rigorous standards, and effectively lead technical teams—skills that translate seamlessly to web development.
               </p>
               <p className="text-gray-700 dark:text-gray-300 mt-4">
                 Today, I apply this same analytical mindset to creating web solutions, combining scientific precision with creative problem-solving. As the owner of E & J Appliances Furniture since 2022, I've gained firsthand understanding of business needs, allowing me to develop web applications that address real-world challenges faced by entrepreneurs.
@@ -80,23 +80,6 @@ export function About() {
                   </div>
                 </div>
                 
-                {/* PASAR Corporation */}
-                <div className="relative pl-20">
-                  <div className="absolute left-0 w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center border-4 border-white dark:border-gray-800">
-                    <Beaker className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Methods Development Manager</h3>
-                  <p className="text-sm text-blue-600 dark:text-blue-400 mb-2">PASAR Corporation</p>
-                  <div className="text-gray-700 dark:text-gray-300">
-                    <p className="mb-2">Led technical innovation and quality control initiatives for laboratory operations, managing method development and validation processes.</p>
-                    <ul className="list-disc pl-5 space-y-1 mt-3">
-                      <li>Implemented ISO 17025 standards and quality management systems</li>
-                      <li>Directed technical teams in developing and validating analytical methods</li>
-                      <li>Optimized laboratory processes for improved efficiency and accuracy</li>
-                    </ul>
-                  </div>
-                </div>
-                
                 {/* Cebu Agua Lab */}
                 <div className="relative pl-20">
                   <div className="absolute left-0 w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center border-4 border-white dark:border-gray-800">
@@ -110,6 +93,23 @@ export function About() {
                       <li>Supervised laboratory operations and quality control systems</li>
                       <li>Trained and mentored technical staff in analytical procedures</li>
                       <li>Maintained regulatory compliance and documentation standards</li>
+                    </ul>
+                  </div>
+                </div>
+                
+                {/* PASAR Corporation */}
+                <div className="relative pl-20">
+                  <div className="absolute left-0 w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center border-4 border-white dark:border-gray-800">
+                    <Beaker className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Methods Development Manager</h3>
+                  <p className="text-sm text-blue-600 dark:text-blue-400 mb-2">PASAR Corporation</p>
+                  <div className="text-gray-700 dark:text-gray-300">
+                    <p className="mb-2">Led technical innovation and quality control initiatives for laboratory operations, managing method development and validation processes.</p>
+                    <ul className="list-disc pl-5 space-y-1 mt-3">
+                      <li>Implemented ISO 17025 standards and quality management systems</li>
+                      <li>Directed technical teams in developing and validating analytical methods</li>
+                      <li>Optimized laboratory processes for improved efficiency and accuracy</li>
                     </ul>
                   </div>
                 </div>
