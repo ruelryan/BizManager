@@ -1,12 +1,13 @@
 import React from 'react';
 import { Check, Crown, Star, ArrowRight, AlertCircle, Home } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { plans } from '../utils/plans';
 import { useStore } from '../store/useStore';
 import { ThemeToggle } from '../components/ThemeToggle';
 
 export function Pricing() {
   const { user } = useStore();
+  const navigate = useNavigate();
   const [billingCycle, setBillingCycle] = React.useState<'monthly' | 'yearly'>('monthly');
 
   const features = [
@@ -61,6 +62,14 @@ export function Pricing() {
 
   const getPeriod = () => {
     return billingCycle === 'yearly' ? '/year' : '/month';
+  };
+
+  const handleUpgradeClick = (planId: string) => {
+    if (user) {
+      navigate('/upgrade', { state: { planId } });
+    } else {
+      navigate('/login', { state: { from: '/upgrade' } });
+    }
   };
 
   return (
@@ -172,9 +181,8 @@ export function Pricing() {
                     Current Plan
                   </div>
                 ) : (
-                  <Link
-                    to="/upgrade"
-                    state={{ planId: plan.id }}
+                  <button
+                    onClick={() => handleUpgradeClick(plan.id)}
                     className={`flex w-full items-center justify-center rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
                       plan.popular
                         ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700'
@@ -183,7 +191,7 @@ export function Pricing() {
                   >
                     {plan.price === 0 ? 'Get Started' : 'Upgrade Now'}
                     <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
+                  </button>
                 )}
               </div>
             </div>
@@ -291,14 +299,13 @@ export function Pricing() {
             <p className="text-xl mb-6 opacity-90">
               Join thousands of businesses already using BizManager
             </p>
-            <Link
-              to="/upgrade"
-              state={{ planId: 'starter' }}
+            <button
+              onClick={() => handleUpgradeClick('starter')}
               className="inline-flex items-center rounded-lg bg-white px-6 py-3 text-lg font-medium text-blue-600 transition-colors hover:bg-gray-100"
             >
               <Crown className="mr-2 h-5 w-5" />
               Start Your Free Trial
-            </Link>
+            </button>
           </div>
         </div>
       </div>

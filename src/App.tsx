@@ -49,7 +49,6 @@ function App() {
           <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <Login />} />
           <Route path="/signup" element={user ? <Navigate to="/dashboard" /> : <Login />} />
           <Route path="/pricing" element={<Pricing />} />
-          <Route path="/upgrade" element={<Upgrade />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/features" element={<Features />} />
@@ -60,36 +59,39 @@ function App() {
           <Route path="/" element={user ? <Navigate to="/dashboard" /> : <Navigate to="/landing" />} />
           
           {/* Protected Routes */}
-          <Route path="/dashboard" element={user ? <Layout /> : <Navigate to="/landing" />}>
+          <Route path="/dashboard" element={user ? <Layout /> : <Navigate to="/login" />}>
             <Route index element={<Dashboard />} />
           </Route>
-          <Route path="/sales" element={user ? <Layout /> : <Navigate to="/landing" />}>
+          <Route path="/sales" element={user ? <Layout /> : <Navigate to="/login" />}>
             <Route index element={<Sales />} />
           </Route>
-          <Route path="/products" element={user ? <Layout /> : <Navigate to="/landing" />}>
+          <Route path="/products" element={user ? <Layout /> : <Navigate to="/login" />}>
             <Route index element={<Products />} />
           </Route>
-          <Route path="/customers" element={user ? <Layout /> : <Navigate to="/landing" />}>
+          <Route path="/customers" element={user ? <Layout /> : <Navigate to="/login" />}>
             <Route index element={<Customers />} />
           </Route>
-          <Route path="/inventory" element={user ? <Layout /> : <Navigate to="/landing" />}>
+          <Route path="/inventory" element={user ? <Layout /> : <Navigate to="/login" />}>
             <Route index element={<Inventory />} />
           </Route>
-          <Route path="/expenses" element={user ? <Layout /> : <Navigate to="/landing" />}>
+          <Route path="/expenses" element={user ? <Layout /> : <Navigate to="/login" />}>
             <Route index element={<Expenses />} />
           </Route>
-          <Route path="/invoices" element={user ? <Layout /> : <Navigate to="/landing" />}>
+          <Route path="/invoices" element={user ? <Layout /> : <Navigate to="/login" />}>
             <Route index element={<Invoices />} />
           </Route>
-          <Route path="/reports" element={user ? <Layout /> : <Navigate to="/landing" />}>
+          <Route path="/reports" element={user ? <Layout /> : <Navigate to="/login" />}>
             <Route index element={<Reports />} />
           </Route>
-          <Route path="/profile" element={user ? <Layout /> : <Navigate to="/landing" />}>
+          <Route path="/profile" element={user ? <Layout /> : <Navigate to="/login" />}>
             <Route index element={<Profile />} />
           </Route>
-          <Route path="/product-labels" element={user ? <Layout /> : <Navigate to="/landing" />}>
+          <Route path="/product-labels" element={user ? <Layout /> : <Navigate to="/login" />}>
             <Route index element={<ProductLabelDemo />} />
           </Route>
+          
+          {/* Protected Payment Routes - Require authentication */}
+          <Route path="/upgrade" element={user ? <Upgrade /> : <Navigate to="/login" state={{ from: '/upgrade' }} />} />
         </Routes>
       </Router>
     </ThemeProvider>

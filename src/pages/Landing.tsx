@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   BarChart3, 
   Package, 
@@ -17,9 +17,12 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { MobileMenu } from '../components/MobileMenu';
+import { useStore } from '../store/useStore';
 
 export function Landing() {
   const { theme, toggleTheme } = useTheme();
+  const { user } = useStore();
+  const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   
@@ -163,6 +166,14 @@ export function Landing() {
     }
   ];
 
+  const handlePricingClick = (planId: string) => {
+    if (user) {
+      navigate('/upgrade', { state: { planId } });
+    } else {
+      navigate('/login', { state: { from: '/upgrade' } });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-200">
       {/* Header */}
@@ -257,10 +268,10 @@ export function Landing() {
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center opacity-0 animate-[fadeIn_0.8s_ease-out_0.9s_forwards]">
               <Link 
-                to="/signup" 
+                to={user ? "/dashboard" : "/signup"}
                 className="bg-blue-600 dark:bg-blue-500 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-all duration-200 shadow-md flex items-center w-full sm:w-auto justify-center"
               >
-                Start Your Free Trial
+                {user ? "Go to Dashboard" : "Start Your Free Trial"}
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
               <Link 
@@ -382,10 +393,10 @@ export function Landing() {
           
           <div className="text-center mt-16 scroll-animation">
             <Link 
-              to="/signup" 
+              to={user ? "/dashboard" : "/signup"}
               className="bg-blue-600 dark:bg-blue-500 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-all duration-200 shadow-md inline-flex items-center"
             >
-              Start Your Free Trial
+              {user ? "Go to Dashboard" : "Start Your Free Trial"}
               <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
           </div>
@@ -485,8 +496,8 @@ export function Landing() {
                     ))}
                   </ul>
 
-                  <Link 
-                    to="/signup"
+                  <button
+                    onClick={() => handlePricingClick(tier.name.toLowerCase())}
                     className={`w-full py-3 px-6 rounded-lg font-semibold text-center block transition-all ${
                       tier.popular
                         ? 'bg-blue-600 dark:bg-blue-500 text-white hover:bg-blue-700 dark:hover:bg-blue-600 shadow-md'
@@ -494,7 +505,7 @@ export function Landing() {
                     }`}
                   >
                     {tier.cta}
-                  </Link>
+                  </button>
                 </div>
               </div>
             ))}
@@ -521,10 +532,10 @@ export function Landing() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link 
-              to="/signup" 
+              to={user ? "/dashboard" : "/signup"}
               className="bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold text-lg hover:bg-gray-100 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center"
             >
-              Start Your Free Trial Today
+              {user ? "Go to Dashboard" : "Start Your Free Trial Today"}
               <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
             <Link 

@@ -12,14 +12,17 @@ export function Login() {
   // Check if we're on the signup page
   const isSignupPage = location.pathname === '/signup';
   
+  // Get the redirect path from location state (if any)
+  const from = location.state?.from || '/dashboard';
+  
   const [showPassword, setShowPassword] = React.useState(false);
   const [showSignUp, setShowSignUp] = React.useState(isSignupPage);
   const [error, setError] = React.useState('');
   const [formData, setFormData] = React.useState({
+    name: '',
     email: isSignupPage ? '' : 'demo@businessmanager.com',
     password: isSignupPage ? '' : 'demo123',
-    name: '',
-    plan: 'free' as 'free' | 'starter' | 'pro',
+    plan: user?.plan || 'free' as 'free' | 'starter' | 'pro',
   });
 
   // Update form state when route changes
@@ -43,10 +46,10 @@ export function Login() {
           return;
         }
         await signUp(formData.email, formData.password, formData.name);
-        navigate('/dashboard');
+        navigate(from);
       } else {
         await signIn(formData.email, formData.password, formData.plan);
-        navigate('/dashboard');
+        navigate(from);
       }
     } catch (err: any) {
       setError(err.message || `Failed to ${showSignUp ? 'create account' : 'sign in'}`);
@@ -80,9 +83,9 @@ export function Login() {
     
     // Navigate to the appropriate route
     if (newMode) {
-      navigate('/signup');
+      navigate('/signup', { state: { from } });
     } else {
-      navigate('/login');
+      navigate('/login', { state: { from } });
     }
   };
 
@@ -127,6 +130,11 @@ export function Login() {
           <p className="text-gray-600 dark:text-gray-400 mt-2">
             {showSignUp ? 'Create your account' : 'Sign in to your account'}
           </p>
+          {from !== '/dashboard' && (
+            <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">
+              You need to sign in to access this page
+            </p>
+          )}
         </div>
 
         {/* Auth Form */}
