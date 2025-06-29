@@ -74,7 +74,7 @@ export function CreditLimitManager({
   };
 
   const availableCredit = currentCreditLimit - currentBalance;
-  const creditUtilizationPercent = (currentBalance / currentCreditLimit) * 100;
+  const creditUtilizationPercent = (currentBalance / currentCreditLimit) * 100 || 0;
 
   return (
     <div className="fixed inset-0 z-50 bg-black bg-opacity-75 flex items-center justify-center p-4">
