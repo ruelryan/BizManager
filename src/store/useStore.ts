@@ -87,6 +87,11 @@ interface StoreState {
 
   // Export data
   exportReportData: () => string;
+
+  // Internal methods
+  initAuth: () => Promise<void>;
+  loadUserData: () => Promise<void>;
+  loadDemoData: () => Promise<void>;
 }
 
 export const useStore = create<StoreState>()(
@@ -137,11 +142,18 @@ export const useStore = create<StoreState>()(
           if (error) throw error;
 
           if (data.user) {
-            const { data: profileData } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', data.user.id)
-              .single();
+            // Try to get profile data, but don't fail if table doesn't exist
+            let profileData = null;
+            try {
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', data.user.id)
+                .single();
+              profileData = profile;
+            } catch (profileError) {
+              console.warn('Profiles table not found, using auth metadata:', profileError);
+            }
 
             const { data: settingsData } = await supabase
               .from('user_settings')
@@ -216,14 +228,18 @@ export const useStore = create<StoreState>()(
           if (error) throw error;
 
           if (data.user) {
-            // Create profile
-            await supabase
-              .from('profiles')
-              .insert({
-                id: data.user.id,
-                full_name: name,
-                email: email,
-              });
+            // Try to create profile, but don't fail if table doesn't exist
+            try {
+              await supabase
+                .from('profiles')
+                .insert({
+                  id: data.user.id,
+                  full_name: name,
+                  email: email,
+                });
+            } catch (profileError) {
+              console.warn('Could not create profile, table may not exist:', profileError);
+            }
 
             const user: User = {
               id: data.user.id,
@@ -915,15 +931,19 @@ export const useStore = create<StoreState>()(
             });
           }
           
-          // Update profile
-          const { error } = await supabase
-            .from('profiles')
-            .update({
-              full_name: data.name,
-            })
-            .eq('id', user.id);
-            
-          if (error) throw handleSupabaseError(error);
+          // Try to update profile, but don't fail if table doesn't exist
+          try {
+            const { error } = await supabase
+              .from('profiles')
+              .update({
+                full_name: data.name,
+              })
+              .eq('id', user.id);
+              
+            if (error) throw handleSupabaseError(error);
+          } catch (profileError) {
+            console.warn('Could not update profile, table may not exist:', profileError);
+          }
           
           // Update local state
           set({ user: { ...user, ...data } });
@@ -1009,11 +1029,18 @@ export const useStore = create<StoreState>()(
           const { data } = await supabase.auth.getSession();
           
           if (data.session?.user) {
-            const { data: profileData } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', data.session.user.id)
-              .single();
+            // Try to get profile data, but don't fail if table doesn't exist
+            let profileData = null;
+            try {
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', data.session.user.id)
+                .single();
+              profileData = profile;
+            } catch (profileError) {
+              console.warn('Profiles table not found, using auth metadata:', profileError);
+            }
 
             const { data: settingsData } = await supabase
               .from('user_settings')
