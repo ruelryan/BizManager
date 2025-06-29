@@ -4,8 +4,8 @@ import { useStore } from '../store/useStore';
 import { Customer } from '../types';
 import { CreditLimitManager } from '../components/CreditLimitManager';
 import { CustomerPricing } from '../components/CustomerPricing';
-import { CurrencyDisplay } from './components/CurrencyDisplay';
-import { CurrencyInput } from './components/CurrencyInput';
+import { CurrencyDisplay } from '../components/CurrencyDisplay';
+import { CurrencyInput } from '../components/CurrencyInput';
 
 export function Customers() {
   const { customers, addCustomer, updateCustomer, deleteCustomer } = useStore();
