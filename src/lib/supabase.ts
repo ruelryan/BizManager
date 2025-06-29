@@ -46,12 +46,19 @@ export const getCurrentUserId = async () => {
   return user?.id;
 };
 
+// Helper function to safely create Date objects
+const safeDate = (dateValue: any): Date => {
+  if (!dateValue) return new Date();
+  const date = new Date(dateValue);
+  return isNaN(date.getTime()) ? new Date() : date;
+};
+
 // Helper function to transform Supabase data to app format
 export const transformSupabaseData = {
   product: (data: any) => ({
     ...data,
-    createdAt: new Date(data.created_at),
-    updatedAt: new Date(data.updated_at),
+    createdAt: safeDate(data.created_at),
+    updatedAt: safeDate(data.updated_at),
     currentStock: Number(data.stock) || 0,
     minStock: Number(data.min_stock) || 0,
     cost: Number(data.cost) || 0,
@@ -61,7 +68,7 @@ export const transformSupabaseData = {
   
   sale: (data: any) => ({
     ...data,
-    date: new Date(data.created_at),
+    date: safeDate(data.created_at),
     customerId: data.customer_id?.toString() || '',
     customerName: data.customer_name,
     customerEmail: data.customer_email,
@@ -72,7 +79,7 @@ export const transformSupabaseData = {
   
   customer: (data: any) => ({
     ...data,
-    createdAt: new Date(data.created_at),
+    createdAt: safeDate(data.created_at),
     isActive: data.is_active,
     creditLimit: Number(data.credit_limit) || 0,
     balance: Number(data.balance) || 0,
@@ -81,9 +88,9 @@ export const transformSupabaseData = {
 
   expense: (data: any) => ({
     ...data,
-    date: new Date(data.date),
+    date: safeDate(data.date),
     paymentMethod: data.payment_method,
-    createdAt: new Date(data.created_at)
+    createdAt: safeDate(data.created_at)
   }),
 
   userSettings: (data: any) => ({
@@ -94,10 +101,10 @@ export const transformSupabaseData = {
     businessAddress: data.business_address,
     businessPhone: data.business_phone,
     businessEmail: data.business_email,
-    createdAt: new Date(data.created_at),
-    updatedAt: new Date(data.updated_at),
+    createdAt: safeDate(data.created_at),
+    updatedAt: safeDate(data.updated_at),
     plan: data.plan || 'free',
-    subscriptionExpiry: data.subscription_expiry ? new Date(data.subscription_expiry) : undefined
+    subscriptionExpiry: data.subscription_expiry ? safeDate(data.subscription_expiry) : undefined
   })
 };
 
