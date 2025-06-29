@@ -142,17 +142,22 @@ export const useStore = create<StoreState>()(
           if (error) throw error;
 
           if (data.user) {
-            // Try to get profile data, but don't fail if table doesn't exist
+            // Try to get profile data, but don't fail if table doesn't exist or no profile found
             let profileData = null;
             try {
-              const { data: profile } = await supabase
+              const { data: profile, error: profileError } = await supabase
                 .from('profiles')
                 .select('*')
                 .eq('id', data.user.id)
-                .single();
+                .maybeSingle(); // Use maybeSingle() instead of single() to avoid PGRST116 error
+              
+              if (profileError && profileError.code !== 'PGRST116') {
+                throw profileError;
+              }
+              
               profileData = profile;
             } catch (profileError) {
-              console.warn('Profiles table not found, using auth metadata:', profileError);
+              console.warn('Could not fetch profile:', profileError);
             }
 
             const { data: settingsData } = await supabase
@@ -1029,17 +1034,22 @@ export const useStore = create<StoreState>()(
           const { data } = await supabase.auth.getSession();
           
           if (data.session?.user) {
-            // Try to get profile data, but don't fail if table doesn't exist
+            // Try to get profile data, but don't fail if table doesn't exist or no profile found
             let profileData = null;
             try {
-              const { data: profile } = await supabase
+              const { data: profile, error: profileError } = await supabase
                 .from('profiles')
                 .select('*')
                 .eq('id', data.session.user.id)
-                .single();
+                .maybeSingle(); // Use maybeSingle() instead of single() to avoid PGRST116 error
+              
+              if (profileError && profileError.code !== 'PGRST116') {
+                throw profileError;
+              }
+              
               profileData = profile;
             } catch (profileError) {
-              console.warn('Profiles table not found, using auth metadata:', profileError);
+              console.warn('Could not fetch profile:', profileError);
             }
 
             const { data: settingsData } = await supabase
