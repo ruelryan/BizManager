@@ -265,6 +265,9 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
     marginTop: 5,
   },
+  currencyPrefix: {
+    marginRight: 4,
+  }
 });
 
 // Invoice PDF Component
@@ -286,6 +289,11 @@ const InvoicePDF = ({ sale, userSettings }: { sale: any; userSettings: any }) =>
   // Generate QR code URL for verification
   const qrCodeData = `INV:${invoiceNumber}|DATE:${format(new Date(sale.date || sale.created_at), 'yyyyMMdd')}|AMT:${sale.total || 0}`;
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(qrCodeData)}`;
+
+  // Format number with commas
+  const formatNumber = (num: number) => {
+    return num.toLocaleString();
+  };
 
   return (
     <Document>
@@ -362,10 +370,16 @@ const InvoicePDF = ({ sale, userSettings }: { sale: any; userSettings: any }) =>
                 <Text style={styles.tableRowText}>{Number(item.quantity || 0)}</Text>
               </View>
               <View style={styles.tableCol3}>
-                <Text style={styles.tableRowText}>{currencySymbol}{Number(item.price || 0).toLocaleString()}</Text>
+                <Text style={styles.tableRowText}>
+                  <Text style={styles.currencyPrefix}>{currencySymbol}</Text>
+                  {formatNumber(Number(item.price || 0))}
+                </Text>
               </View>
               <View style={styles.tableCol4}>
-                <Text style={styles.tableRowTextBold}>{currencySymbol}{Number(item.total || (item.price || 0) * (item.quantity || 0)).toLocaleString()}</Text>
+                <Text style={styles.tableRowTextBold}>
+                  <Text style={styles.currencyPrefix}>{currencySymbol}</Text>
+                  {formatNumber(Number(item.total || (item.price || 0) * (item.quantity || 0)))}
+                </Text>
               </View>
             </View>
           ))}
@@ -375,23 +389,35 @@ const InvoicePDF = ({ sale, userSettings }: { sale: any; userSettings: any }) =>
         <View style={styles.total}>
           <View style={styles.totalRow}>
             <Text style={styles.totalText}>Subtotal:</Text>
-            <Text style={styles.totalText}>{currencySymbol}{Number(sale.subtotal || sale.total || 0).toLocaleString()}</Text>
+            <Text style={styles.totalText}>
+              <Text style={styles.currencyPrefix}>{currencySymbol}</Text>
+              {formatNumber(Number(sale.subtotal || sale.total || 0))}
+            </Text>
           </View>
           {sale.tax && Number(sale.tax) > 0 && (
             <View style={styles.totalRow}>
               <Text style={styles.totalText}>Tax:</Text>
-              <Text style={styles.totalText}>{currencySymbol}{Number(sale.tax || 0).toLocaleString()}</Text>
+              <Text style={styles.totalText}>
+                <Text style={styles.currencyPrefix}>{currencySymbol}</Text>
+                {formatNumber(Number(sale.tax || 0))}
+              </Text>
             </View>
           )}
           {sale.discount && Number(sale.discount) > 0 && (
             <View style={styles.totalRow}>
               <Text style={styles.totalText}>Discount:</Text>
-              <Text style={styles.totalText}>-{currencySymbol}{Number(sale.discount || 0).toLocaleString()}</Text>
+              <Text style={styles.totalText}>
+                -<Text style={styles.currencyPrefix}>{currencySymbol}</Text>
+                {formatNumber(Number(sale.discount || 0))}
+              </Text>
             </View>
           )}
           <View style={styles.totalRowLarge}>
             <Text style={styles.totalTextBold}>Total:</Text>
-            <Text style={styles.totalAmountLarge}>{currencySymbol}{Number(sale.total || 0).toLocaleString()}</Text>
+            <Text style={styles.totalAmountLarge}>
+              <Text style={styles.currencyPrefix}>{currencySymbol}</Text>
+              {formatNumber(Number(sale.total || 0))}
+            </Text>
           </View>
         </View>
 
