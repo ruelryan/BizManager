@@ -267,8 +267,8 @@ const styles = StyleSheet.create({
 
 // Invoice PDF Component
 const InvoicePDF = ({ sale, userSettings }: { sale: any; userSettings: any }) => {
-  const currency = userSettings?.currency || 'PHP';
-  const currencySymbol = currency === 'USD' ? '$' : currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : currency === 'JPY' ? '¥' : '₱';
+  const { currency, formatAmount } = useCurrency();
+  const currencySymbol = currency?.symbol || '₱';
   const businessName = userSettings?.businessName || 'BizManager';
   const businessAddress = userSettings?.businessAddress;
   const businessPhone = userSettings?.businessPhone;
@@ -458,7 +458,7 @@ export function Invoices() {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [filterStatus, setFilterStatus] = React.useState<'all' | 'paid' | 'pending' | 'overdue'>('all');
   const [viewingSale, setViewingSale] = React.useState<any>(null);
-  const { formatAmount, symbol } = useCurrency();
+  const { formatAmount } = useCurrency();
 
   // Filter invoices
   const filteredInvoices = sales.filter((sale) => {
