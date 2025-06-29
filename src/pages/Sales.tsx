@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { format } from 'date-fns';
-import { Plus, Filter, Eye, Edit, Trash2, ChevronDown, X, AlertTriangle, Barcode, FileText, RotateCcw } from 'lucide-react';
+import { Plus, Filter, Eye, Edit, Trash2, ChevronDown, X, AlertTriangle, Tag, FileText, RotateCcw } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { Sale, SaleItem } from '../types';
 import { BarcodeScanner } from '../components/BarcodeScanner';
@@ -15,7 +15,7 @@ export function Sales() {
   const [filterStatus, setFilterStatus] = useState<'all' | 'paid' | 'pending' | 'overdue'>('all');
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleteCountdown, setDeleteCountdown] = useState<number>(0);
-  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+  const [showCodeScanner, setShowCodeScanner] = useState(false);
   const [showDigitalReceipt, setShowDigitalReceipt] = useState(false);
   const [showReturnForm, setShowReturnForm] = useState(false);
 
@@ -69,11 +69,11 @@ export function Sales() {
     }
   };
 
-  const handleBarcodeScanned = (barcode: string) => {
-    setShowBarcodeScanner(false);
+  const handleCodeScanned = (code: string) => {
+    setShowCodeScanner(false);
     
-    // Find product by barcode
-    const product = products.find(p => p.barcode === barcode);
+    // Find product by code
+    const product = products.find(p => p.barcode === code);
     
     if (product) {
       // If we're in add/edit mode, add the product to the sale
@@ -85,7 +85,7 @@ export function Sales() {
         alert(`Product found: ${product.name}\nPrice: ₱${product.price}\nStock: ${product.currentStock}`);
       }
     } else {
-      alert(`No product found with barcode: ${barcode}`);
+      alert(`No product found with code: ${code}`);
     }
   };
 
@@ -173,9 +173,9 @@ export function Sales() {
       setSearchTerm('');
     };
 
-    const handleScanBarcode = () => {
+    const handleScanCode = () => {
       setIsOpen(false);
-      setShowBarcodeScanner(true);
+      setShowCodeScanner(true);
     };
 
     return (
@@ -202,11 +202,11 @@ export function Sales() {
             )}
             <button
               type="button"
-              onClick={handleScanBarcode}
+              onClick={handleScanCode}
               className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-              title="Scan Barcode"
+              title="Enter Product Code"
             >
-              <Barcode className="h-4 w-4" />
+              <Tag className="h-4 w-4" />
             </button>
             <button
               type="button"
@@ -240,7 +240,7 @@ export function Sales() {
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400">
                           {product.category} • Stock: {product.currentStock}
-                          {product.barcode && ` • Barcode: ${product.barcode}`}
+                          {product.barcode && ` • Code: ${product.barcode}`}
                         </div>
                       </div>
                       <div className="text-sm font-medium ml-2">
@@ -807,11 +807,11 @@ export function Sales() {
         </div>
         <div className="flex space-x-2">
           <button
-            onClick={() => setShowBarcodeScanner(true)}
+            onClick={() => setShowCodeScanner(true)}
             className="flex items-center space-x-2 rounded-lg bg-gray-200 dark:bg-gray-700 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
           >
-            <Barcode className="h-5 w-5" />
-            <span>Scan Barcode</span>
+            <Tag className="h-5 w-5" />
+            <span>Enter Code</span>
           </button>
           <button
             onClick={() => setShowReturnForm(true)}
@@ -979,10 +979,10 @@ export function Sales() {
           onClose={() => setViewingSale(null)} 
         />
       )}
-      {showBarcodeScanner && (
+      {showCodeScanner && (
         <BarcodeScanner 
-          onScan={handleBarcodeScanned} 
-          onClose={() => setShowBarcodeScanner(false)} 
+          onScan={handleCodeScanned} 
+          onClose={() => setShowCodeScanner(false)} 
         />
       )}
       {showDigitalReceipt && viewingSale && (

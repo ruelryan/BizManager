@@ -15,7 +15,8 @@ import {
   Wifi,
   WifiOff,
   Receipt,
-  User
+  User,
+  Tag
 } from 'lucide-react';
 import { useStore, isInFreeTrial, getEffectivePlan } from '../store/useStore';
 import { ThemeToggle } from './ThemeToggle';
@@ -28,6 +29,7 @@ const navigation = [
   { name: 'Expenses', href: '/expenses', icon: Receipt },
   { name: 'Invoices', href: '/invoices', icon: FileText },
   { name: 'Reports', href: '/reports', icon: TrendingUp },
+  { name: 'Product Labels', href: '/product-labels', icon: Tag },
 ];
 
 export function Layout() {
@@ -88,7 +90,7 @@ export function Layout() {
           {/* Logo */}
           <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-6 py-4">
             <div className="flex items-center space-x-3">
-              <div className="rounded-lg bg-gradient-to-br from-blue-600 to-blue-700 p-2 shadow-sm">
+              <div className="rounded-lg bg-blue-600 dark:bg-blue-500 p-2 shadow-sm">
                 <BarChart3 className="h-6 w-6 text-white" />
               </div>
               <h1 className="text-xl font-bold text-gray-900 dark:text-white">BizManager</h1>
@@ -103,7 +105,7 @@ export function Layout() {
 
           {/* Free Trial Banner */}
           {inFreeTrial && (
-            <div className="mx-4 mt-4 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 p-3 text-white">
+            <div className="mx-4 mt-4 rounded-lg bg-blue-600 p-3 text-white">
               <div className="flex items-center">
                 <Crown className="h-4 w-4 mr-2" />
                 <div className="text-xs">

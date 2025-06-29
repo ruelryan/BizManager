@@ -1,6 +1,6 @@
 import React from 'react';
 import { format } from 'date-fns';
-import { Download, Mail, Share, Printer, Barcode } from 'lucide-react';
+import { Download, Mail, Share, Printer, Tag } from 'lucide-react';
 import { Sale } from '../types';
 import { useStore } from '../store/useStore';
 import QRCode from 'react-qr-code';
@@ -44,8 +44,8 @@ export function DigitalReceipt({ sale, onClose, onSendEmail }: DigitalReceiptPro
     }
   };
 
-  // Generate a barcode value that encodes receipt information
-  const barcodeValue = `REC:${sale.invoiceNumber}|DATE:${format(sale.date, 'yyyyMMdd')}|AMT:${sale.total.toFixed(2)}`;
+  // Generate a QR code value that encodes receipt information
+  const qrCodeValue = `REC:${sale.invoiceNumber}|DATE:${format(sale.date, 'yyyyMMdd')}|AMT:${sale.total.toFixed(2)}`;
 
   return (
     <div className="fixed inset-0 z-50 bg-black bg-opacity-75 flex items-center justify-center p-4">
@@ -137,7 +137,7 @@ export function DigitalReceipt({ sale, onClose, onSendEmail }: DigitalReceiptPro
           <div className="text-center mb-4">
             <div className="mx-auto w-32 h-32 mb-2">
               <QRCode
-                value={barcodeValue}
+                value={qrCodeValue}
                 size={128}
                 style={{ height: "auto", maxWidth: "100%", width: "100%" }}
                 viewBox={`0 0 256 256`}
@@ -150,10 +150,10 @@ export function DigitalReceipt({ sale, onClose, onSendEmail }: DigitalReceiptPro
             </p>
           </div>
           
-          {/* Barcode */}
+          {/* Receipt ID */}
           <div className="text-center mb-4">
             <div className="flex flex-col items-center">
-              <Barcode className="h-8 w-8 text-gray-900 dark:text-white mb-1" />
+              <Tag className="h-8 w-8 text-gray-900 dark:text-white mb-1" />
               <div className="font-mono text-sm text-gray-900 dark:text-white">
                 {sale.invoiceNumber}
               </div>

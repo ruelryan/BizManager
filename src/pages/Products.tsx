@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Plus, Search, Edit, Trash2, Package, ChevronDown, Grid, List, Barcode, AlertTriangle, Tag } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Package, ChevronDown, Grid, List, AlertTriangle, Tag } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { Product } from '../types';
 import { BarcodeScanner } from '../components/BarcodeScanner';
@@ -12,9 +12,9 @@ export function Products() {
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+  const [showCodeScanner, setShowCodeScanner] = useState(false);
   const [scanningFor, setScanningFor] = useState<'search' | 'add' | null>(null);
-  const addFormBarcodeRef = useRef<HTMLInputElement>(null);
+  const addFormCodeRef = useRef<HTMLInputElement>(null);
 
   const canAddMoreProducts = user?.plan !== 'free' || products.length < 10;
 
@@ -36,13 +36,13 @@ export function Products() {
     }
   };
 
-  const handleBarcodeScanned = (barcode: string) => {
+  const handleCodeScanned = (code: string) => {
     if (scanningFor === 'search') {
-      setSearchTerm(barcode);
-      setShowBarcodeScanner(false);
-    } else if (scanningFor === 'add' && addFormBarcodeRef.current) {
-      addFormBarcodeRef.current.value = barcode;
-      setShowBarcodeScanner(false);
+      setSearchTerm(code);
+      setShowCodeScanner(false);
+    } else if (scanningFor === 'add' && addFormCodeRef.current) {
+      addFormCodeRef.current.value = code;
+      setShowCodeScanner(false);
     }
   };
 
@@ -58,21 +58,21 @@ export function Products() {
     });
     const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
     const [customCategory, setCustomCategory] = useState('');
-    const [barcodeError, setBarcodeError] = useState('');
+    const [codeError, setBarcodeError] = useState('');
 
     const existingCategories = getProductCategories();
 
     const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault();
       
-      // Validate barcode uniqueness if provided
+      // Validate code uniqueness if provided
       if (formData.barcode) {
         const existingProduct = products.find(p => 
           p.barcode === formData.barcode && (!product || p.id !== product.id)
         );
         
         if (existingProduct) {
-          setBarcodeError(`Barcode already used by product: ${existingProduct.name}`);
+          setBarcodeError(`Product code already used by product: ${existingProduct.name}`);
           return;
         }
       }
@@ -92,11 +92,6 @@ export function Products() {
       setFormData(prev => ({ ...prev, category }));
       setCustomCategory('');
       setShowCategoryDropdown(false);
-    };
-
-    const handleScanBarcode = () => {
-      setScanningFor('add');
-      setShowBarcodeScanner(true);
     };
 
     // Safe calculation for profit margin display
@@ -244,34 +239,25 @@ export function Products() {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Product Code / SKU
               </label>
-              <div className="flex">
-                <input
-                  type="text"
-                  value={formData.barcode}
-                  onChange={(e) => {
-                    setBarcodeError('');
-                    setFormData(prev => ({ ...prev, barcode: e.target.value }));
-                  }}
-                  ref={addFormBarcodeRef}
-                  className="flex-1 rounded-l-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  placeholder="Enter product code or SKU"
-                />
-                <button
-                  type="button"
-                  onClick={handleScanBarcode}
-                  className="rounded-r-lg border border-l-0 border-gray-300 dark:border-gray-600 px-3 py-2 bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors"
-                >
-                  <Barcode className="h-5 w-5" />
-                </button>
-              </div>
-              {barcodeError && (
+              <input
+                type="text"
+                value={formData.barcode}
+                onChange={(e) => {
+                  setBarcodeError('');
+                  setFormData(prev => ({ ...prev, barcode: e.target.value }));
+                }}
+                ref={addFormCodeRef}
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                placeholder="Enter product code or SKU"
+              />
+              {codeError && (
                 <p className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center">
                   <AlertTriangle className="h-4 w-4 mr-1" />
-                  {barcodeError}
+                  {codeError}
                 </p>
               )}
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                Optional. Used for quick scanning and product labels.
+                Optional. Used for quick lookup and product labels.
               </p>
             </div>
 
@@ -343,12 +329,12 @@ export function Products() {
             onClick={() => {
               setSearchTerm('');
               setScanningFor('search');
-              setShowBarcodeScanner(true);
+              setShowCodeScanner(true);
             }}
             className="flex items-center space-x-2 rounded-lg bg-gray-200 dark:bg-gray-700 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
           >
-            <Barcode className="h-5 w-5" />
-            <span>Scan Code</span>
+            <Tag className="h-5 w-5" />
+            <span>Enter Code</span>
           </button>
           <button
             onClick={() => setShowAddForm(true)}
@@ -386,7 +372,7 @@ export function Products() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
           <input
             type="text"
-            placeholder="Search products or scan code..."
+            placeholder="Search products or enter code..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full sm:w-80 rounded-lg border border-gray-300 dark:border-gray-600 pl-10 pr-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -439,7 +425,7 @@ export function Products() {
                     <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">{product.category}</p>
                     {product.barcode && (
                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 flex items-center">
-                        <Barcode className="h-3 w-3 mr-1" />
+                        <Tag className="h-3 w-3 mr-1" />
                         {product.barcode}
                       </p>
                     )}
@@ -541,7 +527,7 @@ export function Products() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
                         {product.barcode ? (
                           <div className="flex items-center">
-                            <Barcode className="h-4 w-4 mr-1 text-gray-500 dark:text-gray-400" />
+                            <Tag className="h-4 w-4 mr-1 text-gray-500 dark:text-gray-400" />
                             <span>{product.barcode}</span>
                           </div>
                         ) : (
@@ -613,11 +599,11 @@ export function Products() {
           onClose={() => setEditingProduct(null)}
         />
       )}
-      {showBarcodeScanner && (
+      {showCodeScanner && (
         <BarcodeScanner
-          onScan={handleBarcodeScanned}
+          onScan={handleCodeScanned}
           onClose={() => {
-            setShowBarcodeScanner(false);
+            setShowCodeScanner(false);
             setScanningFor(null);
           }}
         />

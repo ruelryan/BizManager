@@ -22,13 +22,13 @@ export function ReturnRefundForm({ onClose, onComplete }: ReturnRefundFormProps)
   }[]>([]);
   const [returnType, setReturnType] = useState<'refund' | 'exchange'>('refund');
   const [refundMethod, setRefundMethod] = useState<'original' | 'store_credit' | 'cash'>('original');
-  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+  const [showCodeScanner, setShowCodeScanner] = useState(false);
 
   // Filter sales based on search term
   const filteredSales = sales.filter(sale => 
     sale.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (sale.customerName && sale.customerName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    // Also search by product barcode
+    // Also search by product code
     sale.items.some(item => {
       const product = products.find(p => p.id === item.productId);
       return product?.barcode && product.barcode.includes(searchTerm);
@@ -122,12 +122,12 @@ export function ReturnRefundForm({ onClose, onComplete }: ReturnRefundFormProps)
     return returnItems.reduce((sum, item) => sum + (item.item.price * item.quantity), 0);
   };
 
-  const handleBarcodeScanned = (barcode: string) => {
-    setShowBarcodeScanner(false);
-    setSearchTerm(barcode);
+  const handleCodeScanned = (code: string) => {
+    setShowCodeScanner(false);
+    setSearchTerm(code);
     
-    // Check if any sale has a product with this barcode
-    const product = products.find(p => p.barcode === barcode);
+    // Check if any sale has a product with this code
+    const product = products.find(p => p.barcode === code);
     if (product) {
       const salesWithProduct = sales.filter(sale => 
         sale.items.some(item => item.productId === product.id)
@@ -140,10 +140,10 @@ export function ReturnRefundForm({ onClose, onComplete }: ReturnRefundFormProps)
         // If multiple sales contain this product, show them in the search results
         // The filtered sales will already be updated due to the searchTerm update
       } else {
-        alert('No sales found with this product barcode');
+        alert('No sales found with this product code');
       }
     } else {
-      alert('No product found with this barcode');
+      alert('No product found with this code');
     }
   };
 
@@ -169,7 +169,7 @@ export function ReturnRefundForm({ onClose, onComplete }: ReturnRefundFormProps)
           {step === 'search' && (
             <>
               <p className="text-gray-600 dark:text-gray-400 mb-6">
-                Enter the receipt number, customer name, or scan a product barcode to find the sale you want to process a return or refund for.
+                Enter the receipt number, customer name, or product code to find the sale you want to process a return or refund for.
               </p>
               
               <div className="flex space-x-2 mb-6">
@@ -179,16 +179,16 @@ export function ReturnRefundForm({ onClose, onComplete }: ReturnRefundFormProps)
                     type="text"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Search by receipt #, customer name, or barcode"
+                    placeholder="Search by receipt #, customer name, or product code"
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     autoFocus
                   />
                 </div>
                 <button
-                  onClick={() => setShowBarcodeScanner(true)}
+                  onClick={() => setShowCodeScanner(true)}
                   className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
-                  Scan
+                  Enter Code
                 </button>
               </div>
               
@@ -272,7 +272,7 @@ export function ReturnRefundForm({ onClose, onComplete }: ReturnRefundFormProps)
                 <h4 className="font-medium text-gray-900 dark:text-white mb-4">Select Items to Return</h4>
                 <div className="space-y-4">
                   {returnItems.map((returnItem, index) => {
-                    // Get product to check if it has a barcode
+                    // Get product to check if it has a code
                     const product = products.find(p => p.id === returnItem.item.productId);
                     
                     return (
@@ -282,7 +282,7 @@ export function ReturnRefundForm({ onClose, onComplete }: ReturnRefundFormProps)
                             <span className="font-medium text-gray-900 dark:text-white">{returnItem.item.productName}</span>
                             {product?.barcode && (
                               <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center mt-1">
-                                <span className="mr-1">Barcode:</span>
+                                <span className="mr-1">Product Code:</span>
                                 {product.barcode}
                               </div>
                             )}
@@ -558,11 +558,11 @@ export function ReturnRefundForm({ onClose, onComplete }: ReturnRefundFormProps)
         </div>
       </div>
       
-      {/* Barcode Scanner */}
-      {showBarcodeScanner && (
+      {/* Code Scanner */}
+      {showCodeScanner && (
         <BarcodeScanner
-          onScan={handleBarcodeScanned}
-          onClose={() => setShowBarcodeScanner(false)}
+          onScan={handleCodeScanned}
+          onClose={() => setShowCodeScanner(false)}
         />
       )}
     </div>
