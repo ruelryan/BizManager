@@ -15,6 +15,12 @@ export const currencies: Record<string, CurrencyInfo> = {
   SGD: { code: 'SGD', name: 'Singapore Dollar', symbol: 'S$', rate: 0.0241 }, // 1 PHP = 0.0241 SGD
   MYR: { code: 'MYR', name: 'Malaysian Ringgit', symbol: 'RM', rate: 0.0798 }, // 1 PHP = 0.0798 MYR
   THB: { code: 'THB', name: 'Thai Baht', symbol: '฿', rate: 0.606 }, // 1 PHP = 0.606 THB
+  AUD: { code: 'AUD', name: 'Australian Dollar', symbol: 'A$', rate: 0.0267 }, // 1 PHP = 0.0267 AUD
+  CAD: { code: 'CAD', name: 'Canadian Dollar', symbol: 'C$', rate: 0.0243 }, // 1 PHP = 0.0243 CAD
+  CNY: { code: 'CNY', name: 'Chinese Yuan', symbol: '¥', rate: 0.1297 }, // 1 PHP = 0.1297 CNY
+  HKD: { code: 'HKD', name: 'Hong Kong Dollar', symbol: 'HK$', rate: 0.1397 }, // 1 PHP = 0.1397 HKD
+  INR: { code: 'INR', name: 'Indian Rupee', symbol: '₹', rate: 1.4912 }, // 1 PHP = 1.4912 INR
+  KRW: { code: 'KRW', name: 'South Korean Won', symbol: '₩', rate: 24.0132 }, // 1 PHP = 24.0132 KRW
 };
 
 // Fetch latest exchange rates from API
@@ -35,7 +41,13 @@ export const fetchExchangeRates = async (): Promise<void> => {
         JPY: 2.75,
         SGD: 0.0240,
         MYR: 0.0800,
-        THB: 0.605
+        THB: 0.605,
+        AUD: 0.0267,
+        CAD: 0.0243,
+        CNY: 0.1297,
+        HKD: 0.1397,
+        INR: 1.4912,
+        KRW: 24.0132
       }
     };
     
@@ -98,6 +110,25 @@ export const initExchangeRates = (): void => {
   }
 };
 
+// Get user's currency based on location
+export const detectUserCurrency = async (): Promise<string> => {
+  try {
+    // Use IP-based geolocation API to get user's country and currency
+    const response = await fetch('https://ipapi.co/json/');
+    const data = await response.json();
+    
+    if (data && data.currency && currencies[data.currency]) {
+      console.log(`Detected currency: ${data.currency} (${data.country_name})`);
+      return data.currency;
+    }
+  } catch (error) {
+    console.error('Error detecting user currency:', error);
+  }
+  
+  // Default to PHP if detection fails
+  return 'PHP';
+};
+
 // Convert amount from PHP to target currency
 export const convertFromPHP = (amount: number, targetCurrency: string): number => {
   const currency = currencies[targetCurrency];
@@ -127,7 +158,7 @@ export const formatCurrency = (amount: number, currencyCode: string): string => 
   if (!currency) return `${amount.toLocaleString()}`;
   
   // Format with appropriate decimal places
-  const decimals = currencyCode === 'JPY' ? 0 : 2;
+  const decimals = currencyCode === 'JPY' || currencyCode === 'KRW' ? 0 : 2;
   const formattedAmount = amount.toLocaleString(undefined, {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,

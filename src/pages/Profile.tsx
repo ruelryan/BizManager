@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 import { supabase } from '../lib/supabase';
 import { CurrencySelector } from '../components/CurrencySelector';
 import { CurrencyDisplay } from '../components/CurrencyDisplay';
+import { useUserLocation } from '../hooks/useUserLocation';
 
 interface PaymentTransaction {
   id: string;
@@ -38,12 +39,24 @@ export function Profile() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [paymentHistory, setPaymentHistory] = useState<PaymentTransaction[]>([]);
   const [isLoadingPayments, setIsLoadingPayments] = useState(false);
+  
+  // Get user's location for currency auto-detection
+  const locationInfo = useUserLocation();
 
   useEffect(() => {
     if (showPaymentHistory) {
       fetchPaymentHistory();
     }
   }, [showPaymentHistory]);
+
+  // Set currency based on location when component mounts
+  useEffect(() => {
+    // Only update if we have location data and user hasn't set a currency preference yet
+    if (!isLoading && locationInfo.currency && !userSettings?.currency && formData.currency === 'PHP') {
+      console.log(`Setting currency to ${locationInfo.currency} based on detected location: ${locationInfo.country}`);
+      setFormData(prev => ({ ...prev, currency: locationInfo.currency || 'PHP' }));
+    }
+  }, [locationInfo, isLoading, userSettings, formData.currency]);
 
   const fetchPaymentHistory = async () => {
     if (!user) return;
@@ -232,7 +245,14 @@ export function Profile() {
                 <CurrencySelector 
                   value={formData.currency}
                   onChange={(currency) => setFormData(prev => ({ ...prev, currency }))}
+                  autoDetect={!userSettings?.currency}
                 />
+                {locationInfo.currency && formData.currency === locationInfo.currency && (
+                  <p className="mt-1 text-xs text-green-600 dark:text-green-400 flex items-center">
+                    <MapPin className="h-3 w-3 mr-1" />
+                    Auto-detected from your location: {locationInfo.country}
+                  </p>
+                )}
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                   This will be used throughout the application and in PDF invoices.
                 </p>
