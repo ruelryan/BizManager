@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
-import { Plus, Search, Edit, Trash2, Package, ChevronDown, Grid, List, Barcode, AlertTriangle } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Package, ChevronDown, Grid, List, Barcode, AlertTriangle, Tag } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { Product } from '../types';
 import { BarcodeScanner } from '../components/BarcodeScanner';
+import { Link } from 'react-router-dom';
 
 export function Products() {
   const { products, addProduct, updateProduct, deleteProduct, user, getProductCategories } = useStore();
@@ -241,7 +242,7 @@ export function Products() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Barcode
+                Product Code / SKU
               </label>
               <div className="flex">
                 <input
@@ -253,7 +254,7 @@ export function Products() {
                   }}
                   ref={addFormBarcodeRef}
                   className="flex-1 rounded-l-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  placeholder="Enter product barcode"
+                  placeholder="Enter product code or SKU"
                 />
                 <button
                   type="button"
@@ -270,7 +271,7 @@ export function Products() {
                 </p>
               )}
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                Optional. Used for quick scanning during sales and inventory.
+                Optional. Used for quick scanning and product labels.
               </p>
             </div>
 
@@ -331,6 +332,13 @@ export function Products() {
           </p>
         </div>
         <div className="flex space-x-2">
+          <Link
+            to="/product-labels"
+            className="flex items-center space-x-2 rounded-lg bg-gray-200 dark:bg-gray-700 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+          >
+            <Tag className="h-5 w-5" />
+            <span>Product Labels</span>
+          </Link>
           <button
             onClick={() => {
               setSearchTerm('');
@@ -340,7 +348,7 @@ export function Products() {
             className="flex items-center space-x-2 rounded-lg bg-gray-200 dark:bg-gray-700 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
           >
             <Barcode className="h-5 w-5" />
-            <span>Scan Barcode</span>
+            <span>Scan Code</span>
           </button>
           <button
             onClick={() => setShowAddForm(true)}
@@ -378,7 +386,7 @@ export function Products() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
           <input
             type="text"
-            placeholder="Search products or scan barcode..."
+            placeholder="Search products or scan code..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full sm:w-80 rounded-lg border border-gray-300 dark:border-gray-600 pl-10 pr-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -497,7 +505,7 @@ export function Products() {
                     Category
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                    Barcode
+                    Product Code
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
                     Price

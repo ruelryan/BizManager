@@ -18,6 +18,7 @@ import { Contact } from './pages/Contact';
 import { Features } from './pages/Features';
 import { Demo } from './pages/Demo';
 import { Integrations } from './pages/Integrations';
+import { ProductLabelDemo } from './pages/ProductLabelDemo';
 import { useStore } from './store/useStore';
 import { ThemeProvider } from './contexts/ThemeContext';
 
@@ -66,6 +67,9 @@ function App() {
           </Route>
           <Route path="/products" element={user ? <Layout /> : <Navigate to="/landing" />}>
             <Route index element={<Products />} />
+          </Route>
+          <Route path="/product-labels" element={user ? <Layout /> : <Navigate to="/landing" />}>
+            <Route index element={<ProductLabelDemo />} />
           </Route>
           <Route path="/inventory" element={user ? <Layout /> : <Navigate to="/landing" />}>
             <Route index element={<Inventory />} />
