@@ -5,7 +5,7 @@ import { Document, Page, Text, View, StyleSheet, PDFDownloadLink, Font, Image } 
 import { useStore } from '../store/useStore';
 import { FeatureGate } from '../components/FeatureGate';
 
-// Register custom fonts
+// Register custom fonts - moved outside component to prevent multiple registrations
 Font.register({
   family: 'Roboto',
   fonts: [
