@@ -98,7 +98,6 @@ export default defineConfig({
   ],
   optimizeDeps: {
     exclude: ['lucide-react'],
-    include: ['react-dom'],
   },
   // Add fallback for SPA routing in development
   server: {
