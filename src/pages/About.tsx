@@ -21,13 +21,13 @@ export function About() {
           <div className="mb-8 relative mx-auto w-32 h-32 rounded-full overflow-hidden border-4 border-white dark:border-gray-700 shadow-lg">
             <img 
               src="/263811169_609784763605045_5307824981917022036_n.jpg" 
-              alt="Professional headshot" 
+              alt="Ruel Ryan Rosal" 
               className="w-full h-full object-cover"
             />
           </div>
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">From Laboratory to Web Development</h1>
           <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
-            Leveraging analytical precision and technical expertise across disciplines
+            Ruel Ryan Rosal, RCh - Leveraging analytical precision and technical expertise across disciplines
           </p>
         </div>
       </section>
@@ -39,7 +39,7 @@ export function About() {
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">My Professional Journey</h2>
             <div className="prose prose-lg dark:prose-invert">
               <p className="text-gray-700 dark:text-gray-300">
-                My career path has been defined by a passion for precision, analytical thinking, and problem-solving. Beginning in laboratory science, I developed a meticulous approach to technical challenges that has proven invaluable in my transition to web development and business ownership.
+                My career path has been defined by a passion for precision, analytical thinking, and problem-solving. Beginning in laboratory science as a Registered Chemist, I developed a meticulous approach to technical challenges that has proven invaluable in my transition to web development and business ownership.
               </p>
               <p className="text-gray-700 dark:text-gray-300 mt-4">
                 As Laboratory Head at Cebu Agua Lab and Methods Development Manager at PASAR Corporation, I honed my skills in quality control, technical leadership, and systematic problem-solving. These experiences taught me to approach complex challenges methodically, maintain rigorous standards, and effectively lead technical teams—skills that translate seamlessly to web development.
@@ -211,7 +211,7 @@ export function About() {
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-12 text-center">Education & Certifications</h2>
           
-          <div className="max-w-3xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-md">
               <div className="flex items-center mb-4">
                 <GraduationCap className="h-6 w-6 text-blue-600 dark:text-blue-400 mr-3" />
@@ -220,11 +220,11 @@ export function About() {
               <ul className="space-y-4">
                 <li>
                   <div className="font-medium text-gray-900 dark:text-white">Bachelor of Science</div>
-                  <div className="text-gray-600 dark:text-gray-400">Medical Technology</div>
-                  <div className="text-sm text-gray-500 dark:text-gray-500">Registered Medical Technologist (RMT)</div>
+                  <div className="text-gray-600 dark:text-gray-400">Chemistry</div>
+                  <div className="text-sm text-gray-500 dark:text-gray-500">Registered Chemist (RCh)</div>
                 </li>
                 <li>
-                  <div className="font-medium text-gray-900 dark:text-white">Web Development Bootcamp</div>
+                  <div className="font-medium text-gray-900 dark:text-white">Web Development</div>
                   <div className="text-gray-600 dark:text-gray-400">Full-Stack Development</div>
                   <div className="text-sm text-gray-500 dark:text-gray-500">Modern JavaScript, React, Node.js</div>
                 </li>
@@ -238,18 +238,94 @@ export function About() {
               </div>
               <ul className="space-y-4">
                 <li>
-                  <div className="font-medium text-gray-900 dark:text-white">ISO 17025 Quality Management</div>
-                  <div className="text-gray-600 dark:text-gray-400">Laboratory Quality Systems</div>
+                  <div className="font-medium text-gray-900 dark:text-white">Basic Occupational Safety and Health Training</div>
+                  <div className="text-gray-600 dark:text-gray-400">DOLE - OSHC</div>
+                  <div className="text-sm text-gray-500 dark:text-gray-500">Credential ID: BOSH SO1 23-29-21</div>
                 </li>
                 <li>
-                  <div className="font-medium text-gray-900 dark:text-white">Registered Medical Technologist</div>
-                  <div className="text-gray-600 dark:text-gray-400">Professional License</div>
+                  <div className="font-medium text-gray-900 dark:text-white">Registered Chemist</div>
+                  <div className="text-gray-600 dark:text-gray-400">Philippine Professional Regulation Commission</div>
+                  <div className="text-sm text-gray-500 dark:text-gray-500">Credential ID: 0012276</div>
                 </li>
                 <li>
-                  <div className="font-medium text-gray-900 dark:text-white">Web Development Certification</div>
-                  <div className="text-gray-600 dark:text-gray-400">Modern Frontend Technologies</div>
+                  <div className="font-medium text-gray-900 dark:text-white">Pollution Control Officer</div>
+                  <div className="text-gray-600 dark:text-gray-400">Department of Environment and Natural Resources</div>
+                  <div className="text-sm text-gray-500 dark:text-gray-500">Credential ID: 2018-R07-1693</div>
                 </li>
               </ul>
+            </div>
+          </div>
+          
+          {/* Additional Certifications */}
+          <div className="max-w-5xl mx-auto mt-8">
+            <div className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-md">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Additional Certifications & Training</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <ul className="space-y-3">
+                    <li className="flex items-start">
+                      <CheckCircle className="h-4 w-4 text-green-500 mr-2 mt-1 flex-shrink-0" />
+                      <div>
+                        <div className="font-medium text-gray-900 dark:text-white">Flame and Graphite Furnace AAS Operations</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">Shimadzu Philippines Corporation</div>
+                      </div>
+                    </li>
+                    <li className="flex items-start">
+                      <CheckCircle className="h-4 w-4 text-green-500 mr-2 mt-1 flex-shrink-0" />
+                      <div>
+                        <div className="font-medium text-gray-900 dark:text-white">Microbial Analysis of Water</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">Philippine Association of Medical Technologists</div>
+                      </div>
+                    </li>
+                    <li className="flex items-start">
+                      <CheckCircle className="h-4 w-4 text-green-500 mr-2 mt-1 flex-shrink-0" />
+                      <div>
+                        <div className="font-medium text-gray-900 dark:text-white">Effective Management Process Variability</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">PASAR</div>
+                      </div>
+                    </li>
+                    <li className="flex items-start">
+                      <CheckCircle className="h-4 w-4 text-green-500 mr-2 mt-1 flex-shrink-0" />
+                      <div>
+                        <div className="font-medium text-gray-900 dark:text-white">Claisse TheOx Advanced Fusion</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">Mathieu Bouchard</div>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+                <div>
+                  <ul className="space-y-3">
+                    <li className="flex items-start">
+                      <CheckCircle className="h-4 w-4 text-green-500 mr-2 mt-1 flex-shrink-0" />
+                      <div>
+                        <div className="font-medium text-gray-900 dark:text-white">Effective Meeting Management</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">IDEAS</div>
+                      </div>
+                    </li>
+                    <li className="flex items-start">
+                      <CheckCircle className="h-4 w-4 text-green-500 mr-2 mt-1 flex-shrink-0" />
+                      <div>
+                        <div className="font-medium text-gray-900 dark:text-white">IMS Internal Audit</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">Neville-Clarke Asean</div>
+                      </div>
+                    </li>
+                    <li className="flex items-start">
+                      <CheckCircle className="h-4 w-4 text-green-500 mr-2 mt-1 flex-shrink-0" />
+                      <div>
+                        <div className="font-medium text-gray-900 dark:text-white">Safety Leadership Training</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">Glencore</div>
+                      </div>
+                    </li>
+                    <li className="flex items-start">
+                      <CheckCircle className="h-4 w-4 text-green-500 mr-2 mt-1 flex-shrink-0" />
+                      <div>
+                        <div className="font-medium text-gray-900 dark:text-white">Understanding ISO/IEC 17025</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">Neville-Clarke</div>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -279,7 +355,7 @@ export function About() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900 dark:text-white">Technical Leadership</h3>
-                    <p className="text-gray-700 dark:text-gray-300">Led a team of 12 laboratory professionals, developing standardized procedures that improved consistency and reduced training time by 40%.</p>
+                    <p className="text-gray-700 dark:text-gray-300">Led a team of laboratory professionals, developing standardized procedures that improved consistency and reduced training time by 40%.</p>
                   </div>
                 </li>
                 
@@ -356,7 +432,7 @@ export function About() {
       <footer className="bg-gray-900 text-white py-8">
         <div className="container mx-auto px-4 text-center">
           <p className="text-gray-400 text-sm">
-            © 2025 All rights reserved.
+            © 2025 Ruel Ryan Rosal. All rights reserved.
           </p>
         </div>
       </footer>
