@@ -219,7 +219,7 @@ export function Sales() {
         </div>
 
         {isOpen && (
-          <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+          <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-80 overflow-y-auto">
             {filteredProducts.length > 0 ? (
               filteredProducts.map((product) => {
                 // Check if this product has special pricing for the selected customer
@@ -231,25 +231,25 @@ export function Sales() {
                     key={product.id}
                     type="button"
                     onClick={() => handleSelect(product)}
-                    className="w-full text-left px-3 py-3 hover:bg-gray-100 dark:hover:bg-gray-600 border-b border-gray-100 dark:border-gray-600 last:border-b-0"
+                    className="w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-600 border-b border-gray-100 dark:border-gray-600 last:border-b-0"
                   >
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
-                        <div className="font-medium text-gray-900 dark:text-white text-sm">
+                        <div className="font-medium text-gray-900 dark:text-white text-base">
                           {product.name}
                         </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
                           {product.category} • Stock: {product.currentStock}
                           {product.barcode && ` • Code: ${product.barcode}`}
                         </div>
                       </div>
-                      <div className="text-sm font-medium ml-2">
+                      <div className="text-base font-medium ml-4 min-w-[100px] text-right">
                         {hasSpecialPrice ? (
                           <div>
-                            <span className="line-through text-gray-400 dark:text-gray-500 text-xs">
+                            <span className="line-through text-gray-400 dark:text-gray-500 text-sm">
                               ₱{product.price.toFixed(2)}
                             </span>
-                            <span className="text-green-600 dark:text-green-400 ml-1">
+                            <span className="text-green-600 dark:text-green-400 ml-1 block">
                               ₱{specialPrice.toFixed(2)}
                             </span>
                           </div>
@@ -434,7 +434,7 @@ export function Sales() {
 
     return (
       <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-700">
           <div className="p-6 border-b border-gray-200 dark:border-gray-700">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
               {sale ? 'Edit Sale' : 'Add New Sale'}
@@ -507,8 +507,8 @@ export function Sales() {
               
               <div className="space-y-3">
                 {formData.items.map((item, index) => (
-                  <div key={index} className="grid gap-3 md:grid-cols-4 items-end">
-                    <div>
+                  <div key={index} className="grid gap-3 grid-cols-12 items-end">
+                    <div className="col-span-5">
                       <SearchableProductSelect
                         value={item.productId}
                         onChange={(productId) => updateItem(index, 'productId', productId)}
@@ -518,7 +518,7 @@ export function Sales() {
                         customerId={formData.customerId}
                       />
                     </div>
-                    <div>
+                    <div className="col-span-2">
                       <input
                         type="number"
                         min="1"
@@ -528,7 +528,7 @@ export function Sales() {
                         placeholder="Qty"
                       />
                     </div>
-                    <div>
+                    <div className="col-span-2">
                       <input
                         type="number"
                         min="0"
@@ -539,8 +539,8 @@ export function Sales() {
                         placeholder="Price"
                       />
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">
+                    <div className="col-span-3 flex items-center space-x-2">
+                      <span className="text-sm font-medium text-gray-900 dark:text-white min-w-[100px]">
                         ₱{item.total.toFixed(2)}
                       </span>
                       {formData.items.length > 1 && (
