@@ -1,85 +1,144 @@
 import React from 'react';
 import { format } from 'date-fns';
-import { FileText, Download, Send, Eye, Plus, Search } from 'lucide-react';
-import { Document, Page, Text, View, StyleSheet, PDFDownloadLink, Font } from '@react-pdf/renderer';
+import { FileText, Download, Send, Eye, Search } from 'lucide-react';
+import { Document, Page, Text, View, StyleSheet, PDFDownloadLink, Font, Image } from '@react-pdf/renderer';
 import { useStore } from '../store/useStore';
 import { FeatureGate } from '../components/FeatureGate';
+
+// Register custom fonts
+Font.register({
+  family: 'Roboto',
+  fonts: [
+    { src: 'https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-light-webfont.ttf', fontWeight: 300 },
+    { src: 'https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-regular-webfont.ttf', fontWeight: 400 },
+    { src: 'https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-medium-webfont.ttf', fontWeight: 500 },
+    { src: 'https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-bold-webfont.ttf', fontWeight: 700 },
+  ]
+});
 
 // PDF Styles
 const styles = StyleSheet.create({
   page: {
     flexDirection: 'column',
     backgroundColor: '#ffffff',
-    padding: 30,
-    fontFamily: 'Helvetica',
+    padding: 40,
+    fontFamily: 'Roboto',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 20,
-    borderBottom: 1,
-    borderBottomColor: '#e5e7eb',
-    paddingBottom: 20,
+    marginBottom: 40,
+  },
+  headerLeft: {
+    flexDirection: 'column',
+  },
+  headerRight: {
+    flexDirection: 'column',
+    alignItems: 'flex-end',
   },
   logo: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1e40af',
+    color: '#3b82f6',
+    marginBottom: 10,
   },
   businessInfo: {
     fontSize: 10,
-    color: '#374151',
-    marginTop: 5,
+    color: '#4b5563',
+    marginTop: 4,
+  },
+  invoiceTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#3b82f6',
+    marginBottom: 5,
   },
   invoiceInfo: {
-    textAlign: 'right',
+    fontSize: 10,
+    color: '#4b5563',
+    marginBottom: 3,
   },
-  title: {
-    fontSize: 18,
+  invoiceInfoBold: {
+    fontSize: 10,
     fontWeight: 'bold',
-    marginBottom: 20,
-    color: '#374151',
+    color: '#4b5563',
+    marginBottom: 3,
   },
   section: {
     marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 10,
+    paddingBottom: 5,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+    borderBottomStyle: 'solid',
   },
   customerInfo: {
     backgroundColor: '#f9fafb',
     padding: 15,
     borderRadius: 5,
-    marginBottom: 20,
+    marginBottom: 30,
+  },
+  billingTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 5,
+  },
+  billingText: {
+    fontSize: 10,
+    color: '#4b5563',
+    marginBottom: 3,
   },
   table: {
+    display: 'flex',
+    width: 'auto',
     borderStyle: 'solid',
     borderWidth: 1,
     borderColor: '#e5e7eb',
     borderRadius: 5,
+    marginBottom: 20,
   },
   tableHeader: {
     flexDirection: 'row',
     backgroundColor: '#f3f4f6',
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
+    borderBottomStyle: 'solid',
     padding: 10,
   },
   tableRow: {
     flexDirection: 'row',
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
+    borderBottomStyle: 'solid',
     padding: 10,
   },
-  col1: { width: '50%' },
-  col2: { width: '15%', textAlign: 'center' },
-  col3: { width: '20%', textAlign: 'right' },
-  col4: { width: '15%', textAlign: 'right' },
-  text: {
-    fontSize: 10,
-    color: '#374151',
+  tableRowLast: {
+    flexDirection: 'row',
+    padding: 10,
   },
-  boldText: {
+  tableCol1: { width: '40%' },
+  tableCol2: { width: '20%', textAlign: 'center' },
+  tableCol3: { width: '20%', textAlign: 'right' },
+  tableCol4: { width: '20%', textAlign: 'right' },
+  tableHeaderText: {
     fontSize: 10,
     fontWeight: 'bold',
-    color: '#374151',
+    color: '#4b5563',
+  },
+  tableRowText: {
+    fontSize: 10,
+    color: '#4b5563',
+  },
+  tableRowTextBold: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#4b5563',
   },
   total: {
     marginTop: 20,
@@ -91,11 +150,120 @@ const styles = StyleSheet.create({
     marginBottom: 5,
     width: 200,
   },
-  footer: {
+  totalRowLarge: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    borderTopStyle: 'solid',
+    width: 200,
+  },
+  totalText: {
+    fontSize: 10,
+    color: '#4b5563',
+  },
+  totalTextBold: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#4b5563',
+  },
+  totalAmountLarge: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#3b82f6',
+  },
+  paymentInfo: {
     marginTop: 40,
+    padding: 15,
+    backgroundColor: '#f9fafb',
+    borderRadius: 5,
+  },
+  paymentTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 10,
+  },
+  paymentRow: {
+    flexDirection: 'row',
+    marginBottom: 5,
+  },
+  paymentLabel: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#4b5563',
+    width: 100,
+  },
+  paymentValue: {
+    fontSize: 10,
+    color: '#4b5563',
+  },
+  footer: {
+    position: 'absolute',
+    bottom: 30,
+    left: 40,
+    right: 40,
     textAlign: 'center',
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    borderTopStyle: 'solid',
+  },
+  footerText: {
+    fontSize: 9,
+    color: '#9ca3af',
+    marginBottom: 3,
+  },
+  footerTextBold: {
+    fontSize: 9,
+    fontWeight: 'bold',
+    color: '#9ca3af',
+  },
+  statusBadge: {
+    position: 'absolute',
+    top: 40,
+    right: 40,
+    padding: 10,
+    transform: 'rotate(45deg)',
+    transformOrigin: 'right top',
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  paidBadge: {
+    backgroundColor: '#10b981',
+  },
+  pendingBadge: {
+    backgroundColor: '#f59e0b',
+  },
+  overdueBadge: {
+    backgroundColor: '#ef4444',
+  },
+  watermark: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%) rotate(-45deg)',
+    fontSize: 60,
+    fontWeight: 'bold',
+    color: 'rgba(229, 231, 235, 0.5)',
+  },
+  qrCode: {
+    width: 80,
+    height: 80,
+  },
+  qrCodeContainer: {
+    position: 'absolute',
+    bottom: 30,
+    right: 40,
+    alignItems: 'center',
+  },
+  qrCodeText: {
     fontSize: 8,
-    color: '#6b7280',
+    color: '#9ca3af',
+    marginTop: 5,
   },
 });
 
@@ -107,12 +275,39 @@ const InvoicePDF = ({ sale, userSettings }: { sale: any; userSettings: any }) =>
   const businessAddress = userSettings?.businessAddress;
   const businessPhone = userSettings?.businessPhone;
   const businessEmail = userSettings?.businessEmail;
+  
+  const invoiceNumber = sale.receipt_number || sale.invoiceNumber || 'N/A';
+  const invoiceDate = format(new Date(sale.date || sale.created_at), 'MMMM dd, yyyy');
+  const dueDate = sale.dueDate ? format(new Date(sale.dueDate), 'MMMM dd, yyyy') : null;
+  const customerName = sale.customer_name || sale.customerName || 'Walk-in Customer';
+  const customerEmail = sale.customerEmail || '';
+  const status = sale.status || 'completed';
+  
+  // Generate QR code URL for verification
+  const qrCodeData = `INV:${invoiceNumber}|DATE:${format(new Date(sale.date || sale.created_at), 'yyyyMMdd')}|AMT:${sale.total || 0}`;
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(qrCodeData)}`;
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
+        {/* Status Badge */}
+        {status === 'paid' || status === 'completed' ? (
+          <View style={[styles.statusBadge, styles.paidBadge]}>
+            <Text>PAID</Text>
+          </View>
+        ) : status === 'pending' ? (
+          <View style={[styles.statusBadge, styles.pendingBadge]}>
+            <Text>PENDING</Text>
+          </View>
+        ) : (
+          <View style={[styles.statusBadge, styles.overdueBadge]}>
+            <Text>OVERDUE</Text>
+          </View>
+        )}
+
+        {/* Header */}
         <View style={styles.header}>
-          <View>
+          <View style={styles.headerLeft}>
             <Text style={styles.logo}>{businessName}</Text>
             {businessAddress && (
               <Text style={styles.businessInfo}>{businessAddress}</Text>
@@ -124,74 +319,120 @@ const InvoicePDF = ({ sale, userSettings }: { sale: any; userSettings: any }) =>
               <Text style={styles.businessInfo}>Email: {businessEmail}</Text>
             )}
           </View>
-          <View style={styles.invoiceInfo}>
-            <Text style={styles.boldText}>INVOICE</Text>
-            <Text style={styles.text}>#{sale.receipt_number || sale.invoiceNumber || 'N/A'}</Text>
-            <Text style={styles.text}>Date: {format(new Date(sale.date || sale.created_at), 'MMM dd, yyyy')}</Text>
-            {sale.dueDate && (
-              <Text style={styles.text}>Due: {format(new Date(sale.dueDate), 'MMM dd, yyyy')}</Text>
+          <View style={styles.headerRight}>
+            <Text style={styles.invoiceTitle}>INVOICE</Text>
+            <Text style={styles.invoiceInfoBold}>#{invoiceNumber}</Text>
+            <Text style={styles.invoiceInfo}>Issue Date: {invoiceDate}</Text>
+            {dueDate && (
+              <Text style={styles.invoiceInfo}>Due Date: {dueDate}</Text>
             )}
           </View>
         </View>
 
+        {/* Bill To Section */}
         <View style={styles.customerInfo}>
-          <Text style={styles.boldText}>Bill To:</Text>
-          <Text style={styles.text}>{sale.customer_name || sale.customerName || 'Walk-in Customer'}</Text>
-          {sale.customerEmail && <Text style={styles.text}>{sale.customerEmail}</Text>}
+          <Text style={styles.billingTitle}>BILL TO:</Text>
+          <Text style={[styles.billingText, { fontWeight: 'bold' }]}>{customerName}</Text>
+          {customerEmail && <Text style={styles.billingText}>{customerEmail}</Text>}
         </View>
 
+        {/* Items Table */}
         <View style={styles.table}>
           <View style={styles.tableHeader}>
-            <Text style={[styles.boldText, styles.col1]}>Item</Text>
-            <Text style={[styles.boldText, styles.col2]}>Qty</Text>
-            <Text style={[styles.boldText, styles.col3]}>Price</Text>
-            <Text style={[styles.boldText, styles.col4]}>Total</Text>
+            <View style={styles.tableCol1}>
+              <Text style={styles.tableHeaderText}>ITEM</Text>
+            </View>
+            <View style={styles.tableCol2}>
+              <Text style={styles.tableHeaderText}>QTY</Text>
+            </View>
+            <View style={styles.tableCol3}>
+              <Text style={styles.tableHeaderText}>PRICE</Text>
+            </View>
+            <View style={styles.tableCol4}>
+              <Text style={styles.tableHeaderText}>TOTAL</Text>
+            </View>
           </View>
           
-          {(sale.items || []).map((item: any, index: number) => (
-            <View key={index} style={styles.tableRow}>
-              <Text style={[styles.text, styles.col1]}>{item.productName || item.name || 'Unknown Item'}</Text>
-              <Text style={[styles.text, styles.col2]}>{Number(item.quantity || 0)}</Text>
-              <Text style={[styles.text, styles.col3]}>{currencySymbol}{Number(item.price || 0).toLocaleString()}</Text>
-              <Text style={[styles.text, styles.col4]}>{currencySymbol}{Number(item.total || (item.price || 0) * (item.quantity || 0)).toLocaleString()}</Text>
+          {(sale.items || []).map((item: any, index: number, array: any[]) => (
+            <View key={index} style={index === array.length - 1 ? styles.tableRowLast : styles.tableRow}>
+              <View style={styles.tableCol1}>
+                <Text style={styles.tableRowText}>{item.productName || item.name || 'Unknown Item'}</Text>
+              </View>
+              <View style={styles.tableCol2}>
+                <Text style={styles.tableRowText}>{Number(item.quantity || 0)}</Text>
+              </View>
+              <View style={styles.tableCol3}>
+                <Text style={styles.tableRowText}>{currencySymbol}{Number(item.price || 0).toLocaleString()}</Text>
+              </View>
+              <View style={styles.tableCol4}>
+                <Text style={styles.tableRowTextBold}>{currencySymbol}{Number(item.total || (item.price || 0) * (item.quantity || 0)).toLocaleString()}</Text>
+              </View>
             </View>
           ))}
         </View>
 
+        {/* Totals */}
         <View style={styles.total}>
           <View style={styles.totalRow}>
-            <Text style={styles.text}>Subtotal:</Text>
-            <Text style={styles.text}>{currencySymbol}{Number(sale.subtotal || sale.total || 0).toLocaleString()}</Text>
+            <Text style={styles.totalText}>Subtotal:</Text>
+            <Text style={styles.totalText}>{currencySymbol}{Number(sale.subtotal || sale.total || 0).toLocaleString()}</Text>
           </View>
           {sale.tax && Number(sale.tax) > 0 && (
             <View style={styles.totalRow}>
-              <Text style={styles.text}>Tax:</Text>
-              <Text style={styles.text}>{currencySymbol}{Number(sale.tax || 0).toLocaleString()}</Text>
+              <Text style={styles.totalText}>Tax:</Text>
+              <Text style={styles.totalText}>{currencySymbol}{Number(sale.tax || 0).toLocaleString()}</Text>
             </View>
           )}
           {sale.discount && Number(sale.discount) > 0 && (
             <View style={styles.totalRow}>
-              <Text style={styles.text}>Discount:</Text>
-              <Text style={styles.text}>-{currencySymbol}{Number(sale.discount || 0).toLocaleString()}</Text>
+              <Text style={styles.totalText}>Discount:</Text>
+              <Text style={styles.totalText}>-{currencySymbol}{Number(sale.discount || 0).toLocaleString()}</Text>
             </View>
           )}
-          <View style={styles.totalRow}>
-            <Text style={styles.boldText}>Total:</Text>
-            <Text style={styles.boldText}>{currencySymbol}{Number(sale.total || 0).toLocaleString()}</Text>
+          <View style={styles.totalRowLarge}>
+            <Text style={styles.totalTextBold}>Total:</Text>
+            <Text style={styles.totalAmountLarge}>{currencySymbol}{Number(sale.total || 0).toLocaleString()}</Text>
           </View>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.boldText}>Payment Method:</Text>
-          <Text style={styles.text}>{(sale.paymentType || sale.payments?.[0]?.method || 'Cash').toUpperCase()}</Text>
-          <Text style={styles.boldText}>Status:</Text>
-          <Text style={styles.text}>{(sale.status || 'completed').toUpperCase()}</Text>
+        {/* Payment Information */}
+        <View style={styles.paymentInfo}>
+          <Text style={styles.paymentTitle}>PAYMENT INFORMATION</Text>
+          <View style={styles.paymentRow}>
+            <Text style={styles.paymentLabel}>Method:</Text>
+            <Text style={styles.paymentValue}>{(sale.paymentType || sale.payments?.[0]?.method || 'Cash').toUpperCase()}</Text>
+          </View>
+          <View style={styles.paymentRow}>
+            <Text style={styles.paymentLabel}>Status:</Text>
+            <Text style={styles.paymentValue}>{(sale.status || 'completed').toUpperCase()}</Text>
+          </View>
+          {dueDate && (
+            <View style={styles.paymentRow}>
+              <Text style={styles.paymentLabel}>Due Date:</Text>
+              <Text style={styles.paymentValue}>{dueDate}</Text>
+            </View>
+          )}
         </View>
 
-        <View style={styles.footer}>
-          <Text>Thank you for your business!</Text>
-          <Text>Generated by {businessName}</Text>
+        {/* QR Code */}
+        <View style={styles.qrCodeContainer}>
+          <Image src={qrCodeUrl} style={styles.qrCode} />
+          <Text style={styles.qrCodeText}>Scan to verify</Text>
         </View>
+
+        {/* Footer */}
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>Thank you for your business!</Text>
+          <Text style={styles.footerText}>This is an electronically generated invoice and does not require a signature.</Text>
+          <Text style={styles.footerTextBold}>{businessName} © {new Date().getFullYear()}</Text>
+        </View>
+
+        {/* Watermark for pending/overdue */}
+        {(status === 'pending' || status === 'overdue') && (
+          <View style={styles.watermark}>
+            <Text>{status.toUpperCase()}</Text>
+          </View>
+        )}
       </Page>
     </Document>
   );
@@ -489,7 +730,11 @@ export function Invoices() {
                           fileName={`invoice-${invoice.receipt_number || invoice.invoiceNumber || invoice.id}.pdf`}
                           className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300"
                         >
-                          <Download className="h-4 w-4" />
+                          {({ loading }) => (
+                            loading ? 
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-green-600"></div> : 
+                            <Download className="h-4 w-4" />
+                          )}
                         </PDFDownloadLink>
                       </FeatureGate>
                       
