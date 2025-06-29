@@ -971,12 +971,14 @@ export const useStore = create<StoreState>()(
             return;
           }
           
-          // Update or insert user settings
+          // Update or insert user settings with explicit conflict resolution
           const { error } = await supabase
             .from('user_settings')
             .upsert({
               ...transformToSupabaseData.userSettings(data, user.id),
               user_id: user.id,
+            }, {
+              onConflict: 'user_id'
             });
             
           if (error) throw handleSupabaseError(error);
