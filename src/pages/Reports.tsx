@@ -25,10 +25,13 @@ import {
 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { FeatureGate } from '../components/FeatureGate';
+import { CurrencyDisplay } from '../components/CurrencyDisplay';
+import { useCurrency } from '../hooks/useCurrency';
 
 export function Reports() {
-  const { sales, products, expenses, exportReportData } = useStore();
+  const { sales, products, expenses, exportReportData, userSettings } = useStore();
   const [selectedMonth, setSelectedMonth] = React.useState(new Date());
+  const { formatAmount, convertAmount, symbol, currency } = useCurrency();
 
   // Export function
   const handleExport = () => {
@@ -221,7 +224,9 @@ export function Reports() {
           {payload.map((entry: any, index: number) => (
             <p key={index} className="text-sm text-gray-600 dark:text-gray-300">
               <span style={{ color: entry.color }}>{entry.name}: </span>
-              {entry.name === 'Revenue' ? `₱${entry.value}` : entry.value}
+              {entry.name === 'Revenue' ? (
+                <CurrencyDisplay amount={entry.value} />
+              ) : entry.value}
             </p>
           ))}
         </div>
@@ -288,7 +293,7 @@ export function Reports() {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           <StatCard
             title="Total Revenue"
-            value={`₱${currentMonthData.totalRevenue.toLocaleString()}`}
+            value={<CurrencyDisplay amount={currentMonthData.totalRevenue} />}
             change={revenueChange}
             icon={DollarSign}
             color="green"
@@ -301,7 +306,7 @@ export function Reports() {
           />
           <StatCard
             title="Net Income"
-            value={`₱${currentMonthData.netIncome.toLocaleString()}`}
+            value={<CurrencyDisplay amount={currentMonthData.netIncome} />}
             change={profitChange}
             icon={TrendingUp}
             color="purple"
@@ -334,6 +339,10 @@ export function Reports() {
                   stroke="currentColor" 
                   className="text-gray-600 dark:text-gray-400"
                   fontSize={12}
+                  tickFormatter={(value) => {
+                    // Format Y-axis ticks with currency symbol
+                    return `${symbol}${Math.round(convertAmount(value, 'PHP')).toLocaleString()}`;
+                  }}
                 />
                 <Tooltip content={<CustomTooltip />} />
                 <Bar 
@@ -421,7 +430,7 @@ export function Reports() {
                           {product.quantity}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                          ₱{product.revenue.toLocaleString()}
+                          <CurrencyDisplay amount={product.revenue} />
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
@@ -463,21 +472,21 @@ export function Reports() {
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
               <div className="text-center p-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
                 <div className="text-3xl font-bold text-green-600 dark:text-green-400">
-                  ₱{currentMonthData.totalRevenue.toLocaleString()}
+                  <CurrencyDisplay amount={currentMonthData.totalRevenue} />
                 </div>
                 <div className="text-sm text-green-700 dark:text-green-300 font-medium">Cash Inflow (Revenue)</div>
               </div>
               
               <div className="text-center p-4 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800">
                 <div className="text-3xl font-bold text-orange-600 dark:text-orange-400">
-                  ₱{currentMonthData.totalCostOfSales.toLocaleString()}
+                  <CurrencyDisplay amount={currentMonthData.totalCostOfSales} />
                 </div>
                 <div className="text-sm text-orange-700 dark:text-orange-300 font-medium">Cost of Sales</div>
               </div>
               
               <div className="text-center p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
                 <div className="text-3xl font-bold text-red-600 dark:text-red-400">
-                  ₱{currentMonthData.totalExpenses.toLocaleString()}
+                  <CurrencyDisplay amount={currentMonthData.totalExpenses} />
                 </div>
                 <div className="text-sm text-red-700 dark:text-red-300 font-medium">Operating Expenses</div>
               </div>
@@ -492,7 +501,7 @@ export function Reports() {
                     ? 'text-blue-600 dark:text-blue-400' 
                     : 'text-red-600 dark:text-red-400'
                 }`}>
-                  ₱{currentMonthData.netIncome.toLocaleString()}
+                  <CurrencyDisplay amount={currentMonthData.netIncome} />
                 </div>
                 <div className={`text-sm font-medium ${
                   currentMonthData.netIncome >= 0 
@@ -510,15 +519,21 @@ export function Reports() {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-600 dark:text-gray-400">Total Revenue:</span>
-                  <span className="font-medium text-green-600 dark:text-green-400">+₱{currentMonthData.totalRevenue.toLocaleString()}</span>
+                  <span className="font-medium text-green-600 dark:text-green-400">
+                    +<CurrencyDisplay amount={currentMonthData.totalRevenue} />
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600 dark:text-gray-400">Cost of Sales:</span>
-                  <span className="font-medium text-orange-600 dark:text-orange-400">-₱{currentMonthData.totalCostOfSales.toLocaleString()}</span>
+                  <span className="font-medium text-orange-600 dark:text-orange-400">
+                    -<CurrencyDisplay amount={currentMonthData.totalCostOfSales} />
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600 dark:text-gray-400">Operating Expenses:</span>
-                  <span className="font-medium text-red-600 dark:text-red-400">-₱{currentMonthData.totalExpenses.toLocaleString()}</span>
+                  <span className="font-medium text-red-600 dark:text-red-400">
+                    -<CurrencyDisplay amount={currentMonthData.totalExpenses} />
+                  </span>
                 </div>
                 <div className="border-t border-gray-300 dark:border-gray-600 pt-2 mt-2">
                   <div className="flex justify-between">
@@ -528,7 +543,8 @@ export function Reports() {
                         ? 'text-blue-600 dark:text-blue-400' 
                         : 'text-red-600 dark:text-red-400'
                     }`}>
-                      {currentMonthData.netIncome >= 0 ? '+' : ''}₱{currentMonthData.netIncome.toLocaleString()}
+                      {currentMonthData.netIncome >= 0 ? '+' : ''}
+                      <CurrencyDisplay amount={currentMonthData.netIncome} />
                     </span>
                   </div>
                 </div>
