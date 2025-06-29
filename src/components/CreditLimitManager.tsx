@@ -3,7 +3,6 @@ import { X, Check, History, AlertTriangle, Plus, Minus } from 'lucide-react';
 import { format } from 'date-fns';
 import { CurrencyDisplay } from './CurrencyDisplay';
 import { useCurrency } from '../hooks/useCurrency';
-import { currencies } from '../utils/currency';
 
 interface CreditLimitManagerProps {
   customerId: string;
@@ -29,12 +28,30 @@ export function CreditLimitManager({
   onClose,
   onUpdate
 }: CreditLimitManagerProps) {
-  const { symbol, currency, convertAmount, formatAmount } = useCurrency();
-  const [newCreditLimit, setNewCreditLimit] = useState(currentCreditLimit);
-  const [adjustmentAmount, setAdjustmentAmount] = useState(100);
+  const { symbol, currency, convertAmount } = useCurrency();
+  
+  // Convert the PHP values to the user's currency for display
+  const displayCurrentBalance = convertAmount(currentBalance);
+  const displayCurrentCreditLimit = convertAmount(currentCreditLimit);
+  
+  // State for the new credit limit (in user's currency)
+  const [newCreditLimit, setNewCreditLimit] = useState(displayCurrentCreditLimit);
+  
+  // Default adjustment amount in user's currency (equivalent to ~100 PHP)
+  const [adjustmentAmount, setAdjustmentAmount] = useState(() => {
+    // Calculate a reasonable default increment based on currency
+    if (currency?.code === 'JPY' || currency?.code === 'KRW') {
+      return Math.max(100, Math.round(convertAmount(100)));
+    } else if (currency?.code === 'USD' || currency?.code === 'EUR' || currency?.code === 'GBP') {
+      return Math.max(5, Math.round(convertAmount(100)));
+    } else {
+      return Math.max(1, Math.round(convertAmount(100)));
+    }
+  });
+  
   const [isLoading, setIsLoading] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
-  const [adjustmentDirection, setAdjustmentDirection] = useState<'increase' | 'decrease'>('increase');
+  const [specificValue, setSpecificValue] = useState('');
   
   // This would come from the database in a real implementation
   const mockCreditHistory: CreditHistoryItem[] = [
@@ -64,38 +81,10 @@ export function CreditLimitManager({
     }
   ];
 
-  // Calculate appropriate increment based on currency
-  useEffect(() => {
-    if (currency) {
-      // Base increment is 100 PHP
-      const baseIncrement = 100;
-      
-      // Convert to current currency
-      let convertedIncrement = convertAmount(baseIncrement, 'PHP');
-      
-      // Round to appropriate unit based on currency
-      if (currency.code === 'JPY' || currency.code === 'KRW') {
-        // Round to nearest 100 for JPY and KRW
-        convertedIncrement = Math.round(convertedIncrement / 100) * 100;
-        if (convertedIncrement < 100) convertedIncrement = 100;
-      } else if (currency.code === 'USD' || currency.code === 'EUR' || currency.code === 'GBP') {
-        // Round to nearest 5 for major currencies
-        convertedIncrement = Math.round(convertedIncrement / 5) * 5;
-        if (convertedIncrement < 5) convertedIncrement = 5;
-      } else {
-        // Round to nearest whole number for other currencies
-        convertedIncrement = Math.round(convertedIncrement);
-        if (convertedIncrement < 1) convertedIncrement = 1;
-      }
-      
-      setAdjustmentAmount(convertedIncrement);
-    }
-  }, [currency, convertAmount]);
-
   const handleSave = async () => {
     setIsLoading(true);
     try {
-      // Convert the credit limit back to PHP for storage
+      // Convert back to PHP for storage in the database
       const phpCreditLimit = convertAmount(newCreditLimit, currency?.code || 'PHP', 'PHP');
       await onUpdate(phpCreditLimit);
       onClose();
@@ -107,47 +96,30 @@ export function CreditLimitManager({
     }
   };
 
-  const handleAdjustment = (direction: 'increase' | 'decrease') => {
-    setAdjustmentDirection(direction);
-    if (direction === 'increase') {
-      setNewCreditLimit(prev => prev + adjustmentAmount);
-    } else {
-      setNewCreditLimit(prev => Math.max(0, prev - adjustmentAmount));
+  const handleIncrease = () => {
+    setNewCreditLimit(prev => prev + adjustmentAmount);
+  };
+
+  const handleDecrease = () => {
+    setNewCreditLimit(prev => Math.max(0, prev - adjustmentAmount));
+  };
+
+  const handleSetSpecificValue = () => {
+    const value = parseFloat(specificValue);
+    if (!isNaN(value) && value >= 0) {
+      setNewCreditLimit(value);
     }
-  };
-
-  const handleCustomAdjustment = (amount: number) => {
-    setAdjustmentAmount(amount);
-  };
-
-  const handleSetSpecificValue = (value: number) => {
-    setNewCreditLimit(value);
   };
 
   // Calculate available credit and utilization
-  const availableCredit = currentCreditLimit - currentBalance;
-  const creditUtilizationPercent = (currentBalance / currentCreditLimit) * 100 || 0;
+  const availableCredit = displayCurrentCreditLimit - displayCurrentBalance;
+  const creditUtilizationPercent = currentCreditLimit > 0 ? (currentBalance / currentCreditLimit) * 100 : 0;
 
-  // Common increment options based on currency
-  const getIncrementOptions = () => {
-    if (!currency) return [100, 500, 1000, 5000];
-    
-    switch (currency.code) {
-      case 'USD':
-      case 'EUR':
-      case 'GBP':
-        return [5, 10, 50, 100, 500];
-      case 'JPY':
-      case 'KRW':
-        return [100, 500, 1000, 5000, 10000];
-      default:
-        // Scale based on exchange rate compared to PHP
-        const baseOptions = [100, 500, 1000, 5000];
-        return baseOptions.map(opt => Math.round(convertAmount(opt, 'PHP')));
-    }
-  };
-
-  const incrementOptions = getIncrementOptions();
+  // Calculate the change amount and percentage
+  const changeAmount = newCreditLimit - displayCurrentCreditLimit;
+  const changePercentage = displayCurrentCreditLimit > 0 
+    ? (changeAmount / displayCurrentCreditLimit) * 100 
+    : 0;
 
   return (
     <div className="fixed inset-0 z-50 bg-black bg-opacity-75 flex items-center justify-center p-4">
@@ -222,28 +194,24 @@ export function CreditLimitManager({
           </div>
           
           <div className="mb-6">
-            <h4 className="font-medium text-gray-900 dark:text-white mb-4">Update Credit Limit</h4>
+            <h4 className="font-medium text-gray-900 dark:text-white mb-2">Update Credit Limit</h4>
             
             {/* New Credit Limit Display */}
             <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 mb-4 text-center">
               <div className="text-sm text-blue-700 dark:text-blue-300 mb-1">New Credit Limit</div>
               <div className="text-2xl font-bold text-blue-800 dark:text-blue-200">
-                <CurrencyDisplay amount={newCreditLimit} />
+                {symbol}{newCreditLimit.toFixed(2)}
               </div>
               
               {/* Change indicator */}
-              {newCreditLimit !== currentCreditLimit && (
+              {newCreditLimit !== displayCurrentCreditLimit && (
                 <div className={`text-sm mt-1 ${
-                  newCreditLimit > currentCreditLimit 
+                  newCreditLimit > displayCurrentCreditLimit 
                     ? 'text-green-600 dark:text-green-400' 
                     : 'text-red-600 dark:text-red-400'
                 }`}>
-                  {newCreditLimit > currentCreditLimit ? '+' : ''}
-                  <CurrencyDisplay 
-                    amount={newCreditLimit - currentCreditLimit} 
-                  />
-                  {' '}
-                  ({((newCreditLimit / currentCreditLimit - 1) * 100).toFixed(1)}%)
+                  {changeAmount > 0 ? '+' : ''}
+                  {symbol}{Math.abs(changeAmount).toFixed(2)} ({changePercentage > 0 ? '+' : ''}{changePercentage.toFixed(1)}%)
                 </div>
               )}
             </div>
@@ -251,23 +219,15 @@ export function CreditLimitManager({
             {/* Adjustment Controls */}
             <div className="flex space-x-2 mb-4">
               <button
-                onClick={() => handleAdjustment('decrease')}
-                className={`flex-1 flex items-center justify-center py-2 px-4 rounded-lg border ${
-                  adjustmentDirection === 'decrease'
-                    ? 'bg-red-100 border-red-300 text-red-700 dark:bg-red-900/30 dark:border-red-700 dark:text-red-300'
-                    : 'bg-gray-100 border-gray-300 text-gray-700 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300'
-                }`}
+                onClick={handleDecrease}
+                className="flex-1 flex items-center justify-center py-2 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
               >
                 <Minus className="h-4 w-4 mr-1" />
                 Decrease
               </button>
               <button
-                onClick={() => handleAdjustment('increase')}
-                className={`flex-1 flex items-center justify-center py-2 px-4 rounded-lg border ${
-                  adjustmentDirection === 'increase'
-                    ? 'bg-green-100 border-green-300 text-green-700 dark:bg-green-900/30 dark:border-green-700 dark:text-green-300'
-                    : 'bg-gray-100 border-gray-300 text-gray-700 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300'
-                }`}
+                onClick={handleIncrease}
+                className="flex-1 flex items-center justify-center py-2 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
               >
                 <Plus className="h-4 w-4 mr-1" />
                 Increase
@@ -280,17 +240,17 @@ export function CreditLimitManager({
                 Adjustment Amount ({currency?.code})
               </label>
               <div className="grid grid-cols-4 gap-2 mb-2">
-                {incrementOptions.map((amount) => (
+                {[5, 10, 50, 100].map((amount) => (
                   <button
                     key={amount}
-                    onClick={() => handleCustomAdjustment(amount)}
+                    onClick={() => setAdjustmentAmount(amount)}
                     className={`py-2 px-3 text-sm rounded-lg border ${
                       adjustmentAmount === amount
                         ? 'bg-blue-100 border-blue-300 text-blue-700 dark:bg-blue-900/30 dark:border-blue-700 dark:text-blue-300'
                         : 'bg-gray-100 border-gray-300 text-gray-700 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300'
                     }`}
                   >
-                    {symbol}{amount.toLocaleString()}
+                    {symbol}{amount}
                   </button>
                 ))}
               </div>
@@ -299,18 +259,14 @@ export function CreditLimitManager({
                   type="number"
                   min="1"
                   value={adjustmentAmount}
-                  onChange={(e) => handleCustomAdjustment(Math.max(1, parseInt(e.target.value) || 0))}
+                  onChange={(e) => setAdjustmentAmount(Math.max(1, parseInt(e.target.value) || 0))}
                   className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
                 <button
-                  onClick={() => handleAdjustment(adjustmentDirection)}
-                  className={`ml-2 py-2 px-4 rounded-lg ${
-                    adjustmentDirection === 'increase'
-                      ? 'bg-green-600 hover:bg-green-700 text-white'
-                      : 'bg-red-600 hover:bg-red-700 text-white'
-                  }`}
+                  onClick={handleIncrease}
+                  className="ml-2 py-2 px-4 rounded-lg bg-green-600 hover:bg-green-700 text-white"
                 >
-                  {adjustmentDirection === 'increase' ? '+' : '-'}
+                  +
                 </button>
               </div>
             </div>
@@ -326,18 +282,26 @@ export function CreditLimitManager({
                     {symbol}
                   </div>
                   <input
-                    type="number"
-                    min="0"
-                    step="100"
-                    value={newCreditLimit}
-                    onChange={(e) => handleSetSpecificValue(parseFloat(e.target.value) || 0)}
+                    type="text"
+                    value={specificValue}
+                    onChange={(e) => setSpecificValue(e.target.value)}
+                    onBlur={handleSetSpecificValue}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSetSpecificValue()}
                     className="w-full pl-8 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter exact amount"
                   />
                 </div>
+                <button
+                  onClick={handleSetSpecificValue}
+                  className="ml-2 py-2 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  Set
+                </button>
               </div>
             </div>
             
-            {newCreditLimit < currentBalance && (
+            {/* Warning if new limit is less than balance */}
+            {newCreditLimit < displayCurrentBalance && (
               <div className="mt-2 flex items-start text-sm text-yellow-600 dark:text-yellow-400">
                 <AlertTriangle className="h-4 w-4 mr-1 flex-shrink-0 mt-0.5" />
                 <span>
