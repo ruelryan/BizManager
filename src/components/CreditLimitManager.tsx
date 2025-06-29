@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, AlertTriangle, Check, History } from 'lucide-react';
 import { format } from 'date-fns';
 import { CurrencyDisplay } from './CurrencyDisplay';
+import { CurrencyInput } from './CurrencyInput';
 
 interface CreditLimitManagerProps {
   customerId: string;
@@ -149,16 +150,12 @@ export function CreditLimitManager({
           
           <div className="mb-6">
             <h4 className="font-medium text-gray-900 dark:text-white mb-2">Update Credit Limit</h4>
-            <div className="flex items-center">
-              <input
-                type="number"
-                min="0"
-                step="100"
-                value={newCreditLimit}
-                onChange={(e) => setNewCreditLimit(parseFloat(e.target.value) || 0)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
+            <CurrencyInput
+              value={newCreditLimit}
+              onChange={setNewCreditLimit}
+              min={0}
+              step={100}
+            />
             
             {newCreditLimit < currentBalance && (
               <div className="mt-2 flex items-start text-sm text-yellow-600 dark:text-yellow-400">

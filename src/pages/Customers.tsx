@@ -5,6 +5,7 @@ import { Customer } from '../types';
 import { CreditLimitManager } from '../components/CreditLimitManager';
 import { CustomerPricing } from '../components/CustomerPricing';
 import { CurrencyDisplay } from '../components/CurrencyDisplay';
+import { CurrencyInput } from '../components/CurrencyInput';
 
 export function Customers() {
   const { customers, addCustomer, updateCustomer, deleteCustomer } = useStore();
@@ -163,13 +164,11 @@ export function Customers() {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Credit Limit
               </label>
-              <input
-                type="number"
-                min="0"
-                step="100"
+              <CurrencyInput
                 value={formData.creditLimit}
-                onChange={(e) => setFormData(prev => ({ ...prev, creditLimit: parseFloat(e.target.value) || 0 }))}
-                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                onChange={(value) => setFormData(prev => ({ ...prev, creditLimit: value }))}
+                min={0}
+                step={100}
               />
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 Set to 0 for no credit limit
