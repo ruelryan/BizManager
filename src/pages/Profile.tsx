@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, Mail, Crown, Save, ArrowLeft, Globe, Building, Calendar, AlertCircle, Bell, CreditCard } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useStore, isInFreeTrial } from '../store/useStore';
 import { plans } from '../utils/plans';
+import { format } from 'date-fns';
+import { supabase } from '../lib/supabase';
 
 const currencies = [
   { code: 'PHP', name: 'Philippine Peso', symbol: '₱' },
@@ -15,10 +17,21 @@ const currencies = [
   { code: 'THB', name: 'Thai Baht', symbol: '฿' },
 ];
 
+interface PaymentTransaction {
+  id: string;
+  transaction_type: string;
+  amount: number;
+  currency: string;
+  status: string;
+  created_at: string;
+  plan_id?: string;
+  payment_method?: string;
+}
+
 export function Profile() {
   const navigate = useNavigate();
   const { user, userSettings, updateUserProfile, updateUserSettings, isLoading } = useStore();
-  const [formData, setFormData] = React.useState({
+  const [formData, setFormData] = useState({
     name: user?.name || '',
     email: user?.email || '',
     plan: user?.plan || 'free',
@@ -28,10 +41,74 @@ export function Profile() {
     businessPhone: userSettings?.businessPhone || user?.businessPhone || '',
     businessEmail: userSettings?.businessEmail || user?.businessEmail || '',
   });
-  const [isSaving, setIsSaving] = React.useState(false);
-  const [message, setMessage] = React.useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [showPaymentHistory, setShowPaymentHistory] = React.useState(false);
-  const [showNotifications, setShowNotifications] = React.useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [showPaymentHistory, setShowPaymentHistory] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [paymentHistory, setPaymentHistory] = useState<PaymentTransaction[]>([]);
+  const [isLoadingPayments, setIsLoadingPayments] = useState(false);
+
+  useEffect(() => {
+    if (showPaymentHistory) {
+      fetchPaymentHistory();
+    }
+  }, [showPaymentHistory]);
+
+  const fetchPaymentHistory = async () => {
+    if (!user) return;
+    
+    setIsLoadingPayments(true);
+    
+    try {
+      // For demo user, create mock payment history
+      if (user.id === 'demo-user-id') {
+        const mockPayments = [
+          {
+            id: 'pt-1',
+            transaction_type: 'payment',
+            amount: 499,
+            currency: 'USD',
+            status: 'completed',
+            created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+            plan_id: 'pro',
+            payment_method: 'paypal'
+          },
+          {
+            id: 'pt-2',
+            transaction_type: 'payment',
+            amount: 499,
+            currency: 'USD',
+            status: 'completed',
+            created_at: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
+            plan_id: 'pro',
+            payment_method: 'paypal'
+          }
+        ];
+        
+        setPaymentHistory(mockPayments);
+        setIsLoadingPayments(false);
+        return;
+      }
+      
+      // Fetch real payment history from database
+      const { data, error } = await supabase
+        .from('payment_transactions')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+        
+      if (error) {
+        console.error('Error fetching payment history:', error);
+        throw error;
+      }
+      
+      setPaymentHistory(data || []);
+    } catch (error) {
+      console.error('Failed to fetch payment history:', error);
+    } finally {
+      setIsLoadingPayments(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,6 +146,26 @@ export function Profile() {
   const currentPlan = plans.find(p => p.id === user?.plan);
   const selectedCurrency = currencies.find(c => c.code === formData.currency);
   const inFreeTrial = user ? isInFreeTrial(user) : false;
+
+  const formatPaymentAmount = (amount: number, currency: string) => {
+    const symbol = currencies.find(c => c.code === currency)?.symbol || currency;
+    return `${symbol}${amount.toFixed(2)}`;
+  };
+
+  const getPaymentStatusBadge = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'completed':
+        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
+      case 'failed':
+        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
+      case 'refunded':
+        return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300';
+      default:
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+    }
+  };
 
   return (
     <div className="space-y-6 p-6">
@@ -321,7 +418,7 @@ export function Profile() {
               <div className="mt-6">
                 <button
                   onClick={() => navigate('/pricing')}
-                  className="w-full rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-2 text-white font-medium hover:from-blue-700 hover:to-purple-700 transition-colors"
+                  className="w-full rounded-lg bg-blue-600 px-4 py-2 text-white font-medium hover:bg-blue-700 transition-colors"
                 >
                   <Crown className="mr-2 h-4 w-4 inline" />
                   Upgrade Plan
@@ -344,10 +441,50 @@ export function Profile() {
             
             {showPaymentHistory ? (
               <div className="space-y-3">
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  <p>No payment history available.</p>
-                  <p className="mt-2">Payment transactions will appear here once you make a purchase.</p>
-                </div>
+                {isLoadingPayments ? (
+                  <div className="flex justify-center py-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 dark:border-blue-400"></div>
+                  </div>
+                ) : paymentHistory.length > 0 ? (
+                  <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
+                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                      <thead className="bg-gray-50 dark:bg-gray-700">
+                        <tr>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Amount</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                        {paymentHistory.map((transaction) => (
+                          <tr key={transaction.id}>
+                            <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                              {format(new Date(transaction.created_at), 'MMM dd, yyyy')}
+                            </td>
+                            <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300 capitalize">
+                              {transaction.transaction_type}
+                              {transaction.plan_id && ` (${transaction.plan_id})`}
+                            </td>
+                            <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-300">
+                              {formatPaymentAmount(transaction.amount, transaction.currency)}
+                            </td>
+                            <td className="px-4 py-2 whitespace-nowrap text-sm">
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPaymentStatusBadge(transaction.status)}`}>
+                                {transaction.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-600 dark:text-gray-400 text-center py-4">
+                    <p>No payment history available.</p>
+                    <p className="mt-2">Payment transactions will appear here once you make a purchase.</p>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-sm text-gray-600 dark:text-gray-400">
