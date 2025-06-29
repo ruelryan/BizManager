@@ -97,7 +97,7 @@ export default defineConfig({
     }),
   ],
   optimizeDeps: {
-    exclude: ['lucide-react', '@react-pdf/renderer'],
+    exclude: ['lucide-react'],
   },
   // Add fallback for SPA routing in development
   server: {
