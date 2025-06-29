@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Trash2, Save } from 'lucide-react';
 import { useStore } from '../store/useStore';
+import { CurrencyDisplay } from './CurrencyDisplay';
 
 interface CustomerPricingProps {
   customerId: string;
@@ -119,7 +120,7 @@ export function CustomerPricing({ customerId, customerName, onClose, onSave }: C
                 <option value="">Select a product</option>
                 {availableProducts.map((product) => (
                   <option key={product.id} value={product.id}>
-                    {product.name} (₱{product.price.toFixed(2)})
+                    {product.name} (<CurrencyDisplay amount={product.price} />)
                   </option>
                 ))}
               </select>
@@ -169,7 +170,7 @@ export function CustomerPricing({ customerId, customerName, onClose, onSave }: C
                             {price.productName}
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                            ₱{price.regularPrice.toFixed(2)}
+                            <CurrencyDisplay amount={price.regularPrice} />
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap text-sm">
                             <input

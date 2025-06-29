@@ -4,6 +4,7 @@ import { useStore } from '../store/useStore';
 import { Customer } from '../types';
 import { CreditLimitManager } from '../components/CreditLimitManager';
 import { CustomerPricing } from '../components/CustomerPricing';
+import { CurrencyDisplay } from '../components/CurrencyDisplay';
 
 export function Customers() {
   const { customers, addCustomer, updateCustomer, deleteCustomer } = useStore();
@@ -160,7 +161,7 @@ export function Customers() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Credit Limit (₱)
+                Credit Limit
               </label>
               <input
                 type="number"
@@ -300,6 +301,9 @@ export function Customers() {
                       ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' 
                       : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
                 
+                // Check if customer has special pricing
+                const hasSpecialPricing = customer.specialPricing && Object.keys(customer.specialPricing).length > 0;
+                
                 return (
                   <tr key={customer.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -320,7 +324,7 @@ export function Customers() {
                       {customer.creditLimit > 0 ? (
                         <div>
                           <div className="text-sm text-gray-900 dark:text-gray-300">
-                            Balance: ₱{customer.balance.toFixed(2)} / ₱{customer.creditLimit.toFixed(2)}
+                            Balance: <CurrencyDisplay amount={customer.balance} /> / <CurrencyDisplay amount={customer.creditLimit} />
                           </div>
                           <div className="w-32 bg-gray-200 dark:bg-gray-600 rounded-full h-1.5 mt-1">
                             <div 
@@ -340,13 +344,21 @@ export function Customers() {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
-                        customer.isActive 
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' 
-                          : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
-                      }`}>
-                        {customer.isActive ? 'Active' : 'Inactive'}
-                      </span>
+                      <div className="flex flex-col space-y-2">
+                        <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
+                          customer.isActive 
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' 
+                            : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                        }`}>
+                          {customer.isActive ? 'Active' : 'Inactive'}
+                        </span>
+                        
+                        {hasSpecialPricing && (
+                          <span className="inline-flex rounded-full px-2 text-xs font-semibold leading-5 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                            Special Pricing
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex items-center space-x-2">

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { X, DollarSign, AlertTriangle, Check, History } from 'lucide-react';
+import { X, AlertTriangle, Check, History } from 'lucide-react';
 import { format } from 'date-fns';
+import { CurrencyDisplay } from './CurrencyDisplay';
 
 interface CreditLimitManagerProps {
   customerId: string;
@@ -99,15 +100,21 @@ export function CreditLimitManager({
               </div>
               <div className="mb-2">
                 <span className="text-gray-600 dark:text-gray-400">Current Balance:</span>
-                <span className="float-right font-medium text-gray-900 dark:text-white">₱{currentBalance.toFixed(2)}</span>
+                <span className="float-right font-medium text-gray-900 dark:text-white">
+                  <CurrencyDisplay amount={currentBalance} />
+                </span>
               </div>
               <div className="mb-2">
                 <span className="text-gray-600 dark:text-gray-400">Credit Limit:</span>
-                <span className="float-right font-medium text-gray-900 dark:text-white">₱{currentCreditLimit.toFixed(2)}</span>
+                <span className="float-right font-medium text-gray-900 dark:text-white">
+                  <CurrencyDisplay amount={currentCreditLimit} />
+                </span>
               </div>
               <div className="mb-2">
                 <span className="text-gray-600 dark:text-gray-400">Available Credit:</span>
-                <span className="float-right font-medium text-gray-900 dark:text-white">₱{availableCredit.toFixed(2)}</span>
+                <span className="float-right font-medium text-gray-900 dark:text-white">
+                  <CurrencyDisplay amount={availableCredit} />
+                </span>
               </div>
               
               {/* Credit Utilization Bar */}
@@ -143,17 +150,14 @@ export function CreditLimitManager({
           <div className="mb-6">
             <h4 className="font-medium text-gray-900 dark:text-white mb-2">Update Credit Limit</h4>
             <div className="flex items-center">
-              <div className="relative flex-1">
-                <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <input
-                  type="number"
-                  min="0"
-                  step="100"
-                  value={newCreditLimit}
-                  onChange={(e) => setNewCreditLimit(parseFloat(e.target.value) || 0)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
+              <input
+                type="number"
+                min="0"
+                step="100"
+                value={newCreditLimit}
+                onChange={(e) => setNewCreditLimit(parseFloat(e.target.value) || 0)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
             </div>
             
             {newCreditLimit < currentBalance && (
@@ -219,7 +223,7 @@ export function CreditLimitManager({
                               : 'text-red-600 dark:text-red-400'
                           }>
                             {item.action === 'increase' || item.action === 'payment' ? '+' : '-'}
-                            ₱{item.amount.toFixed(2)}
+                            <CurrencyDisplay amount={item.amount} />
                           </span>
                         </td>
                       </tr>
