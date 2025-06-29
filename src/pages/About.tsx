@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Beaker, Code, Briefcase, Award, GraduationCap, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Beaker, Code, Briefcase, Award, GraduationCap, CheckCircle, ArrowRight } from 'lucide-react';
 
 export function About() {
   return (
@@ -17,350 +17,186 @@ export function About() {
 
       {/* Hero Section */}
       <section className="py-16 bg-gradient-to-b from-blue-50 to-white dark:from-gray-800 dark:to-gray-900">
-        <div className="container mx-auto px-4 text-center">
-          <div className="mb-8 relative mx-auto w-32 h-32 rounded-full overflow-hidden border-4 border-white dark:border-gray-700 shadow-lg">
-            <img 
-              src="/263811169_609784763605045_5307824981917022036_n.jpg" 
-              alt="Ruel Ryan Rosal" 
-              className="w-full h-full object-cover"
-            />
+        <div className="container mx-auto px-4 md:flex md:items-center md:justify-between">
+          <div className="md:w-1/2 mb-8 md:mb-0">
+            <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Precision in Science, Excellence in Code</h1>
+            <p className="text-xl text-gray-600 dark:text-gray-400 max-w-xl">
+              From laboratory precision to web development innovation - bringing analytical expertise and technical leadership to every project.
+            </p>
           </div>
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">From Laboratory to Web Development</h1>
-          <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
-            Ruel Ryan Rosal, RCh - Leveraging analytical precision and technical expertise across disciplines
-          </p>
+          <div className="md:w-1/3 flex justify-center">
+            <div className="relative w-64 h-64 rounded-full overflow-hidden border-4 border-white dark:border-gray-700 shadow-lg">
+              <img 
+                src="/263811169_609784763605045_5307824981917022036_n.jpg" 
+                alt="Ruel Ryan Rosal" 
+                className="w-full h-full object-cover"
+              />
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Professional Journey */}
+      {/* Our Story */}
       <section className="py-16 bg-white dark:bg-gray-900">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto">
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">My Professional Journey</h2>
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-6 text-center">Our Story</h2>
             <div className="prose prose-lg dark:prose-invert">
               <p className="text-gray-700 dark:text-gray-300">
-                My career path has been defined by a passion for precision, analytical thinking, and problem-solving. Beginning in laboratory science as a Registered Chemist, I developed a meticulous approach to technical challenges that has proven invaluable in my transition to web development and business ownership.
+                As a Registered Chemist (RCh) with extensive experience in laboratory management and quality control, I've developed a unique approach to problem-solving that combines scientific precision with practical business acumen. My journey from leading technical teams at PASAR Corporation to managing laboratory operations at Cebu Agua Lab has equipped me with invaluable skills in analytical thinking, process optimization, and quality assurance.
               </p>
               <p className="text-gray-700 dark:text-gray-300 mt-4">
-                As Methods Development Manager at PASAR Corporation and later as Laboratory Head at Cebu Agua Lab, I honed my skills in quality control, technical leadership, and systematic problem-solving. These experiences taught me to approach complex challenges methodically, maintain rigorous standards, and effectively lead technical teams—skills that translate seamlessly to web development.
-              </p>
-              <p className="text-gray-700 dark:text-gray-300 mt-4">
-                Today, I apply this same analytical mindset to creating web solutions, combining scientific precision with creative problem-solving. As the owner of E & J Appliances Furniture since 2022, I've gained firsthand understanding of business needs, allowing me to develop web applications that address real-world challenges faced by entrepreneurs.
+                Today, I apply this same methodical approach to web development, creating solutions that are not only technically sound but also aligned with real business needs. As the owner of E & J Appliances Furniture since 2022, I understand firsthand the challenges businesses face and develop web applications that address these pain points effectively.
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Career Timeline */}
+      {/* Core Values */}
       <section className="py-16 bg-gray-50 dark:bg-gray-800">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-12 text-center">Professional Experience</h2>
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-12 text-center">Our Core Values</h2>
           
-          <div className="max-w-4xl mx-auto">
-            <div className="relative">
-              {/* Timeline line */}
-              <div className="absolute left-8 top-0 bottom-0 w-1 bg-blue-200 dark:bg-blue-900/50"></div>
-              
-              <div className="space-y-12">
-                {/* Web Development & Business */}
-                <div className="relative pl-20">
-                  <div className="absolute left-0 w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center border-4 border-white dark:border-gray-800">
-                    <Code className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Web Developer & Business Owner</h3>
-                  <p className="text-sm text-blue-600 dark:text-blue-400 mb-2">2022 - Present</p>
-                  <div className="text-gray-700 dark:text-gray-300">
-                    <p className="mb-2">Transitioned to web development, applying analytical skills from laboratory background to create technical solutions. Currently own and operate E & J Appliances Furniture, where I implement web solutions to streamline business operations.</p>
-                    <ul className="list-disc pl-5 space-y-1 mt-3">
-                      <li>Developed e-commerce solutions and inventory management systems</li>
-                      <li>Created data-driven web applications for business analytics</li>
-                      <li>Applied technical expertise to real-world business challenges</li>
-                    </ul>
-                  </div>
-                </div>
-                
-                {/* Cebu Agua Lab */}
-                <div className="relative pl-20">
-                  <div className="absolute left-0 w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center border-4 border-white dark:border-gray-800">
-                    <Briefcase className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Laboratory Head</h3>
-                  <p className="text-sm text-blue-600 dark:text-blue-400 mb-2">Cebu Agua Lab</p>
-                  <div className="text-gray-700 dark:text-gray-300">
-                    <p className="mb-2">Managed daily laboratory operations, ensuring compliance with quality standards and regulatory requirements while supervising technical staff.</p>
-                    <ul className="list-disc pl-5 space-y-1 mt-3">
-                      <li>Supervised laboratory operations and quality control systems</li>
-                      <li>Trained and mentored technical staff in analytical procedures</li>
-                      <li>Maintained regulatory compliance and documentation standards</li>
-                    </ul>
-                  </div>
-                </div>
-                
-                {/* PASAR Corporation */}
-                <div className="relative pl-20">
-                  <div className="absolute left-0 w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center border-4 border-white dark:border-gray-800">
-                    <Beaker className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Methods Development Manager</h3>
-                  <p className="text-sm text-blue-600 dark:text-blue-400 mb-2">PASAR Corporation</p>
-                  <div className="text-gray-700 dark:text-gray-300">
-                    <p className="mb-2">Led technical innovation and quality control initiatives for laboratory operations, managing method development and validation processes.</p>
-                    <ul className="list-disc pl-5 space-y-1 mt-3">
-                      <li>Implemented ISO 17025 standards and quality management systems</li>
-                      <li>Directed technical teams in developing and validating analytical methods</li>
-                      <li>Optimized laboratory processes for improved efficiency and accuracy</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Skills & Expertise */}
-      <section className="py-16 bg-white dark:bg-gray-900">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-12 text-center">Skills & Expertise</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {/* Technical Expertise */}
-            <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-xl shadow-md">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            <div className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-md">
               <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center mb-4">
-                <Code className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                <Beaker className="h-6 w-6 text-blue-600 dark:text-blue-400" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">Web Development</h3>
-              <ul className="space-y-2 text-gray-700 dark:text-gray-300">
-                <li className="flex items-center">
-                  <CheckCircle className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
-                  <span>React & TypeScript</span>
-                </li>
-                <li className="flex items-center">
-                  <CheckCircle className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
-                  <span>Responsive UI/UX Design</span>
-                </li>
-                <li className="flex items-center">
-                  <CheckCircle className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
-                  <span>API Integration</span>
-                </li>
-                <li className="flex items-center">
-                  <CheckCircle className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
-                  <span>Database Management</span>
-                </li>
-              </ul>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">Analytical Precision</h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                Every project benefits from the same methodical approach and attention to detail that's essential in laboratory science. I break down complex problems into manageable components and build solutions with precision.
+              </p>
             </div>
             
-            {/* Laboratory Expertise */}
-            <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-xl shadow-md">
-              <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center mb-4">
-                <Beaker className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">Laboratory Management</h3>
-              <ul className="space-y-2 text-gray-700 dark:text-gray-300">
-                <li className="flex items-center">
-                  <CheckCircle className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
-                  <span>Quality Control Systems</span>
-                </li>
-                <li className="flex items-center">
-                  <CheckCircle className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
-                  <span>ISO 17025 Implementation</span>
-                </li>
-                <li className="flex items-center">
-                  <CheckCircle className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
-                  <span>Method Development</span>
-                </li>
-                <li className="flex items-center">
-                  <CheckCircle className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
-                  <span>Technical Training</span>
-                </li>
-              </ul>
-            </div>
-            
-            {/* Business Skills */}
-            <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-xl shadow-md">
+            <div className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-md">
               <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center mb-4">
                 <Briefcase className="h-6 w-6 text-green-600 dark:text-green-400" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">Business Operations</h3>
-              <ul className="space-y-2 text-gray-700 dark:text-gray-300">
-                <li className="flex items-center">
-                  <CheckCircle className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
-                  <span>Inventory Management</span>
-                </li>
-                <li className="flex items-center">
-                  <CheckCircle className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
-                  <span>E-commerce Solutions</span>
-                </li>
-                <li className="flex items-center">
-                  <CheckCircle className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
-                  <span>Business Process Optimization</span>
-                </li>
-                <li className="flex items-center">
-                  <CheckCircle className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
-                  <span>Customer Relationship Management</span>
-                </li>
-              </ul>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">Business-Focused</h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                As a business owner myself, I understand that technology must serve practical needs. I develop solutions with real-world business requirements in mind, focusing on usability, efficiency, and measurable outcomes.
+              </p>
+            </div>
+            
+            <div className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-md">
+              <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center mb-4">
+                <Code className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">Technical Excellence</h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                My background in implementing ISO 17025 standards and quality management systems translates to web development through clean code, thorough testing, and robust documentation. Quality isn't just a goal—it's a requirement.
+              </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Education & Certifications */}
-      <section className="py-16 bg-gray-50 dark:bg-gray-800">
+      {/* Expertise & Certifications */}
+      <section className="py-16 bg-white dark:bg-gray-900">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-12 text-center">Education & Certifications</h2>
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-12 text-center">Expertise & Certifications</h2>
           
-          <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-md">
-              <div className="flex items-center mb-4">
-                <GraduationCap className="h-6 w-6 text-blue-600 dark:text-blue-400 mr-3" />
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Education</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-5xl mx-auto">
+            <div>
+              <div className="flex items-center mb-6">
+                <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center mr-4">
+                  <GraduationCap className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Professional Qualifications</h3>
               </div>
+              
               <ul className="space-y-4">
-                <li>
-                  <div className="font-medium text-gray-900 dark:text-white">Bachelor of Science</div>
-                  <div className="text-gray-600 dark:text-gray-400">Chemistry</div>
-                  <div className="text-sm text-gray-500 dark:text-gray-500">Registered Chemist (RCh)</div>
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <div className="font-medium text-gray-900 dark:text-white">Registered Chemist (RCh)</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Philippine Professional Regulation Commission</div>
+                  </div>
                 </li>
-                <li>
-                  <div className="font-medium text-gray-900 dark:text-white">Web Development</div>
-                  <div className="text-gray-600 dark:text-gray-400">Full-Stack Development</div>
-                  <div className="text-sm text-gray-500 dark:text-gray-500">Modern JavaScript, React, Node.js</div>
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <div className="font-medium text-gray-900 dark:text-white">Pollution Control Officer</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Department of Environment and Natural Resources</div>
+                  </div>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <div className="font-medium text-gray-900 dark:text-white">Basic Occupational Safety and Health Training</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">DOLE - OSHC</div>
+                  </div>
                 </li>
               </ul>
             </div>
             
-            <div className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-md">
-              <div className="flex items-center mb-4">
-                <Award className="h-6 w-6 text-blue-600 dark:text-blue-400 mr-3" />
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Certifications</h3>
+            <div>
+              <div className="flex items-center mb-6">
+                <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center mr-4">
+                  <Award className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Technical Expertise</h3>
               </div>
+              
               <ul className="space-y-4">
-                <li>
-                  <div className="font-medium text-gray-900 dark:text-white">Basic Occupational Safety and Health Training</div>
-                  <div className="text-gray-600 dark:text-gray-400">DOLE - OSHC</div>
-                  <div className="text-sm text-gray-500 dark:text-gray-500">Credential ID: BOSH SO1 23-29-21</div>
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <div className="font-medium text-gray-900 dark:text-white">Laboratory Management Systems</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">ISO 17025 implementation and quality control</div>
+                  </div>
                 </li>
-                <li>
-                  <div className="font-medium text-gray-900 dark:text-white">Registered Chemist</div>
-                  <div className="text-gray-600 dark:text-gray-400">Philippine Professional Regulation Commission</div>
-                  <div className="text-sm text-gray-500 dark:text-gray-500">Credential ID: 0012276</div>
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <div className="font-medium text-gray-900 dark:text-white">Web Development</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">React, TypeScript, Node.js, and database management</div>
+                  </div>
                 </li>
-                <li>
-                  <div className="font-medium text-gray-900 dark:text-white">Pollution Control Officer</div>
-                  <div className="text-gray-600 dark:text-gray-400">Department of Environment and Natural Resources</div>
-                  <div className="text-sm text-gray-500 dark:text-gray-500">Credential ID: 2018-R07-1693</div>
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <div className="font-medium text-gray-900 dark:text-white">Business Operations</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Inventory management, e-commerce, and process optimization</div>
+                  </div>
                 </li>
               </ul>
-            </div>
-          </div>
-          
-          {/* Additional Certifications */}
-          <div className="max-w-5xl mx-auto mt-8">
-            <div className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-md">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Additional Certifications & Training</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <ul className="space-y-3">
-                    <li className="flex items-start">
-                      <CheckCircle className="h-4 w-4 text-green-500 mr-2 mt-1 flex-shrink-0" />
-                      <div>
-                        <div className="font-medium text-gray-900 dark:text-white">Flame and Graphite Furnace AAS Operations</div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">Shimadzu Philippines Corporation</div>
-                      </div>
-                    </li>
-                    <li className="flex items-start">
-                      <CheckCircle className="h-4 w-4 text-green-500 mr-2 mt-1 flex-shrink-0" />
-                      <div>
-                        <div className="font-medium text-gray-900 dark:text-white">Microbial Analysis of Water</div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">Philippine Association of Medical Technologists</div>
-                      </div>
-                    </li>
-                    <li className="flex items-start">
-                      <CheckCircle className="h-4 w-4 text-green-500 mr-2 mt-1 flex-shrink-0" />
-                      <div>
-                        <div className="font-medium text-gray-900 dark:text-white">Effective Management Process Variability</div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">PASAR</div>
-                      </div>
-                    </li>
-                    <li className="flex items-start">
-                      <CheckCircle className="h-4 w-4 text-green-500 mr-2 mt-1 flex-shrink-0" />
-                      <div>
-                        <div className="font-medium text-gray-900 dark:text-white">Claisse TheOx Advanced Fusion</div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">Mathieu Bouchard</div>
-                      </div>
-                    </li>
-                  </ul>
-                </div>
-                <div>
-                  <ul className="space-y-3">
-                    <li className="flex items-start">
-                      <CheckCircle className="h-4 w-4 text-green-500 mr-2 mt-1 flex-shrink-0" />
-                      <div>
-                        <div className="font-medium text-gray-900 dark:text-white">Effective Meeting Management</div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">IDEAS</div>
-                      </div>
-                    </li>
-                    <li className="flex items-start">
-                      <CheckCircle className="h-4 w-4 text-green-500 mr-2 mt-1 flex-shrink-0" />
-                      <div>
-                        <div className="font-medium text-gray-900 dark:text-white">IMS Internal Audit</div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">Neville-Clarke Asean</div>
-                      </div>
-                    </li>
-                    <li className="flex items-start">
-                      <CheckCircle className="h-4 w-4 text-green-500 mr-2 mt-1 flex-shrink-0" />
-                      <div>
-                        <div className="font-medium text-gray-900 dark:text-white">Safety Leadership Training</div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">Glencore</div>
-                      </div>
-                    </li>
-                    <li className="flex items-start">
-                      <CheckCircle className="h-4 w-4 text-green-500 mr-2 mt-1 flex-shrink-0" />
-                      <div>
-                        <div className="font-medium text-gray-900 dark:text-white">Understanding ISO/IEC 17025</div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">Neville-Clarke</div>
-                      </div>
-                    </li>
-                  </ul>
-                </div>
-              </div>
             </div>
           </div>
         </div>
       </section>
 
       {/* Key Achievements */}
-      <section className="py-16 bg-white dark:bg-gray-900">
+      <section className="py-16 bg-gray-50 dark:bg-gray-800">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-12 text-center">Key Achievements</h2>
           
           <div className="max-w-3xl mx-auto">
-            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-8 border border-blue-100 dark:border-blue-800">
-              <ul className="space-y-4">
+            <div className="bg-white dark:bg-gray-900 rounded-xl p-8 shadow-md">
+              <ul className="space-y-6">
                 <li className="flex items-start">
-                  <div className="bg-blue-100 dark:bg-blue-800 rounded-full p-1 mr-3 mt-1">
+                  <div className="bg-blue-100 dark:bg-blue-900/30 rounded-full p-1 mr-4 mt-1">
                     <CheckCircle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white">Laboratory Excellence</h3>
-                    <p className="text-gray-700 dark:text-gray-300">Successfully implemented ISO 17025 quality management systems, improving operational efficiency by 35% and reducing error rates.</p>
+                    <h3 className="font-semibold text-gray-900 dark:text-white">Quality Management Excellence</h3>
+                    <p className="text-gray-700 dark:text-gray-300">Successfully implemented ISO 17025 standards at PASAR Corporation, improving operational efficiency by 35% and establishing robust quality control systems.</p>
                   </div>
                 </li>
                 
                 <li className="flex items-start">
-                  <div className="bg-blue-100 dark:bg-blue-800 rounded-full p-1 mr-3 mt-1">
+                  <div className="bg-blue-100 dark:bg-blue-900/30 rounded-full p-1 mr-4 mt-1">
                     <CheckCircle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900 dark:text-white">Technical Leadership</h3>
-                    <p className="text-gray-700 dark:text-gray-300">Led a team of laboratory professionals, developing standardized procedures that improved consistency and reduced training time by 40%.</p>
+                    <p className="text-gray-700 dark:text-gray-300">Led laboratory operations at Cebu Agua Lab, managing technical staff and ensuring compliance with regulatory requirements while optimizing analytical procedures.</p>
                   </div>
                 </li>
                 
                 <li className="flex items-start">
-                  <div className="bg-blue-100 dark:bg-blue-800 rounded-full p-1 mr-3 mt-1">
+                  <div className="bg-blue-100 dark:bg-blue-900/30 rounded-full p-1 mr-4 mt-1">
                     <CheckCircle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                   </div>
                   <div>
@@ -368,15 +204,39 @@ export function About() {
                     <p className="text-gray-700 dark:text-gray-300">Established and grew E & J Appliances Furniture from startup to profitable operation, implementing custom web solutions for inventory and sales management.</p>
                   </div>
                 </li>
-                
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Why Work With Me */}
+      <section className="py-16 bg-white dark:bg-gray-900">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-8 text-center">Why Work With Me</h2>
+          
+          <div className="max-w-3xl mx-auto">
+            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-8 border border-blue-100 dark:border-blue-800">
+              <p className="text-gray-700 dark:text-gray-300 mb-6">
+                My unique background combines scientific precision with practical business experience, allowing me to approach web development projects with both technical excellence and business acumen. When you work with me, you get:
+              </p>
+              
+              <ul className="space-y-3">
                 <li className="flex items-start">
-                  <div className="bg-blue-100 dark:bg-blue-800 rounded-full p-1 mr-3 mt-1">
-                    <CheckCircle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white">Web Development Projects</h3>
-                    <p className="text-gray-700 dark:text-gray-300">Developed multiple web applications for small businesses, including e-commerce platforms, inventory management systems, and business analytics dashboards.</p>
-                  </div>
+                  <CheckCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 mr-2 mt-0.5 flex-shrink-0" />
+                  <span className="text-gray-700 dark:text-gray-300">A methodical approach to problem-solving that breaks down complex challenges</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 mr-2 mt-0.5 flex-shrink-0" />
+                  <span className="text-gray-700 dark:text-gray-300">Solutions built with both technical excellence and business objectives in mind</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 mr-2 mt-0.5 flex-shrink-0" />
+                  <span className="text-gray-700 dark:text-gray-300">Attention to detail that ensures quality at every step of the development process</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 mr-2 mt-0.5 flex-shrink-0" />
+                  <span className="text-gray-700 dark:text-gray-300">A business owner's perspective that understands your challenges and goals</span>
                 </li>
               </ul>
             </div>
@@ -384,46 +244,19 @@ export function About() {
         </div>
       </section>
 
-      {/* My Approach */}
-      <section className="py-16 bg-gray-50 dark:bg-gray-800">
-        <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto">
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-6 text-center">My Approach</h2>
-            <p className="text-lg text-gray-700 dark:text-gray-300 mb-8 text-center">
-              I bring a unique perspective to web development, combining scientific precision with practical business experience.
-            </p>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-md">
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">Analytical Problem-Solving</h3>
-                <p className="text-gray-700 dark:text-gray-300">
-                  My laboratory background instilled a methodical approach to problem-solving. I break down complex challenges into manageable components, test hypotheses, and implement solutions with precision—whether in code or business processes.
-                </p>
-              </div>
-              
-              <div className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-md">
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">Business-Focused Development</h3>
-                <p className="text-gray-700 dark:text-gray-300">
-                  As a business owner, I understand that technology must serve practical needs. I develop solutions with real-world business requirements in mind, focusing on usability, efficiency, and measurable outcomes.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Contact CTA */}
+      {/* Call to Action */}
       <section className="py-16 bg-blue-600 dark:bg-blue-700">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold text-white mb-6">Let's Work Together</h2>
+          <h2 className="text-3xl font-bold text-white mb-6">Ready to Work Together?</h2>
           <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-            Interested in bringing scientific precision and business acumen to your web development project?
+            Let's discuss how my unique blend of scientific precision and business acumen can help your next web development project succeed.
           </p>
           <Link 
             to="/contact" 
-            className="bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold text-lg hover:bg-gray-100 transition-all duration-200 shadow-lg inline-block"
+            className="inline-flex items-center bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold text-lg hover:bg-gray-100 transition-all duration-200 shadow-lg"
           >
             Get in Touch
+            <ArrowRight className="ml-2 h-5 w-5" />
           </Link>
         </div>
       </section>
@@ -432,7 +265,7 @@ export function About() {
       <footer className="bg-gray-900 text-white py-8">
         <div className="container mx-auto px-4 text-center">
           <p className="text-gray-400 text-sm">
-            © 2025 Ruel Ryan Rosal. All rights reserved.
+            © 2025 Ruel Ryan Rosal, RCh. All rights reserved.
           </p>
         </div>
       </footer>
