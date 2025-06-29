@@ -26,7 +26,6 @@ export function Features() {
       details: [
         'Real-time stock tracking',
         'Low stock alerts and notifications',
-        'Barcode scanning support',
         'Product categorization',
         'Cost and price tracking',
         'Stock adjustment history'
@@ -300,7 +299,7 @@ export function Features() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 bg-gradient-to-br from-blue-600 to-purple-600">
+      <section className="py-16 bg-blue-600 dark:bg-blue-700">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl font-bold text-white mb-6">Ready to Experience These Features?</h2>
           <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
