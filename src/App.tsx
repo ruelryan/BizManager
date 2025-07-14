@@ -20,6 +20,7 @@ import { Demo } from './pages/Demo';
 import { Integrations } from './pages/Integrations';
 import { ProductLabelDemo } from './pages/ProductLabelDemo';
 import { Customers } from './pages/Customers';
+import { Installments } from './pages/Installments';
 import { useStore } from './store/useStore';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ProductTour } from './components/ProductTour';
@@ -81,6 +82,9 @@ function App() {
           </Route>
           <Route path="/customers" element={user ? <Layout /> : <Navigate to="/login" />}>
             <Route index element={<Customers />} />
+          </Route>
+          <Route path="/installments" element={user ? <Layout /> : <Navigate to="/login" />}>
+            <Route index element={<Installments />} />
           </Route>
           <Route path="/inventory" element={user ? <Layout /> : <Navigate to="/login" />}>
             <Route index element={<Inventory />} />

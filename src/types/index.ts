@@ -121,6 +121,69 @@ export interface UserSettings {
   lastPaymentDate?: Date;
 }
 
+export interface InstallmentPlan {
+  id: string;
+  customerId: string;
+  customerName?: string;
+  totalAmount: number;
+  downPayment: number;
+  remainingBalance: number;
+  termMonths: number;
+  interestRate: number;
+  status: 'active' | 'completed' | 'cancelled' | 'defaulted';
+  startDate: Date;
+  endDate: Date;
+  createdAt: Date;
+  updatedAt: Date;
+  notes?: string;
+  saleId?: string;
+  payments: InstallmentPayment[];
+}
+
+export interface InstallmentPayment {
+  id: string;
+  installmentPlanId: string;
+  amount: number;
+  dueDate: Date;
+  paymentDate?: Date;
+  status: 'pending' | 'paid' | 'overdue' | 'cancelled';
+  paymentMethod?: string;
+  notes?: string;
+  createdAt: Date;
+}
+
+export interface PaymentReminder {
+  id: string;
+  installmentPaymentId: string;
+  reminderDate: Date;
+  sent: boolean;
+  reminderType: 'upcoming' | 'due' | 'overdue';
+  message: string;
+  createdAt: Date;
+}
+
+export interface PaymentSummary {
+  totalCollected: number;
+  totalPending: number;
+  totalOverdue: number;
+  activePlans: number;
+  completionRate: number;
+}
+
+export interface PaymentReport {
+  startDate: Date;
+  endDate: Date;
+  payments: InstallmentPayment[];
+  summary: {
+    totalPayments: number;
+    totalAmount: number;
+    paidAmount: number;
+    pendingAmount: number;
+    overdueAmount: number;
+    delinquencyRate: number;
+  };
+}
+
 export interface PaymentType {
   id: string;
   name: string;
