@@ -98,17 +98,6 @@ export function Demo() {
               <Crown className="mr-2 h-5 w-5" />
               Start Interactive Pro Demo
             </button>
-            <button
-              onClick={() => {
-                const videoSection = document.getElementById('video-demo');
-                if (videoSection) {
-                  videoSection.scrollIntoView({ behavior: 'smooth' });
-                }
-              }}
-              className="border-2 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 px-8 py-4 rounded-lg font-semibold text-lg hover:border-gray-400 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200"
-            >
-              Watch Video Demo
-            </button>
           </div>
         </div>
       </section>
