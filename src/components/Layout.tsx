@@ -26,7 +26,6 @@ import { ThemeToggle } from './ThemeToggle';
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home, tourId: 'dashboard' },
   { name: 'Sales', href: '/sales', icon: ShoppingCart, tourId: 'sales' },
-  { name: 'Installments', href: '/installments', icon: CreditCard, tourId: 'installments' },
   { name: 'Products', href: '/products', icon: Package, tourId: 'products' },
   { name: 'Customers', href: '/customers', icon: Users, tourId: 'customers' },
   { name: 'Inventory', href: '/inventory', icon: BarChart3, tourId: 'inventory' },
