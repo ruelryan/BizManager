@@ -7,7 +7,7 @@ import { CurrencyDisplay } from '../components/CurrencyDisplay';
 import { CurrencyInput } from '../components/CurrencyInput';
 
 export function Customers() {
-  const { customers, addCustomer, updateCustomer, deleteCustomer, getCustomerInstallmentSummary } = useStore();
+  const { customers, addCustomer, updateCustomer, deleteCustomer } = useStore();
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -248,9 +248,6 @@ export function Customers() {
                   Contact
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                  Installments
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
                   Status
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
@@ -260,11 +257,6 @@ export function Customers() {
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
               {filteredCustomers.map((customer) => {
-                // Get installment summary for customer
-                const installmentSummary = getCustomerInstallmentSummary(customer.id);
-                
-                // Check if customer has special pricing
-                const hasSpecialPricing = customer.specialPricing && Object.keys(customer.specialPricing).length > 0;
                 
                 return (
                   <tr key={customer.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
@@ -283,30 +275,6 @@ export function Customers() {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {installmentSummary.activeInstallments > 0 ? (
-                        <div>
-                          <div className="text-sm text-gray-900 dark:text-gray-300">
-                            {installmentSummary.activeInstallments} active plan{installmentSummary.activeInstallments > 1 ? 's' : ''}
-                          </div>
-                          <div className="text-sm font-medium text-gray-900 dark:text-gray-300">
-                            Unpaid: <CurrencyDisplay amount={installmentSummary.totalUnpaidAmount} />
-                          </div>
-                          {installmentSummary.overdueAmount > 0 && (
-                            <div className="text-sm font-medium text-red-600 dark:text-red-400">
-                              Overdue: <CurrencyDisplay amount={installmentSummary.overdueAmount} />
-                            </div>
-                          )}
-                          {installmentSummary.nextPaymentDate && (
-                            <div className="text-xs text-gray-500 dark:text-gray-400">
-                              Next: {installmentSummary.nextPaymentDate.toLocaleDateString()}
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-sm text-gray-500 dark:text-gray-400">No installments</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex flex-col space-y-2">
                         <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
                           customer.isActive 
@@ -316,7 +284,7 @@ export function Customers() {
                           {customer.isActive ? 'Active' : 'Inactive'}
                         </span>
                         
-                        {hasSpecialPricing && (
+                        {customer.specialPricing && Object.keys(customer.specialPricing).length > 0 && (
                           <span className="inline-flex rounded-full px-2 text-xs font-semibold leading-5 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
                             Special Pricing
                           </span>
