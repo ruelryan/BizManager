@@ -4,9 +4,7 @@ import { ArrowLeft, Play, Pause, BarChart3, Package, Users, TrendingUp, FileText
 import { useStore } from '../store/useStore';
 
 export function Demo() {
-  const [isPlaying, setIsPlaying] = useState(false);
   const [currentFeature, setCurrentFeature] = useState(0);
-  const videoRef = useRef<HTMLVideoElement>(null);
   const navigate = useNavigate();
   const { setUser } = useStore();
 
@@ -48,40 +46,11 @@ export function Demo() {
     }
   ];
 
-  const togglePlayPause = () => {
-    if (videoRef.current) {
-      if (isPlaying) {
-        videoRef.current.pause();
-      } else {
-        videoRef.current.play();
-      }
-      setIsPlaying(!isPlaying);
-    }
-  };
-
-  const jumpToFeature = (index: number) => {
-    if (videoRef.current) {
-      videoRef.current.currentTime = features[index].videoTime;
-      if (!isPlaying) {
-        videoRef.current.play();
-        setIsPlaying(true);
-      }
-      setCurrentFeature(index);
-    }
-  };
-
-  // Update current feature based on video time
-  const handleTimeUpdate = () => {
-    if (videoRef.current) {
-      const currentTime = videoRef.current.currentTime;
-      for (let i = features.length - 1; i >= 0; i--) {
-        if (currentTime >= features[i].videoTime) {
-          setCurrentFeature(i);
-          break;
-        }
-      }
-    }
-  };
+  // Remove all video-related state, refs, and handlers (isPlaying, videoRef, togglePlayPause, jumpToFeature, handleTimeUpdate, etc.)
+  // Replace the video demo section with a feature showcase carousel or card grid
+  // For each feature, show its icon, name, and description in a card
+  // Allow users to click through features (carousel or next/prev buttons)
+  // Keep the 'Start Interactive Pro Demo' button as the main CTA
 
   // Get the current feature's icon component
   const CurrentFeatureIcon = features[currentFeature].icon;
@@ -140,108 +109,6 @@ export function Demo() {
             >
               Watch Video Demo
             </button>
-          </div>
-        </div>
-      </section>
-
-      {/* Video Demo Section */}
-      <section id="video-demo" className="py-12">
-        <div className="container mx-auto px-4">
-          <div className="max-w-5xl mx-auto">
-            {/* Video Player */}
-            <div className="relative rounded-xl overflow-hidden shadow-2xl mb-8 bg-gray-900">
-              {/* Placeholder for actual video - in a real app, you'd use a real video */}
-              <div className="aspect-w-16 aspect-h-9 bg-gray-800 flex items-center justify-center">
-                <video
-                  ref={videoRef}
-                  className="w-full h-full object-cover"
-                  poster="https://images.pexels.com/photos/3184292/pexels-photo-3184292.jpeg?auto=compress&cs=tinysrgb&w=1280&h=720&fit=crop"
-                  onTimeUpdate={handleTimeUpdate}
-                  onEnded={() => setIsPlaying(false)}
-                >
-                  <source src="https://example.com/demo-video.mp4" type="video/mp4" />
-                  Your browser does not support the video tag.
-                </video>
-                
-                {/* Play/Pause Button Overlay */}
-                <button
-                  onClick={togglePlayPause}
-                  className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 hover:bg-opacity-50 transition-opacity"
-                >
-                  <div className="w-20 h-20 rounded-full bg-white bg-opacity-20 flex items-center justify-center">
-                    {isPlaying ? (
-                      <Pause className="h-10 w-10 text-white" />
-                    ) : (
-                      <Play className="h-10 w-10 text-white ml-1" />
-                    )}
-                  </div>
-                </button>
-              </div>
-              
-              {/* Video Controls */}
-              <div className="bg-gray-900 p-4">
-                <div className="flex items-center justify-between text-white">
-                  <button
-                    onClick={togglePlayPause}
-                    className="flex items-center space-x-2 hover:text-blue-400 transition-colors"
-                  >
-                    {isPlaying ? (
-                      <>
-                        <Pause className="h-5 w-5" />
-                        <span>Pause</span>
-                      </>
-                    ) : (
-                      <>
-                        <Play className="h-5 w-5" />
-                        <span>Play</span>
-                      </>
-                    )}
-                  </button>
-                  
-                  <div className="text-sm text-gray-400">
-                    Demo Video • 5:30
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            {/* Feature Navigation */}
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-              {features.map((feature, index) => {
-                const FeatureIcon = feature.icon;
-                return (
-                  <button
-                    key={feature.id}
-                    onClick={() => jumpToFeature(index)}
-                    className={`p-4 rounded-lg text-left transition-all ${
-                      currentFeature === index
-                        ? 'bg-blue-600 text-white shadow-lg'
-                        : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
-                    }`}
-                  >
-                    <FeatureIcon className={`h-6 w-6 mb-2 ${
-                      currentFeature === index ? 'text-white' : 'text-blue-600 dark:text-blue-400'
-                    }`} />
-                    <h3 className="font-semibold text-sm">{feature.name}</h3>
-                  </button>
-                );
-              })}
-            </div>
-            
-            {/* Current Feature Description */}
-            <div className="mt-8 p-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
-              <div className="flex items-start">
-                <CurrentFeatureIcon className="h-8 w-8 text-blue-600 dark:text-blue-400 mr-4 flex-shrink-0" />
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                    {features[currentFeature].name}
-                  </h2>
-                  <p className="text-gray-600 dark:text-gray-400 text-lg">
-                    {features[currentFeature].description}
-                  </p>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </section>
