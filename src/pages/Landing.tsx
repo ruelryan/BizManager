@@ -433,8 +433,9 @@ export function Landing() {
                 <div className="flex items-center">
                   <img 
                     src={testimonial.avatar} 
-                    alt={testimonial.name}
+                    alt={`${testimonial.name}'s avatar`}
                     className="w-12 h-12 rounded-full object-cover mr-4"
+                    loading="lazy"
                   />
                   <div>
                     <div className="font-bold text-gray-900 dark:text-white">{testimonial.name}</div>
@@ -548,6 +549,55 @@ export function Landing() {
           <p className="text-blue-100 mt-4 text-sm">
             No credit card required • 30-day free trial • Cancel anytime
           </p>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="py-20 bg-gray-50 dark:bg-gray-800">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16 scroll-animation">
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+              Frequently Asked Questions
+            </h2>
+            <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+              Find answers to common questions about BizManager.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            <div className="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-md border border-gray-100 dark:border-gray-700 scroll-animation" style={{ transitionDelay: '200ms' }}>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
+                How does BizManager help my business?
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                BizManager provides a comprehensive suite of tools to manage your inventory, sales, customers, and finances. It's designed to help you make data-driven decisions, optimize operations, and grow your business efficiently.
+              </p>
+            </div>
+            <div className="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-md border border-gray-100 dark:border-gray-700 scroll-animation" style={{ transitionDelay: '200ms' }}>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
+                Is BizManager free to use?
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                Yes, you can start using BizManager for free. Our Free tier includes up to 10 products, 30 sales/month, and basic dashboard features. You can upgrade to a paid plan for more advanced features and support.
+              </p>
+            </div>
+            <div className="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-md border border-gray-100 dark:border-gray-700 scroll-animation" style={{ transitionDelay: '200ms' }}>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
+                How secure is my data?
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                We take data security seriously. BizManager uses industry-standard encryption and secure servers to protect your business data. We also comply with relevant data protection regulations.
+              </p>
+            </div>
+            <div className="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-md border border-gray-100 dark:border-gray-700 scroll-animation" style={{ transitionDelay: '200ms' }}>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
+                Can I cancel my subscription?
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                Yes, you can cancel your subscription at any time. We offer a 30-day free trial, so you can try BizManager risk-free.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
