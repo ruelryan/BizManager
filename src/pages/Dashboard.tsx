@@ -19,10 +19,25 @@ import { ProductTour } from '../components/ProductTour';
 import { Tooltip as CustomTooltip } from '../components/Tooltip';
 
 export function Dashboard() {
-  const { sales, products, monthlyGoal, setMonthlyGoal, userSettings, updateUserSettings } = useStore();
+  const { sales, products, monthlyGoal, setMonthlyGoal, userSettings, updateUserSettings, user, loadDemoData } = useStore();
   const [showGoalSetting, setShowGoalSetting] = React.useState(false);
   const [newGoal, setNewGoal] = React.useState(monthlyGoal);
   const { formatAmount, convertAmount, symbol } = useCurrency();
+
+  // Ensure demo data is loaded for demo user
+  React.useEffect(() => {
+    console.log('Dashboard Debug:', { 
+      user: user?.id, 
+      productsCount: products.length, 
+      salesCount: sales.length,
+      userSettings: userSettings ? 'present' : 'missing'
+    });
+    
+    if (user?.id === 'demo-user-id' && products.length === 0) {
+      console.log('Loading demo data for demo user');
+      loadDemoData();
+    }
+  }, [user, products.length, sales.length, userSettings, loadDemoData]);
 
   // Helper function to ensure valid date
   const isValidDate = (date: any): date is Date => {
@@ -155,6 +170,18 @@ export function Dashboard() {
     }
     return null;
   };
+
+  // Show loading message if no data is available
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading user data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <FeatureGate feature="hasGoalTracking">
