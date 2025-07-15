@@ -100,20 +100,35 @@ export const useInstallmentStore = create<InstallmentState>()(
       fetchInstallmentPlans: async () => {
         set({ isLoading: true, error: null });
         try {
-          const { data, error } = await supabase
+          // First get installment plans
+          const { data: plansData, error: plansError } = await supabase
             .from('installment_plans')
-            .select(`
-              *,
-              customers (id, name)
-            `)
+            .select('*')
             .order('created_at', { ascending: false });
             
-          if (error) throw error;
+          if (plansError) throw plansError;
+          
+          // Get customer names separately
+          const customerIds = plansData
+            .map(plan => plan.customer_id)
+            .filter(id => id !== null);
+            
+          const { data: customersData, error: customersError } = await supabase
+            .from('customers')
+            .select('id, name')
+            .in('id', customerIds);
+            
+          if (customersError) throw customersError;
+          
+          // Create customer lookup map
+          const customerMap = new Map(
+            customersData?.map(customer => [customer.id, customer.name]) || []
+          );
           
           // Transform data and include customer name
-          const transformedData = data.map(plan => ({
+          const transformedData = plansData.map(plan => ({
             ...transformInstallmentPlan(plan),
-            customerName: plan.customers?.name
+            customerName: customerMap.get(plan.customer_id) || 'Unknown Customer'
           }));
           
           set({ installmentPlans: transformedData, isLoading: false });
@@ -204,14 +219,18 @@ export const useInstallmentStore = create<InstallmentState>()(
       addInstallmentPlan: async (plan) => {
         set({ isLoading: true, error: null });
         try {
-          // Get customer name for display purposes
-          const { data: customerData } = await supabase
+          // Get customer name for display purposes  
+          const { data: customerData, error: customerError } = await supabase
             .from('customers')
             .select('name')
             .eq('id', plan.customerId)
             .single();
             
-          const customerName = customerData?.name || '';
+          if (customerError && customerError.code !== 'PGRST116') {
+            throw customerError;
+          }
+            
+          const customerName = customerData?.name || 'Unknown Customer';
           
           // Convert to Supabase format
           const planData = {

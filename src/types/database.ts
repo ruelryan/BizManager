@@ -227,6 +227,129 @@ export interface Database {
           created_at?: string;
         };
       };
+      installment_plans: {
+        Row: {
+          id: string;
+          customer_id: string | null;
+          total_amount: number;
+          down_payment: number;
+          remaining_balance: number;
+          term_months: number;
+          interest_rate: number;
+          status: string;
+          start_date: string;
+          end_date: string;
+          notes: string | null;
+          sale_id: string | null;
+          user_id: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          customer_id?: string | null;
+          total_amount: number;
+          down_payment: number;
+          remaining_balance: number;
+          term_months: number;
+          interest_rate: number;
+          status: string;
+          start_date: string;
+          end_date: string;
+          notes?: string | null;
+          sale_id?: string | null;
+          user_id: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          customer_id?: string | null;
+          total_amount?: number;
+          down_payment?: number;
+          remaining_balance?: number;
+          term_months?: number;
+          interest_rate?: number;
+          status?: string;
+          start_date?: string;
+          end_date?: string;
+          notes?: string | null;
+          sale_id?: string | null;
+          user_id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      installment_payments: {
+        Row: {
+          id: string;
+          installment_plan_id: string;
+          amount: number;
+          due_date: string;
+          payment_date: string | null;
+          status: string;
+          payment_method: string | null;
+          notes: string | null;
+          user_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          installment_plan_id: string;
+          amount: number;
+          due_date: string;
+          payment_date?: string | null;
+          status: string;
+          payment_method?: string | null;
+          notes?: string | null;
+          user_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          installment_plan_id?: string;
+          amount?: number;
+          due_date?: string;
+          payment_date?: string | null;
+          status?: string;
+          payment_method?: string | null;
+          notes?: string | null;
+          user_id?: string;
+          created_at?: string;
+        };
+      };
+      payment_reminders: {
+        Row: {
+          id: string;
+          installment_payment_id: string;
+          reminder_date: string;
+          sent: boolean;
+          reminder_type: string;
+          message: string;
+          user_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          installment_payment_id: string;
+          reminder_date: string;
+          sent?: boolean;
+          reminder_type: string;
+          message: string;
+          user_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          installment_payment_id?: string;
+          reminder_date?: string;
+          sent?: boolean;
+          reminder_type?: string;
+          message?: string;
+          user_id?: string;
+          created_at?: string;
+        };
+      };
     };
     Views: {
       [_ in never]: never;
