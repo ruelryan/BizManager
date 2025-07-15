@@ -131,7 +131,7 @@ export function Dashboard() {
   const getSmartQuickActions = () => {
     const actions = [];
     
-    // 1. Context-Aware Actions
+    // 1. Critical Alerts (High Priority)
     if (lowStockProducts.length > 0) {
       actions.push({
         id: 'restock-urgent',
@@ -158,86 +158,7 @@ export function Dashboard() {
       });
     }
     
-    // 2. Analytics-Driven Actions
-    const topSellingProducts = products
-      .map(product => {
-        const salesCount = sales.filter(sale => 
-          sale.items.some(item => item.productId === product.id) && 
-          sale.status === 'paid'
-        ).length;
-        return { ...product, salesCount };
-      })
-      .sort((a, b) => b.salesCount - a.salesCount)
-      .slice(0, 3);
-    
-    if (topSellingProducts.length > 0 && topSellingProducts[0].salesCount > 0) {
-      actions.push({
-        id: 'promote-bestseller',
-        title: 'Promote Best Seller',
-        description: `${topSellingProducts[0].name} is trending`,
-        icon: Star,
-        color: 'yellow',
-        priority: 'medium',
-        action: () => window.location.href = `/products?highlight=${topSellingProducts[0].id}`,
-      });
-    }
-    
-    // 3. Goal-Based Actions
-    if (revenueProgress > 80 && revenueProgress < 100) {
-      actions.push({
-        id: 'push-to-goal',
-        title: 'Push to Goal',
-        description: `${(100 - revenueProgress).toFixed(1)}% to reach monthly goal`,
-        icon: Target,
-        color: 'green',
-        priority: 'medium',
-        action: () => window.location.href = '/sales?action=new&focus=goal',
-      });
-    }
-    
-    // 4. Time-Based Actions
-    const todayHour = new Date().getHours();
-    if (todayHour >= 17 && todaySales.length > 0) {
-      actions.push({
-        id: 'daily-summary',
-        title: 'Daily Summary',
-        description: `Review today's ${todaySales.length} sales`,
-        icon: BarChart3,
-        color: 'blue',
-        priority: 'low',
-        action: () => window.location.href = '/reports?period=today',
-      });
-    }
-    
-    // 5. Customer-Based Actions
-    const topCustomers = sales
-      .filter(sale => sale.status === 'paid')
-      .reduce((acc, sale) => {
-        const customer = acc.find(c => c.name === sale.customerName);
-        if (customer) {
-          customer.total += sale.total;
-          customer.count += 1;
-        } else {
-          acc.push({ name: sale.customerName, total: sale.total, count: 1 });
-        }
-        return acc;
-      }, [] as Array<{ name: string; total: number; count: number }>)
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 1);
-    
-    if (topCustomers.length > 0) {
-      actions.push({
-        id: 'contact-top-customer',
-        title: 'Contact Top Customer',
-        description: `${topCustomers[0].name} - ${topCustomers[0].count} purchases`,
-        icon: Phone,
-        color: 'purple',
-        priority: 'low',
-        action: () => window.location.href = `/customers?search=${topCustomers[0].name}`,
-      });
-    }
-    
-    // 6. Always Available Core Actions
+    // 2. Essential Daily Actions (Always Available)
     const coreActions = [
       {
         id: 'new-sale',
@@ -257,108 +178,15 @@ export function Dashboard() {
         priority: 'core',
         action: () => window.location.href = '/products?action=new',
       },
-      {
-        id: 'export-data',
-        title: 'Export Data',
-        description: 'Download reports',
-        icon: Download,
-        color: 'gray',
-        priority: 'core',
-        action: () => window.location.href = '/reports?action=export',
-      },
     ];
     
-    // 7. Workflow Shortcuts
-    if (products.length > 10) {
-      actions.push({
-        id: 'bulk-update',
-        title: 'Bulk Update',
-        description: 'Update multiple products',
-        icon: Zap,
-        color: 'indigo',
-        priority: 'medium',
-        action: () => window.location.href = '/products?action=bulk',
-      });
-    }
-
-    // 8. Seasonal & Time-Based Opportunities
-    const currentMonth = new Date().getMonth();
-    const isHolidaySeason = currentMonth === 11 || currentMonth === 0; // December or January
-    const isBackToSchool = currentMonth === 7 || currentMonth === 8; // August or September
-    
-    if (isHolidaySeason && sales.length > 5) {
-      actions.push({
-        id: 'holiday-promotion',
-        title: 'Holiday Promotion',
-        description: 'Create seasonal campaigns',
-        icon: Gift,
-        color: 'red',
-        priority: 'medium',
-        action: () => window.location.href = '/products?action=promotion&type=holiday',
-      });
-    }
-
-    // 9. Revenue Optimization
-    if (currentRevenue > 0) {
-      const averageOrderValue = currentRevenue / currentMonthSales.length;
-      const potentialRevenue = convertAmount(averageOrderValue * 1.2, 'PHP');
-      
-      if (averageOrderValue > 100) {
-        actions.push({
-          id: 'upsell-opportunity',
-          title: 'Upsell Opportunity',
-          description: `Increase AOV by ${formatAmount(potentialRevenue - convertAmount(averageOrderValue, 'PHP'), 'PHP')}`,
-          icon: TrendingUp,
-          color: 'green',
-          priority: 'medium',
-          action: () => window.location.href = '/products?action=upsell',
-        });
-      }
-    }
-
-    // 10. Inventory Management
-    const totalProducts = products.length;
-    const lowStockPercentage = (lowStockProducts.length / totalProducts) * 100;
-    
-    if (lowStockPercentage > 20) {
-      actions.push({
-        id: 'inventory-review',
-        title: 'Inventory Review',
-        description: `${lowStockPercentage.toFixed(0)}% of products need attention`,
-        icon: Package,
-        color: 'orange',
-        priority: 'high',
-        action: () => window.location.href = '/inventory?action=review',
-      });
-    }
-
-    // 11. Customer Retention
-    const repeatCustomers = sales.reduce((acc, sale) => {
-      acc[sale.customerName] = (acc[sale.customerName] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-    
-    const loyalCustomers = Object.entries(repeatCustomers).filter(([_, count]) => count >= 3);
-    
-    if (loyalCustomers.length > 0) {
-      actions.push({
-        id: 'reward-loyal-customers',
-        title: 'Reward Loyalty',
-        description: `${loyalCustomers.length} loyal customers to appreciate`,
-        icon: Star,
-        color: 'purple',
-        priority: 'low',
-        action: () => window.location.href = '/customers?filter=loyal',
-      });
-    }
-    
-    // Sort by priority and return top 6 actions
-    const priorityOrder = { high: 1, medium: 2, low: 3, core: 4 };
+    // Sort by priority and return top 4 actions
+    const priorityOrder = { high: 1, core: 2 };
     const allActions = [...actions, ...coreActions];
     
     return allActions
       .sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority])
-      .slice(0, 6);
+      .slice(0, 4);
   };
 
   const smartActions = getSmartQuickActions();
@@ -527,13 +355,13 @@ export function Dashboard() {
           />
         </div>
 
-        {/* Smart Quick Actions */}
+        {/* Quick Actions */}
         <div className="rounded-xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-200 dark:border-gray-700 quick-actions">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Smart Actions</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Quick Actions</h2>
             <div className="flex items-center space-x-1 text-xs text-gray-500 dark:text-gray-400">
               <Zap className="h-3 w-3" />
-              <span>AI-powered</span>
+              <span>Smart shortcuts</span>
             </div>
           </div>
           

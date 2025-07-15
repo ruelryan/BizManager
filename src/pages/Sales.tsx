@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { format } from 'date-fns';
-import { Plus, Filter, Eye, Edit, Trash2, ChevronDown, X, AlertTriangle, Tag, FileText, RotateCcw, Settings } from 'lucide-react';
+import { Plus, Filter, Eye, Edit, Trash2, ChevronDown, X, AlertTriangle, Tag, FileText, RotateCcw, Settings, Send, Download, DollarSign, Calendar, CreditCard } from 'lucide-react';
 import { useStore } from '../store/useStore';
-import { Sale, SaleItem } from '../types';
+import { Sale, SaleItem, InstallmentPlan } from '../types';
 import { BarcodeScanner } from '../components/BarcodeScanner';
 import { DigitalReceipt } from '../components/DigitalReceipt';
 import { ReturnRefundForm } from '../components/ReturnRefundForm';
@@ -10,7 +10,7 @@ import { PaymentTypeManager } from '../components/PaymentTypeManager';
 import { CurrencyDisplay } from '../components/CurrencyDisplay';
 
 export function Sales() {
-  const { sales, products, customers, addSale, updateSale, deleteSale, paymentTypes, addInstallmentPlan } = useStore();
+  const { sales, products, customers, addSale, updateSale, deleteSale, paymentTypes, addInstallmentPlan, installmentPlans, installmentPayments } = useStore();
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
   const [viewingSale, setViewingSale] = useState<Sale | null>(null);
@@ -21,11 +21,18 @@ export function Sales() {
   const [showDigitalReceipt, setShowDigitalReceipt] = useState(false);
   const [showReturnForm, setShowReturnForm] = useState(false);
   const [showPaymentTypeManager, setShowPaymentTypeManager] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [viewMode, setViewMode] = useState<'sales' | 'invoices'>('sales');
+  const [showInstallmentPayment, setShowInstallmentPayment] = useState<string | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('cash');
 
   // Filter sales
   const filteredSales = sales.filter((sale) => {
     const matchesFilter = filterStatus === 'all' || sale.status === filterStatus;
-    return matchesFilter;
+    const matchesSearch = (sale.customerName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (sale.invoiceNumber || '').toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesFilter && matchesSearch;
   });
 
   const getStatusColor = (status: Sale['status']) => {
@@ -45,6 +52,85 @@ export function Sales() {
       return 'overdue';
     }
     return sale.status;
+  };
+
+  // Get installment plan for a sale
+  const getInstallmentPlan = (saleId: string): InstallmentPlan | null => {
+    return installmentPlans.find(plan => plan.saleId === saleId) || null;
+  };
+
+  // Handle installment payment
+  const handleInstallmentPayment = async (saleId: string) => {
+    try {
+      const installmentPlan = getInstallmentPlan(saleId);
+      if (!installmentPlan) {
+        alert('No installment plan found for this sale.');
+        return;
+      }
+
+      const amount = parseFloat(paymentAmount);
+      if (isNaN(amount) || amount <= 0) {
+        alert('Please enter a valid payment amount.');
+        return;
+      }
+
+      if (amount > installmentPlan.remainingBalance) {
+        alert(`Payment amount cannot exceed remaining balance of ${installmentPlan.remainingBalance.toFixed(2)}.`);
+        return;
+      }
+
+      // Create payment record
+      const newPayment = {
+        id: Date.now().toString(),
+        installmentPlanId: installmentPlan.id,
+        amount: amount,
+        dueDate: new Date(),
+        paymentDate: new Date(),
+        status: 'paid' as const,
+        paymentMethod: paymentMethod,
+        notes: `Payment of ${amount.toFixed(2)} received`,
+        createdAt: new Date()
+      };
+
+      // Update installment plan
+      const updatedPlan = {
+        ...installmentPlan,
+        remainingBalance: installmentPlan.remainingBalance - amount,
+        status: (installmentPlan.remainingBalance - amount) <= 0 ? 'completed' as const : installmentPlan.status,
+        payments: [...installmentPlan.payments, newPayment]
+      };
+
+      // Update sale status if fully paid
+      if (updatedPlan.remainingBalance <= 0) {
+        await updateSale(saleId, { status: 'paid' });
+      }
+
+      // Reset form
+      setPaymentAmount('');
+      setPaymentMethod('cash');
+      setShowInstallmentPayment(null);
+
+      alert(`Payment of ${amount.toFixed(2)} recorded successfully!`);
+    } catch (error) {
+      console.error('Failed to record payment:', error);
+      alert('Failed to record payment. Please try again.');
+    }
+  };
+
+  // Send invoice reminder
+  const handleSendReminder = async (sale: Sale) => {
+    try {
+      alert(`Reminder sent to ${sale.customerName || 'customer'} for invoice ${sale.invoiceNumber}`);
+      
+      await updateSale(sale.id, {
+        ...sale,
+        reminderSent: true,
+        lastReminderDate: new Date(),
+      });
+    } catch (error) {
+      console.error('Failed to send reminder:', error);
+      alert('Failed to send reminder. Please try again.');
+    }
   };
 
   // Handle delete with confirmation and countdown

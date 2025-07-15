@@ -161,6 +161,11 @@ export interface Database {
           business_address: string | null;
           business_phone: string | null;
           business_email: string | null;
+          plan: string;
+          subscription_expiry: string | null;
+          paypal_subscription_id: string | null;
+          payment_status: string;
+          last_payment_date: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -173,6 +178,11 @@ export interface Database {
           business_address?: string | null;
           business_phone?: string | null;
           business_email?: string | null;
+          plan?: string;
+          subscription_expiry?: string | null;
+          paypal_subscription_id?: string | null;
+          payment_status?: string;
+          last_payment_date?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -185,6 +195,11 @@ export interface Database {
           business_address?: string | null;
           business_phone?: string | null;
           business_email?: string | null;
+          plan?: string;
+          subscription_expiry?: string | null;
+          paypal_subscription_id?: string | null;
+          payment_status?: string;
+          last_payment_date?: string | null;
           created_at?: string;
           updated_at?: string;
         };

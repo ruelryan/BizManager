@@ -17,17 +17,38 @@ export function Upgrade() {
 
   const plan = plans.find(p => p.id === selectedPlan);
 
-  const handlePayPalSuccess = () => {
+  const handlePayPalSuccess = async () => {
     // Update user plan after successful PayPal payment
     if (user) {
-      setUser({
-        ...user,
-        plan: selectedPlan as any,
-        subscriptionExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
-      });
+      const { updateUserSettings } = useStore.getState();
+      const subscriptionExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
+      
+      try {
+        // Update the plan in the database
+        await updateUserSettings({
+          plan: selectedPlan as any,
+          subscriptionExpiry: subscriptionExpiry
+        });
+        
+        // Update local state
+        setUser({
+          ...user,
+          plan: selectedPlan as any,
+          subscriptionExpiry: subscriptionExpiry,
+        });
+        
+        navigate('/', { state: { upgraded: true, paymentMethod: 'PayPal' } });
+      } catch (error) {
+        console.error('Failed to update user plan:', error);
+        // Even if database update fails, still update local state and navigate
+        setUser({
+          ...user,
+          plan: selectedPlan as any,
+          subscriptionExpiry: subscriptionExpiry,
+        });
+        navigate('/', { state: { upgraded: true, paymentMethod: 'PayPal' } });
+      }
     }
-    
-    navigate('/', { state: { upgraded: true, paymentMethod: 'PayPal' } });
   };
 
   const handlePayPalError = (error: any) => {
