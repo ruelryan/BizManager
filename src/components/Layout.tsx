@@ -114,7 +114,7 @@ export function Layout() {
               <div className="flex items-center">
                 <Crown className="h-4 w-4 mr-2" />
                 <div className="text-xs">
-                  <div className="font-medium">Free Trial Active</div>
+                  <div className="font-medium">14-Day Trial Active</div>
                   <div className="opacity-90">
                     All Pro features until {user.subscriptionExpiry?.toLocaleDateString()}
                   </div>
@@ -184,7 +184,7 @@ export function Layout() {
                 </div>
                 <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium flex-shrink-0 ml-2 ${getPlanBadgeColor(effectivePlan)}`}>
                   {effectivePlan === 'pro' && <Crown className="mr-1 h-3 w-3" />}
-                  {inFreeTrial ? 'Trial' : getPlanDisplayName(user.plan)}
+                  {inFreeTrial ? '14-Day Trial' : getPlanDisplayName(user.plan)}
                 </span>
               </button>
 
@@ -259,7 +259,7 @@ export function Layout() {
               <div className="flex items-center space-x-2 text-sm text-orange-600 dark:text-orange-400">
                 <Crown className="h-4 w-4" />
                 <span>
-                  Trial expires {user.subscriptionExpiry.toLocaleDateString()}
+                  14-day trial expires {user.subscriptionExpiry.toLocaleDateString()}
                 </span>
               </div>
             )}

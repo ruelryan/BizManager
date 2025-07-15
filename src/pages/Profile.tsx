@@ -389,14 +389,14 @@ export function Profile() {
             <div className="rounded-xl bg-blue-600 p-6 text-white">
               <div className="flex items-center mb-3">
                 <Crown className="h-6 w-6 mr-2" />
-                <h3 className="text-lg font-semibold">Free Trial Active</h3>
+                <h3 className="text-lg font-semibold">14-Day Trial Active</h3>
               </div>
               <div className="space-y-2 text-sm opacity-90">
                 <div className="flex items-center">
                   <Calendar className="h-4 w-4 mr-2" />
                   <span>Expires: {user?.subscriptionExpiry?.toLocaleDateString()}</span>
                 </div>
-                <p>You have access to all Pro features during your trial period.</p>
+                <p>You have access to all Pro features during your 14-day trial period.</p>
               </div>
               <button
                 onClick={() => navigate('/pricing')}
@@ -650,10 +650,10 @@ export function Profile() {
             <div className="rounded-xl bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 p-6">
               <div className="flex items-center mb-2">
                 <AlertCircle className="h-5 w-5 text-orange-600 dark:text-orange-400 mr-2" />
-                <h3 className="text-sm font-semibold text-orange-800 dark:text-orange-300">Trial Ending Soon</h3>
+                <h3 className="text-sm font-semibold text-orange-800 dark:text-orange-300">14-Day Trial Ending Soon</h3>
               </div>
               <p className="text-xs text-orange-700 dark:text-orange-400 mb-3">
-                Your free trial will end on {user.subscriptionExpiry.toLocaleDateString()}. 
+                Your 14-day free trial will end on {user.subscriptionExpiry.toLocaleDateString()}. 
                 After that, you'll be moved to the Free plan with limited features.
               </p>
               <button

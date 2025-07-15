@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, ShoppingCart, Package, Users, BarChart3 } from 'lucide-react';
+import { Home, ShoppingCart, Package, Users, BarChart3, User } from 'lucide-react';
 
 const bottomNavItems = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
@@ -8,6 +8,7 @@ const bottomNavItems = [
   { name: 'Products', href: '/products', icon: Package },
   { name: 'Customers', href: '/customers', icon: Users },
   { name: 'Reports', href: '/reports', icon: BarChart3 },
+  { name: 'Profile', href: '/profile', icon: User }, // Add Profile button
 ];
 
 export function MobileBottomNav() {
@@ -15,7 +16,7 @@ export function MobileBottomNav() {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 lg:hidden">
-      <div className="grid grid-cols-5 h-16">
+      <div className="grid grid-cols-6 h-16"> {/* 6 columns now */}
         {bottomNavItems.map((item) => {
           const isActive = location.pathname === item.href;
           return (
