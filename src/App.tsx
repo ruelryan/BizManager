@@ -27,6 +27,7 @@ import { ProductTour } from './components/ProductTour';
 function App() {
   const { user, isLoading, isInitialized } = useStore();
   const [showTour, setShowTour] = useState(false);
+  const [forceShow, setForceShow] = useState(false);
   
   // Check URL parameters for tour
   useEffect(() => {
@@ -36,8 +37,16 @@ function App() {
     }
   }, []);
 
-  // Show loading spinner while initializing auth
-  if (!isInitialized || isLoading) {
+  // Force show app after 3 seconds to prevent infinite loading
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setForceShow(true);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Show loading spinner while initializing auth (but not longer than 3 seconds)
+  if ((!isInitialized || isLoading) && !forceShow) {
     return (
       <ThemeProvider>
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
