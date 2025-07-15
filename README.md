@@ -303,4 +303,5 @@ Built with ❤️ for small and medium businesses to manage their operations eff
 
 ## Deployment Status
 - Build fixed: Removed installments feature
-- Last updated: $(date)
+- Environment variables: Added to Netlify
+- Last updated: July 15, 2025
