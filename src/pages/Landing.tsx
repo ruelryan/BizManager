@@ -278,7 +278,7 @@ export function Landing() {
                 to="/demo" 
                 className="border-2 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 px-8 py-4 rounded-lg font-semibold text-lg hover:border-gray-400 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 w-full sm:w-auto text-center"
               >
-                Watch Demo
+                Explore Interactive Demo
               </Link>
             </div>
             
