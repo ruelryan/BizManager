@@ -319,29 +319,6 @@ export function Login() {
             </p>
           </div>
 
-          {/* Demo Credentials (only show for sign in) */}
-          {!showSignUp && (
-            <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-              <h3 className="text-sm font-medium text-blue-900 dark:text-blue-300 mb-2">Demo Credentials</h3>
-              <div className="text-sm text-blue-700 dark:text-blue-400 space-y-1">
-                <p><strong>Email:</strong> demo@businessmanager.com</p>
-                <p><strong>Password:</strong> demo123</p>
-              </div>
-            </div>
-          )}
-
-          {/* Plan Testing Info (only show for demo sign in) */}
-          {!showSignUp && formData.email === 'demo@businessmanager.com' && (
-            <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-              <h3 className="text-sm font-medium text-green-900 dark:text-green-300 mb-2">Testing Different Plans</h3>
-              <div className="text-sm text-green-700 dark:text-green-400 space-y-1">
-                <p><strong>Free:</strong> Limited to 10 products, basic features only</p>
-                <p><strong>Starter:</strong> Unlimited products, basic reports</p>
-                <p><strong>Pro:</strong> All features including PDF invoices & advanced analytics</p>
-              </div>
-            </div>
-          )}
-
           {/* Free Trial Notice */}
           {showSignUp && (
             <div className="mt-4 p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
@@ -357,19 +334,6 @@ export function Login() {
               </div>
             </div>
           )}
-
-          {/* OAuth Setup Notice */}
-          <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-            <h3 className="text-sm font-medium text-yellow-900 dark:text-yellow-300 mb-2">OAuth Setup Required</h3>
-            <div className="text-sm text-yellow-700 dark:text-yellow-400">
-              <p>To enable Google and Facebook sign-in:</p>
-              <ol className="list-decimal list-inside mt-2 space-y-1">
-                <li>Configure OAuth providers in your Supabase project settings</li>
-                <li>Add your domain to the allowed redirect URLs</li>
-                <li>For Facebook: Add a privacy policy URL in your Facebook app settings</li>
-              </ol>
-            </div>
-          </div>
         </div>
 
         {/* Features */}
