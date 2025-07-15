@@ -271,21 +271,6 @@ export function Upgrade() {
           </div>
         </div>
 
-        {/* PayPal Setup Notice */}
-        <div className="mt-8 rounded-xl bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-6">
-          <h3 className="text-lg font-semibold text-yellow-800 dark:text-yellow-300 mb-3">PayPal Integration Setup</h3>
-          <div className="text-sm text-yellow-700 dark:text-yellow-400 space-y-2">
-            <p>To complete PayPal integration, you need to:</p>
-            <ol className="list-decimal list-inside space-y-1 ml-4">
-              <li>Create a PayPal Developer account at <a href="https://developer.paypal.com" target="_blank" rel="noopener noreferrer" className="underline">developer.paypal.com</a></li>
-              <li>Create a new app and get your Client ID</li>
-              <li>Add <code className="bg-yellow-100 dark:bg-yellow-800 px-1 rounded">VITE_PAYPAL_CLIENT_ID=your_client_id</code> to your .env file</li>
-              <li>For production, switch to live PayPal environment</li>
-              <li>Configure webhook endpoints for payment verification</li>
-            </ol>
-            <p className="mt-3 font-medium">Current status: <span className="text-yellow-600 dark:text-yellow-400">Demo mode (PayPal sandbox)</span></p>
-          </div>
-        </div>
       </div>
     </div>
   );
