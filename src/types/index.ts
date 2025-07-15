@@ -93,7 +93,7 @@ export interface Return {
   reason: string;
 }
 
-export interface ReturnItem {
+interface ReturnItem {
   productId: string;
   productName: string;
   quantity: number;
@@ -190,7 +190,7 @@ export interface PaymentType {
   isDefault?: boolean;
 }
 
-export interface PlanFeatures {
+interface PlanFeatures {
   maxProducts: number | null;
   maxSalesPerMonth: number | null;
   hasReports: boolean;

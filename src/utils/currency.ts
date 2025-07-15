@@ -1,5 +1,5 @@
 // Currency conversion utilities
-export interface CurrencyInfo {
+interface CurrencyInfo {
   code: string;
   name: string;
   symbol: string;
@@ -82,7 +82,7 @@ export const fetchExchangeRates = async (): Promise<void> => {
 };
 
 // Initialize exchange rates from localStorage if available
-export const initExchangeRates = (): void => {
+const initExchangeRates = (): void => {
   const cachedRates = localStorage.getItem('exchangeRates');
   const lastUpdate = localStorage.getItem('exchangeRatesLastUpdate');
   
@@ -111,7 +111,7 @@ export const initExchangeRates = (): void => {
 };
 
 // Get user's currency based on location
-export const detectUserCurrency = async (): Promise<string> => {
+const detectUserCurrency = async (): Promise<string> => {
   try {
     // Use IP-based geolocation API to get user's country and currency
     const response = await fetch('https://ipapi.co/json/');
@@ -130,21 +130,21 @@ export const detectUserCurrency = async (): Promise<string> => {
 };
 
 // Convert amount from PHP to target currency
-export const convertFromPHP = (amount: number, targetCurrency: string): number => {
+const convertFromPHP = (amount: number, targetCurrency: string): number => {
   const currency = currencies[targetCurrency];
   if (!currency) return amount;
   return amount * currency.rate;
 };
 
 // Convert amount from source currency to PHP
-export const convertToPHP = (amount: number, sourceCurrency: string): number => {
+const convertToPHP = (amount: number, sourceCurrency: string): number => {
   const currency = currencies[sourceCurrency];
   if (!currency) return amount;
   return amount / currency.rate;
 };
 
 // Convert between any two currencies
-export const convertCurrency = (amount: number, fromCurrency: string, toCurrency: string): number => {
+const convertCurrency = (amount: number, fromCurrency: string, toCurrency: string): number => {
   if (fromCurrency === toCurrency) return amount;
   
   // Convert to PHP first, then to target currency
@@ -153,7 +153,7 @@ export const convertCurrency = (amount: number, fromCurrency: string, toCurrency
 };
 
 // Format currency with proper symbol and locale
-export const formatCurrency = (amount: number, currencyCode: string): string => {
+const formatCurrency = (amount: number, currencyCode: string): string => {
   const currency = currencies[currencyCode];
   if (!currency) return `${amount.toLocaleString()}`;
   
@@ -168,7 +168,7 @@ export const formatCurrency = (amount: number, currencyCode: string): string => 
 };
 
 // Get currency symbol
-export const getCurrencySymbol = (currencyCode: string): string => {
+const getCurrencySymbol = (currencyCode: string): string => {
   const currency = currencies[currencyCode];
   return currency?.symbol || currencyCode;
 };

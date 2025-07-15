@@ -49,7 +49,7 @@ export const plans: Plan[] = [
   },
 ];
 
-export const getPlanFeatures = (planId: string) => {
+const getPlanFeatures = (planId: string) => {
   return plans.find((plan) => plan.id === planId)?.features;
 };
 

@@ -41,7 +41,7 @@ export const handleSupabaseError = (error: any) => {
 };
 
 // Helper function to get current user ID
-export const getCurrentUserId = async () => {
+const getCurrentUserId = async () => {
   const { data: { user } } = await supabase.auth.getUser();
   return user?.id;
 };
