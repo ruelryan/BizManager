@@ -21,7 +21,7 @@ export function Upgrade() {
     // Update user plan after successful PayPal payment
     if (user) {
       const { updateUserSettings } = useStore.getState();
-      const subscriptionExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
+      const subscriptionExpiry = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000); // 14 days from now
       
       try {
         // Update the plan in the database
@@ -152,7 +152,7 @@ export function Upgrade() {
             <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
               <div className="flex items-center">
                 <Shield className="mr-2 h-5 w-5 text-blue-600 dark:text-blue-400" />
-                <span className="text-sm font-medium text-blue-900 dark:text-blue-300">30-day money-back guarantee</span>
+                <span className="text-sm font-medium text-blue-900 dark:text-blue-300">14-day money-back guarantee</span>
               </div>
             </div>
           </div>

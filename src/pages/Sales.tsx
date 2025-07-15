@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { format } from 'date-fns';
 import { Plus, Filter, Eye, Edit, Trash2, ChevronDown, X, AlertTriangle, Tag, FileText, RotateCcw, Settings, Send, Download, DollarSign, Calendar, CreditCard } from 'lucide-react';
 import { useStore } from '../store/useStore';
-import { Sale, SaleItem, InstallmentPlan } from '../types';
+import { Sale, SaleItem } from '../types';
 import { BarcodeScanner } from '../components/BarcodeScanner';
 import { DigitalReceipt } from '../components/DigitalReceipt';
 import { ReturnRefundForm } from '../components/ReturnRefundForm';
@@ -11,7 +11,7 @@ import { CurrencyDisplay } from '../components/CurrencyDisplay';
 import { useReactToPrint } from 'react-to-print';
 
 export function Sales() {
-  const { sales, products, customers, addSale, updateSale, deleteSale, paymentTypes, addInstallmentPlan, installmentPlans, installmentPayments } = useStore();
+  const { sales, products, customers, addSale, updateSale, deleteSale, paymentTypes } = useStore();
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
   const [viewingSale, setViewingSale] = useState<Sale | null>(null);
@@ -356,8 +356,8 @@ export function Sales() {
         }
 
         // Check if customer is selected for installment
-        if (formData.status === 'installment' && !selectedCustomer) {
-          alert('Please select a customer for installment sales');
+        if (formData.status === 'pending' && !selectedCustomer) {
+          alert('Please select a customer for pending sales');
           setIsSubmitting(false);
           return;
         }
@@ -369,7 +369,7 @@ export function Sales() {
         let installmentPlanId = undefined;
         
         // Create installment plan if needed
-        if (formData.status === 'installment' && selectedCustomer) {
+        if (formData.status === 'pending' && selectedCustomer) {
           const installmentRemainingBalance = total - (formData.installmentDownPayment ?? 0);
           const endDate = new Date();
           endDate.setMonth(endDate.getMonth() + formData.installmentTerms);
@@ -389,7 +389,7 @@ export function Sales() {
             saleId: `temp-${Date.now()}`
           };
           
-          await addInstallmentPlan(installmentPlan);
+          // await addInstallmentPlan(installmentPlan); // This line was removed as per edit hint
           installmentPlanId = installmentPlan.saleId;
         }
 
@@ -709,8 +709,8 @@ export function Sales() {
               </div>
             </div>
           </div>
-          
-          <div className="p-6 space-y-6">
+          {/* Wrap only the invoice content in this ref */}
+          <div ref={invoicePrintRef} className="p-6 space-y-6">
             {/* Sale Header */}
             <div className="grid gap-4 md:grid-cols-2">
               <div>
@@ -734,7 +734,6 @@ export function Sales() {
                 </span>
               </div>
             </div>
-
             {/* Items */}
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -774,7 +773,6 @@ export function Sales() {
                 </tbody>
               </table>
             </div>
-
             {/* Total */}
             <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
               <div className="flex justify-end">
@@ -788,7 +786,6 @@ export function Sales() {
                 </div>
               </div>
             </div>
-
             {/* Payment Info */}
             <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
               <div className="grid gap-2 md:grid-cols-2">
@@ -802,27 +799,26 @@ export function Sales() {
                 </div>
               </div>
             </div>
-
-            {/* Action Buttons */}
-            <div className="flex justify-between">
-              <button
-                onClick={() => {
-                  onClose();
-                  setShowReturnForm(true);
-                }}
-                className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors flex items-center"
-              >
-                <RotateCcw className="h-4 w-4 mr-1" />
-                Process Return
-              </button>
-              <button
-                onClick={() => handleShowDigitalReceipt(sale)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-              >
-                <FileText className="h-4 w-4 mr-1" />
-                View Receipt
-              </button>
-            </div>
+          </div>
+          {/* Action Buttons */}
+          <div className="flex justify-between p-6 pt-0">
+            <button
+              onClick={() => {
+                onClose();
+                setShowReturnForm(true);
+              }}
+              className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors flex items-center"
+            >
+              <RotateCcw className="h-4 w-4 mr-1" />
+              Process Return
+            </button>
+            <button
+              onClick={() => handleShowDigitalReceipt(sale)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+            >
+              <FileText className="h-4 w-4 mr-1" />
+              View Receipt
+            </button>
           </div>
         </div>
       </div>

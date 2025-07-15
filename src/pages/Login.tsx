@@ -324,7 +324,7 @@ export function Login() {
             <div className="mt-4 p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
               <h3 className="text-sm font-medium text-purple-900 dark:text-purple-300 mb-2">🎉 Free Trial Included!</h3>
               <div className="text-sm text-purple-700 dark:text-purple-400">
-                <p>Get 1 month of Pro features absolutely free when you sign up!</p>
+                <p>Get 14 days of Pro features absolutely free when you sign up!</p>
                 <ul className="list-disc list-inside mt-2 space-y-1">
                   <li>All Pro features unlocked</li>
                   <li>PDF invoice generation</li>

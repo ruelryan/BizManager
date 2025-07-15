@@ -24,18 +24,11 @@ export function Contact() {
     setError('');
     
     try {
-      // In a real app, you would send this data to your backend
-      // For demo purposes, we'll just simulate a successful submission
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      console.log('Form submitted:', formData);
+      // Instead of sending email, redirect to Messenger with pre-filled message
+      const message = encodeURIComponent(`Name: ${formData.name}\nEmail: ${formData.email}\nMessage: ${formData.message}`);
+      window.open(`https://m.me/bizmanagerph?ref=${message}`, '_blank');
       setSubmitted(true);
-      setFormData({
-        name: '',
-        email: '',
-        subject: '',
-        message: ''
-      });
+      setFormData({ name: '', email: '', subject: '', message: '' });
     } catch (err) {
       setError('There was an error submitting your message. Please try again.');
       console.error('Form submission error:', err);
@@ -76,32 +69,6 @@ export function Contact() {
               
               <div className="space-y-6">
                 <div className="flex items-start">
-                  <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
-                    <Mail className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Email Us</h3>
-                    <p className="text-gray-600 dark:text-gray-400 mb-1">For general inquiries:</p>
-                    <a href="mailto:info@bizmanager.com" className="text-blue-600 dark:text-blue-400 hover:underline">info@bizmanager.com</a>
-                    <p className="text-gray-600 dark:text-gray-400 mt-2 mb-1">For support:</p>
-                    <a href="mailto:support@bizmanager.com" className="text-blue-600 dark:text-blue-400 hover:underline">support@bizmanager.com</a>
-                  </div>
-                </div>
-                
-                <div className="flex items-start">
-                  <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
-                    <Phone className="h-6 w-6 text-green-600 dark:text-green-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Call Us</h3>
-                    <p className="text-gray-600 dark:text-gray-400 mb-1">Customer Service:</p>
-                    <p className="text-lg font-medium text-gray-900 dark:text-white">+63 (2) 8123 4567</p>
-                    <p className="text-gray-600 dark:text-gray-400 mt-2 mb-1">Technical Support:</p>
-                    <p className="text-lg font-medium text-gray-900 dark:text-white">+63 (2) 8765 4321</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start">
                   <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
                     <MapPin className="h-6 w-6 text-purple-600 dark:text-purple-400" />
                   </div>
@@ -109,9 +76,7 @@ export function Contact() {
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Visit Us</h3>
                     <p className="text-gray-600 dark:text-gray-400 mb-1">Our Office:</p>
                     <p className="text-gray-900 dark:text-white">
-                      123 Business Avenue<br />
-                      Makati City, Metro Manila<br />
-                      Philippines 1200
+                      Bogo, Tomas Oppus, Southern Leyte 6605
                     </p>
                     <p className="text-gray-600 dark:text-gray-400 mt-2">
                       Monday - Friday: 9:00 AM - 6:00 PM<br />

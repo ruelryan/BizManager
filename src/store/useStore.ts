@@ -137,7 +137,7 @@ export const useStore = create<StoreState>()(
               email: 'demo@businessmanager.com',
               name: 'Demo User',
               plan: plan as 'free' | 'starter' | 'pro',
-              subscriptionExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+              subscriptionExpiry: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days from now
             };
             
             set({ user: demoUser });
@@ -250,8 +250,8 @@ export const useStore = create<StoreState>()(
               email: data.user.email || '',
               name: name,
               plan: 'free',
-              // Set subscription expiry to 30 days from now for free trial
-              subscriptionExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+              // Set subscription expiry to 14 days from now for free trial
+              subscriptionExpiry: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
             };
 
             set({ user });

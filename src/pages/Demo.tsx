@@ -63,7 +63,7 @@ export function Demo() {
       name: 'Demo User',
       email: 'demo@businessmanager.com',
       plan: 'pro',
-      subscriptionExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+      subscriptionExpiry: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days from now
     });
     
     // Navigate to dashboard with tour parameter
