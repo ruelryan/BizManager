@@ -52,12 +52,12 @@ function App() {
   }, []);
 
   // Auto-login demo user if not logged in and initialized
-  useEffect(() => {
-    if (isInitialized && !user && !isLoading && forceShow) {
-      console.log('Auto-logging in demo user...');
-      signIn('demo@businessmanager.com', 'demo123', 'pro').catch(console.error);
-    }
-  }, [isInitialized, user, isLoading, forceShow, signIn]);
+  // useEffect(() => {
+  //   if (isInitialized && !user && !isLoading && forceShow) {
+  //     console.log('Auto-logging in demo user...');
+  //     signIn('demo@businessmanager.com', 'demo123', 'pro').catch(console.error);
+  //   }
+  // }, [isInitialized, user, isLoading, forceShow, signIn]);
 
   // Show loading spinner while initializing auth (but not longer than 3 seconds)
   if ((!isInitialized || isLoading) && !forceShow) {
