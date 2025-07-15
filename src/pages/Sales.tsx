@@ -15,7 +15,7 @@ export function Sales() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
   const [viewingSale, setViewingSale] = useState<Sale | null>(null);
-  const [filterStatus, setFilterStatus] = useState<'all' | 'paid' | 'pending' | 'overdue' | 'installment'>('all');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'paid' | 'pending' | 'overdue'>('all');
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleteCountdown, setDeleteCountdown] = useState<number>(0);
   const [showCodeScanner, setShowCodeScanner] = useState(false);
@@ -24,7 +24,6 @@ export function Sales() {
   const [showPaymentTypeManager, setShowPaymentTypeManager] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'sales' | 'invoices'>('sales');
-  const [showInstallmentPayment, setShowInstallmentPayment] = useState<string | null>(null);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash');
 
@@ -49,7 +48,6 @@ export function Sales() {
       case 'paid': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
       case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
       case 'overdue': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
-      case 'installment': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
       default: return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
     }
   };
@@ -61,84 +59,6 @@ export function Sales() {
       return 'overdue';
     }
     return sale.status;
-  };
-
-  // Get installment plan for a sale
-  const getInstallmentPlan = (saleId: string): InstallmentPlan | null => {
-    return installmentPlans.find(plan => plan.saleId === saleId) || null;
-  };
-
-  // Handle installment payment
-  const handleInstallmentPayment = async (saleId: string) => {
-    try {
-      const installmentPlan = getInstallmentPlan(saleId);
-      if (!installmentPlan) {
-        alert('No installment plan found for this sale.');
-        return;
-      }
-
-      const amount = parseFloat(paymentAmount);
-      if (isNaN(amount) || amount <= 0) {
-        alert('Please enter a valid payment amount.');
-        return;
-      }
-
-      const remainingBalance = installmentPlan.remainingBalance ?? 0;
-      if (amount > remainingBalance) {
-        alert(`Payment amount cannot exceed remaining balance of ${remainingBalance.toFixed(2)}.`);
-        return;
-      }
-
-      // Create payment record
-      const newPayment = {
-        id: Date.now().toString(),
-        installmentPlanId: installmentPlan.id,
-        amount: amount,
-        dueDate: new Date(),
-        paymentDate: new Date(),
-        status: 'paid' as const,
-        paymentMethod: paymentMethod,
-        notes: `Payment of ${amount.toFixed(2)} received`,
-        createdAt: new Date()
-      };
-
-      // Update installment plan
-      const updatedPlan = {
-        ...installmentPlan,
-        remainingBalance: remainingBalance - amount,
-        status: (remainingBalance - amount) <= 0 ? 'completed' as const : installmentPlan.status,
-        payments: [...installmentPlan.payments, newPayment]
-      };
-
-      // Update sale status if fully paid
-      if ((updatedPlan.remainingBalance ?? 0) <= 0) {
-        await updateSale(saleId, { status: 'paid' });
-      }
-
-      // Reset form
-      setPaymentAmount('');
-      setPaymentMethod('cash');
-      setShowInstallmentPayment(null);
-
-      alert(`Payment of ${amount.toFixed(2)} recorded successfully!`);
-    } catch (error) {
-      console.error('Failed to record payment:', error);
-      alert('Failed to record payment. Please try again.');
-    }
-  };
-
-  // Send invoice reminder
-  const handleSendReminder = async (sale: Sale) => {
-    try {
-      alert(`Reminder sent to ${sale.customerName || 'customer'} for invoice ${sale.invoiceNumber}`);
-      
-      await updateSale(sale.id, {
-        ...sale
-      });
-    } catch (error) {
-      console.error('Failed to send reminder:', error);
-      alert('Failed to send reminder. Please try again.');
-    }
   };
 
   // Handle delete with confirmation and countdown
@@ -702,107 +622,12 @@ export function Sales() {
                 >
                   <option value="paid">Paid</option>
                   <option value="pending">Pending (7 days due)</option>
-                  <option value="installment">Installment</option>
                 </select>
               </div>
             </div>
 
             {/* Installment Options */}
-            {formData.status === 'installment' && (
-              <div className="space-y-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100">Installment Plan Details</h3>
-                
-                {!selectedCustomer && (
-                  <div className="p-3 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded-lg">
-                    <p className="text-yellow-800 dark:text-yellow-200 text-sm">
-                      Please select a customer to create an installment plan
-                    </p>
-                  </div>
-                )}
-                
-                <div className="grid gap-4 md:grid-cols-3">
-                  <div>
-                    <label className="block text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">
-                      Down Payment
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={formData.installmentDownPayment}
-                      onChange={(e) => setFormData(prev => ({ ...prev, installmentDownPayment: parseFloat(e.target.value) || 0 }))}
-                      className="w-full rounded-lg border border-blue-300 dark:border-blue-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">
-                      Term (Months)
-                    </label>
-                    <select
-                      value={formData.installmentTerms}
-                      onChange={(e) => setFormData(prev => ({ ...prev, installmentTerms: parseInt(e.target.value) }))}
-                      className="w-full rounded-lg border border-blue-300 dark:border-blue-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    >
-                      <option value={3}>3 months</option>
-                      <option value={6}>6 months</option>
-                      <option value={12}>12 months</option>
-                      <option value={24}>24 months</option>
-                      <option value={36}>36 months</option>
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">
-                      Interest Rate (%)
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="0.1"
-                      value={formData.installmentInterestRate}
-                      onChange={(e) => setFormData(prev => ({ ...prev, installmentInterestRate: parseFloat(e.target.value) || 0 }))}
-                      className="w-full rounded-lg border border-blue-300 dark:border-blue-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-                
-                {/* Installment Summary */}
-                <div className="p-3 bg-white dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-blue-700">
-                  <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Payment Summary</h4>
-                  <div className="space-y-1 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Total Amount:</span>
-                      <span className="font-medium text-gray-900 dark:text-white">
-                        <CurrencyDisplay amount={formData.items.reduce((sum, item) => sum + item.total, 0)} />
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Down Payment:</span>
-                      <span className="font-medium text-gray-900 dark:text-white">
-                        <CurrencyDisplay amount={formData.installmentDownPayment} />
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Remaining Balance:</span>
-                      <span className="font-medium text-gray-900 dark:text-white">
-                        <CurrencyDisplay amount={formData.items.reduce((sum, item) => sum + item.total, 0) - formData.installmentDownPayment} />
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Monthly Payment:</span>
-                      <span className="font-medium text-blue-600 dark:text-blue-400">
-                        <CurrencyDisplay amount={
-                          ((formData.items.reduce((sum, item) => sum + item.total, 0) - formData.installmentDownPayment) * 
-                          (1 + formData.installmentInterestRate / 100)) / formData.installmentTerms
-                        } />
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+            {/* Removed installment options */}
 
 
             {/* Total */}
@@ -1051,7 +876,6 @@ export function Sales() {
             <option value="paid">Paid</option>
             <option value="pending">Pending</option>
             <option value="overdue">Overdue</option>
-            <option value="installment">Installment</option>
           </select>
         </div>
       </div>

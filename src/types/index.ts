@@ -40,7 +40,7 @@ export interface Sale {
   items: SaleItem[];
   total: number;
   paymentType: string;
-  status: 'paid' | 'pending' | 'overdue' | 'installment';
+  status: 'paid' | 'pending' | 'overdue';
   date: Date;
   dueDate?: Date;
   invoiceNumber?: string;
@@ -78,14 +78,6 @@ export interface Customer {
   isActive: boolean;
   createdAt: Date;
   specialPricing?: Record<string, number>; // productId -> special price
-}
-
-export interface CustomerInstallmentSummary {
-  customerId: string;
-  totalUnpaidAmount: number;
-  overdueAmount: number;
-  activeInstallments: number;
-  nextPaymentDate?: Date;
 }
 
 export interface Return {
@@ -127,47 +119,6 @@ export interface UserSettings {
   paymentStatus?: string;
   lastPaymentDate?: Date;
   hasCompletedTour?: boolean;
-}
-
-export interface InstallmentPlan {
-  id: string;
-  customerId: string;
-  customerName?: string;
-  totalAmount: number;
-  downPayment: number;
-  remainingBalance: number;
-  termMonths: number;
-  interestRate: number;
-  status: 'active' | 'completed' | 'cancelled' | 'defaulted';
-  startDate: Date;
-  endDate: Date;
-  createdAt: Date;
-  updatedAt: Date;
-  notes?: string;
-  saleId?: string;
-  payments: InstallmentPayment[];
-}
-
-export interface InstallmentPayment {
-  id: string;
-  installmentPlanId: string;
-  amount: number;
-  dueDate: Date;
-  paymentDate?: Date;
-  status: 'pending' | 'paid' | 'overdue' | 'cancelled';
-  paymentMethod?: string;
-  notes?: string;
-  createdAt: Date;
-}
-
-export interface PaymentReminder {
-  id: string;
-  installmentPaymentId: string;
-  reminderDate: Date;
-  sent: boolean;
-  reminderType: 'upcoming' | 'due' | 'overdue';
-  message: string;
-  createdAt: Date;
 }
 
 export interface PaymentSummary {
