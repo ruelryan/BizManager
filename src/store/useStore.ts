@@ -56,7 +56,6 @@ interface StoreState {
   // Auth actions
   signIn: (email: string, password: string, plan?: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
-  signInWithFacebook: () => Promise<void>;
   signUp: (email: string, password: string, name: string) => Promise<void>;
   signOut: () => Promise<void>;
   setUser: (user: User | null) => void;
@@ -223,21 +222,6 @@ export const useStore = create<StoreState>()(
           if (error) throw error;
         } catch (error) {
           console.error('Google sign in error:', error);
-          throw error;
-        } finally {
-          set({ isLoading: false });
-        }
-      },
-
-      signInWithFacebook: async () => {
-        try {
-          set({ isLoading: true });
-          const { error } = await supabase.auth.signInWithOAuth({
-            provider: 'facebook',
-          });
-          if (error) throw error;
-        } catch (error) {
-          console.error('Facebook sign in error:', error);
           throw error;
         } finally {
           set({ isLoading: false });
