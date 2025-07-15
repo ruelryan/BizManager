@@ -22,6 +22,10 @@ import {
 } from 'lucide-react';
 import { useStore, isInFreeTrial, getEffectivePlan } from '../store/useStore';
 import { ThemeToggle } from './ThemeToggle';
+import { MobileBottomNav } from './MobileBottomNav';
+import { GlobalSearch } from './GlobalSearch';
+import { FloatingActionButton } from './FloatingActionButton';
+import { Tooltip } from './Tooltip';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home, tourId: 'dashboard' },
@@ -147,18 +151,20 @@ export function Layout() {
           <div className="border-t border-gray-200 dark:border-gray-700 px-4 py-4">
             {/* Online/Offline Status */}
             <div className="mb-3 flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                {isOnline ? (
-                  <Wifi className="h-4 w-4 text-green-500" />
-                ) : (
-                  <WifiOff className="h-4 w-4 text-red-500" />
-                )}
-                <span className={`text-sm font-medium ${
-                  isOnline ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-                }`}>
-                  {isOnline ? 'Online' : 'Offline'}
-                </span>
-              </div>
+              <Tooltip content={isOnline ? 'Connected to internet' : 'Working offline - changes saved locally'}>
+                <div className="flex items-center space-x-2">
+                  {isOnline ? (
+                    <Wifi className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <WifiOff className="h-4 w-4 text-red-500" />
+                  )}
+                  <span className={`text-sm font-medium ${
+                    isOnline ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                  }`}>
+                    {isOnline ? 'Online' : 'Offline'}
+                  </span>
+                </div>
+              </Tooltip>
             </div>
 
             {/* User Info with Dropdown */}
@@ -241,11 +247,12 @@ export function Layout() {
           </button>
           <h1 className="text-lg font-semibold text-gray-900 dark:text-white">BizManager</h1>
           <div className="flex items-center space-x-2">
+            <GlobalSearch />
             <ThemeToggle />
           </div>
         </div>
 
-        {/* Desktop header with theme toggle */}
+        {/* Desktop header with search and theme toggle */}
         <div className="hidden lg:flex items-center justify-between border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-6 py-3">
           <div className="flex items-center space-x-4">
             {/* Trial expiry warning */}
@@ -258,7 +265,10 @@ export function Layout() {
               </div>
             )}
           </div>
-          <ThemeToggle />
+          <div className="flex items-center space-x-4">
+            <GlobalSearch />
+            <ThemeToggle />
+          </div>
         </div>
 
         {/* Offline banner */}
@@ -272,10 +282,16 @@ export function Layout() {
         )}
 
         {/* Page content */}
-        <main className="flex-1 overflow-auto bg-gray-50 dark:bg-gray-900">
+        <main className="flex-1 overflow-auto bg-gray-50 dark:bg-gray-900 pb-16 lg:pb-0">
           <Outlet />
         </main>
       </div>
+
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav />
+
+      {/* Floating Action Button */}
+      <FloatingActionButton />
 
       {/* Click outside to close user menu */}
       {showUserMenu && (

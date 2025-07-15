@@ -15,6 +15,8 @@ import { useStore } from '../store/useStore';
 import { FeatureGate } from '../components/FeatureGate';
 import { useCurrency } from '../hooks/useCurrency';
 import { CurrencyDisplay } from '../components/CurrencyDisplay';
+import { ProductTour } from '../components/ProductTour';
+import { Tooltip as CustomTooltip } from '../components/Tooltip';
 
 export function Dashboard() {
   const { sales, products, monthlyGoal, setMonthlyGoal, userSettings, updateUserSettings } = useStore();
@@ -163,8 +165,8 @@ export function Dashboard() {
           <p className="text-gray-600 dark:text-gray-400">Welcome back! Here's what's happening with your business today.</p>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        {/* Key Metrics - Simplified */}
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           <StatCard
             title="Today's Revenue"
             value={<CurrencyDisplay amount={todayRevenue} />}
@@ -180,17 +182,77 @@ export function Dashboard() {
             color="blue"
           />
           <StatCard
-            title="Total Products"
-            value={products.length}
-            icon={Package}
-            color="purple"
-          />
-          <StatCard
-            title="Low Stock Items"
-            value={lowStockProducts.length}
+            title="Alerts"
+            value={lowStockProducts.length + outOfStockProducts.length + unpaidInvoices.length}
             icon={AlertTriangle}
             color="red"
           />
+        </div>
+
+        {/* Quick Actions */}
+        <div className="rounded-xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-200 dark:border-gray-700 quick-actions">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h2>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <CustomTooltip content="Quickly process a new sale transaction">
+              <Link
+                to="/sales?action=new"
+                className="flex items-center space-x-3 p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group"
+              >
+                <div className="rounded-lg bg-blue-100 dark:bg-blue-900/30 p-2 group-hover:bg-blue-200 dark:group-hover:bg-blue-800/40 transition-colors">
+                  <Plus className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white">New Sale</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Create a new sale</p>
+                </div>
+              </Link>
+            </CustomTooltip>
+            
+            <CustomTooltip content="Add a new product to your inventory">
+              <Link
+                to="/products?action=new"
+                className="flex items-center space-x-3 p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group"
+              >
+                <div className="rounded-lg bg-green-100 dark:bg-green-900/30 p-2 group-hover:bg-green-200 dark:group-hover:bg-green-800/40 transition-colors">
+                  <Package className="h-5 w-5 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white">Add Product</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Add new product</p>
+                </div>
+              </Link>
+            </CustomTooltip>
+
+            <CustomTooltip content="Add a new customer to your database">
+              <Link
+                to="/customers?action=new"
+                className="flex items-center space-x-3 p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group"
+              >
+                <div className="rounded-lg bg-purple-100 dark:bg-purple-900/30 p-2 group-hover:bg-purple-200 dark:group-hover:bg-purple-800/40 transition-colors">
+                  <Users className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white">Add Customer</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Add new customer</p>
+                </div>
+              </Link>
+            </CustomTooltip>
+
+            <CustomTooltip content="View detailed business analytics and reports">
+              <Link
+                to="/reports"
+                className="flex items-center space-x-3 p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group"
+              >
+                <div className="rounded-lg bg-orange-100 dark:bg-orange-900/30 p-2 group-hover:bg-orange-200 dark:group-hover:bg-orange-800/40 transition-colors">
+                  <FileText className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white">View Reports</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Business insights</p>
+                </div>
+              </Link>
+            </CustomTooltip>
+          </div>
         </div>
 
         {/* Revenue Goal Progress */}
@@ -396,6 +458,9 @@ export function Dashboard() {
             </div>
           )}
         </div>
+
+        {/* Product Tour */}
+        <ProductTour />
       </div>
     </FeatureGate>
   );

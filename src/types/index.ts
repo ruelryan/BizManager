@@ -126,6 +126,7 @@ export interface UserSettings {
   paypalSubscriptionId?: string;
   paymentStatus?: string;
   lastPaymentDate?: Date;
+  hasCompletedTour?: boolean;
 }
 
 export interface InstallmentPlan {
