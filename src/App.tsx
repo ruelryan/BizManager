@@ -6,7 +6,6 @@ import { Sales } from './pages/Sales';
 import { Products } from './pages/Products';
 import { Inventory } from './pages/Inventory';
 import { Expenses } from './pages/Expenses';
-import { Invoices } from './pages/Invoices';
 import { Reports } from './pages/Reports';
 import { Profile } from './pages/Profile';
 import { Pricing } from './pages/Pricing';
@@ -124,9 +123,6 @@ function App() {
           </Route>
           <Route path="/expenses" element={user ? <Layout /> : <Navigate to="/login" />}>
             <Route index element={<Expenses />} />
-          </Route>
-          <Route path="/invoices" element={user ? <Layout /> : <Navigate to="/login" />}>
-            <Route index element={<Invoices />} />
           </Route>
           <Route path="/reports" element={user ? <Layout /> : <Navigate to="/login" />}>
             <Route index element={<Reports />} />

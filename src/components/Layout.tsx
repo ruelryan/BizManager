@@ -34,7 +34,6 @@ const navigation = [
   { name: 'Customers', href: '/customers', icon: Users, tourId: 'customers' },
   { name: 'Inventory', href: '/inventory', icon: BarChart3, tourId: 'inventory' },
   { name: 'Expenses', href: '/expenses', icon: Receipt, tourId: 'expenses' },
-  { name: 'Invoices', href: '/invoices', icon: FileText, tourId: 'invoices' },
   { name: 'Reports', href: '/reports', icon: TrendingUp, tourId: 'reports' },
 ];
 
