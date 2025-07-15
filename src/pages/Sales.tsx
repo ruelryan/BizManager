@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { format } from 'date-fns';
 import { Plus, Filter, Eye, Edit, Trash2, ChevronDown, X, AlertTriangle, Tag, FileText, RotateCcw, Settings, Send, Download, DollarSign, Calendar, CreditCard } from 'lucide-react';
 import { useStore } from '../store/useStore';
@@ -8,6 +8,7 @@ import { DigitalReceipt } from '../components/DigitalReceipt';
 import { ReturnRefundForm } from '../components/ReturnRefundForm';
 import { PaymentTypeManager } from '../components/PaymentTypeManager';
 import { CurrencyDisplay } from '../components/CurrencyDisplay';
+import { useReactToPrint } from 'react-to-print';
 
 export function Sales() {
   const { sales, products, customers, addSale, updateSale, deleteSale, paymentTypes, addInstallmentPlan, installmentPlans, installmentPayments } = useStore();
@@ -26,6 +27,14 @@ export function Sales() {
   const [showInstallmentPayment, setShowInstallmentPayment] = useState<string | null>(null);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash');
+
+  // Add a ref for printing invoice
+  const invoicePrintRef = useRef<HTMLDivElement>(null);
+  const handlePrintInvoice = useReactToPrint({
+    content: () => invoicePrintRef.current,
+    documentTitle: viewingSale ? `Invoice-${viewingSale.invoiceNumber}` : 'Invoice',
+    removeAfterPrint: true,
+  });
 
   // Filter sales
   const filteredSales = sales.filter((sale) => {
@@ -74,8 +83,9 @@ export function Sales() {
         return;
       }
 
-      if (amount > installmentPlan.remainingBalance) {
-        alert(`Payment amount cannot exceed remaining balance of ${installmentPlan.remainingBalance.toFixed(2)}.`);
+      const remainingBalance = installmentPlan.remainingBalance ?? 0;
+      if (amount > remainingBalance) {
+        alert(`Payment amount cannot exceed remaining balance of ${remainingBalance.toFixed(2)}.`);
         return;
       }
 
@@ -95,13 +105,13 @@ export function Sales() {
       // Update installment plan
       const updatedPlan = {
         ...installmentPlan,
-        remainingBalance: installmentPlan.remainingBalance - amount,
-        status: (installmentPlan.remainingBalance - amount) <= 0 ? 'completed' as const : installmentPlan.status,
+        remainingBalance: remainingBalance - amount,
+        status: (remainingBalance - amount) <= 0 ? 'completed' as const : installmentPlan.status,
         payments: [...installmentPlan.payments, newPayment]
       };
 
       // Update sale status if fully paid
-      if (updatedPlan.remainingBalance <= 0) {
+      if ((updatedPlan.remainingBalance ?? 0) <= 0) {
         await updateSale(saleId, { status: 'paid' });
       }
 
@@ -123,9 +133,7 @@ export function Sales() {
       alert(`Reminder sent to ${sale.customerName || 'customer'} for invoice ${sale.invoiceNumber}`);
       
       await updateSale(sale.id, {
-        ...sale,
-        reminderSent: true,
-        lastReminderDate: new Date(),
+        ...sale
       });
     } catch (error) {
       console.error('Failed to send reminder:', error);
@@ -442,7 +450,7 @@ export function Sales() {
         
         // Create installment plan if needed
         if (formData.status === 'installment' && selectedCustomer) {
-          const remainingBalance = total - formData.installmentDownPayment;
+          const installmentRemainingBalance = total - (formData.installmentDownPayment ?? 0);
           const endDate = new Date();
           endDate.setMonth(endDate.getMonth() + formData.installmentTerms);
           
@@ -451,7 +459,7 @@ export function Sales() {
             customerName: selectedCustomer.name,
             totalAmount: total,
             downPayment: formData.installmentDownPayment,
-            remainingBalance,
+            remainingBalance: installmentRemainingBalance,
             termMonths: formData.installmentTerms,
             interestRate: formData.installmentInterestRate,
             status: 'active' as const,
@@ -493,7 +501,10 @@ export function Sales() {
           items: [{ productId: '', quantity: 1, price: 0, total: 0 }],
           paymentType: paymentTypes[0]?.id || 'cash',
           status: 'paid',
-          useCredit: false
+          useCredit: false,
+          installmentTerms: 12,
+          installmentDownPayment: 0,
+          installmentInterestRate: 0
         });
       } catch (error: any) {
         console.error('Failed to save sale:', error);
@@ -856,6 +867,13 @@ export function Sales() {
                   title="View Digital Receipt"
                 >
                   <FileText className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={handlePrintInvoice}
+                  className="text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 p-1"
+                  title="Download PDF"
+                >
+                  <Download className="h-5 w-5" />
                 </button>
                 <button
                   onClick={onClose}
