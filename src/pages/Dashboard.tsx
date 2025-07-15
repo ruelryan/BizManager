@@ -10,6 +10,8 @@ import {
   FileText,
   Target,
   Settings,
+  Plus,
+  Users,
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { useStore } from '../store/useStore';
