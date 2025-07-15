@@ -7,7 +7,22 @@
     <title>Business Management System SaaS Application</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Fallback content if JavaScript fails to load -->
+      <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; background-color: #f9fafb; font-family: system-ui, -apple-system, sans-serif;">
+        <div style="text-align: center; padding: 2rem;">
+          <h1 style="color: #111827; margin-bottom: 1rem;">BizManager</h1>
+          <p style="color: #6b7280; margin-bottom: 2rem;">Business Management System</p>
+          <div style="margin-bottom: 2rem;">
+            <a href="/landing" style="color: #3b82f6; text-decoration: none; margin-right: 1rem;">Landing</a>
+            <a href="/login" style="color: #3b82f6; text-decoration: none;">Login</a>
+          </div>
+          <p style="color: #9ca3af; font-size: 0.875rem;">
+            Loading JavaScript... If this doesn't disappear, there may be a script loading issue.
+          </p>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
