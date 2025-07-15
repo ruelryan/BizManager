@@ -10,11 +10,11 @@ import { PaymentTypeManager } from '../components/PaymentTypeManager';
 import { CurrencyDisplay } from '../components/CurrencyDisplay';
 
 export function Sales() {
-  const { sales, products, customers, addSale, updateSale, deleteSale, paymentTypes } = useStore();
+  const { sales, products, customers, addSale, updateSale, deleteSale, paymentTypes, addInstallmentPlan } = useStore();
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
   const [viewingSale, setViewingSale] = useState<Sale | null>(null);
-  const [filterStatus, setFilterStatus] = useState<'all' | 'paid' | 'pending' | 'overdue'>('all');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'paid' | 'pending' | 'overdue' | 'installment'>('all');
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleteCountdown, setDeleteCountdown] = useState<number>(0);
   const [showCodeScanner, setShowCodeScanner] = useState(false);
@@ -33,6 +33,7 @@ export function Sales() {
       case 'paid': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
       case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
       case 'overdue': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
+      case 'installment': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
       default: return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
     }
   };
@@ -285,18 +286,15 @@ export function Sales() {
       items: sale?.items || [{ productId: '', quantity: 1, price: 0, total: 0 }],
       paymentType: sale?.paymentType || paymentTypes[0]?.id || 'cash',
       status: sale?.status || 'paid' as const,
-      useCredit: false
+      useCredit: false,
+      installmentTerms: 12,
+      installmentDownPayment: 0,
+      installmentInterestRate: 0
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [selectedCustomer, setSelectedCustomer] = useState(customers.find(c => c.id === sale?.customerId) || null);
 
-    // Calculate if customer has available credit
-    const hasAvailableCredit = selectedCustomer && 
-      selectedCustomer.creditLimit > 0 && 
-      selectedCustomer.balance < selectedCustomer.creditLimit;
-    
-    const availableCredit = selectedCustomer ? 
-      Math.max(0, selectedCustomer.creditLimit - selectedCustomer.balance) : 0;
+    // Remove credit-related calculations
 
     const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
@@ -343,20 +341,43 @@ export function Sales() {
           return;
         }
 
-        // Check credit limit if using credit
-        if (formData.status === 'pending' && formData.useCredit && selectedCustomer) {
-          const newBalance = selectedCustomer.balance + total;
-          if (newBalance > selectedCustomer.creditLimit) {
-            if (!confirm(`This sale will exceed the customer's credit limit. Proceed anyway?`)) {
-              setIsSubmitting(false);
-              return;
-            }
-          }
+        // Check if customer is selected for installment
+        if (formData.status === 'installment' && !selectedCustomer) {
+          alert('Please select a customer for installment sales');
+          setIsSubmitting(false);
+          return;
         }
 
         const dueDate = formData.status === 'pending' 
           ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days from now
           : undefined;
+
+        let installmentPlanId = undefined;
+        
+        // Create installment plan if needed
+        if (formData.status === 'installment' && selectedCustomer) {
+          const remainingBalance = total - formData.installmentDownPayment;
+          const endDate = new Date();
+          endDate.setMonth(endDate.getMonth() + formData.installmentTerms);
+          
+          const installmentPlan = {
+            customerId: selectedCustomer.id,
+            customerName: selectedCustomer.name,
+            totalAmount: total,
+            downPayment: formData.installmentDownPayment,
+            remainingBalance,
+            termMonths: formData.installmentTerms,
+            interestRate: formData.installmentInterestRate,
+            status: 'active' as const,
+            startDate: new Date(),
+            endDate,
+            notes: `Installment plan for sale`,
+            saleId: `temp-${Date.now()}`
+          };
+          
+          await addInstallmentPlan(installmentPlan);
+          installmentPlanId = installmentPlan.saleId;
+        }
 
         const saleData = {
           customerId: formData.customerId || sale?.customerId || '',
@@ -368,7 +389,8 @@ export function Sales() {
           status: formData.status,
           date: sale?.date || new Date(),
           dueDate,
-          useCredit: formData.useCredit
+          useCredit: formData.useCredit,
+          installmentPlanId
         };
 
         if (sale) {
@@ -459,7 +481,7 @@ export function Sales() {
                   <option value="">Walk-in Customer</option>
                   {customers.map((customer) => (
                     <option key={customer.id} value={customer.id}>
-                      {customer.name} {customer.creditLimit > 0 ? `(Credit: ${customer.creditLimit})` : ''}
+                      {customer.name}
                     </option>
                   ))}
                 </select>
@@ -477,23 +499,6 @@ export function Sales() {
               </div>
             </div>
 
-            {/* Credit Limit Info (if applicable) */}
-            {selectedCustomer && selectedCustomer.creditLimit > 0 && (
-              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                <div className="flex justify-between mb-2">
-                  <span className="text-blue-700 dark:text-blue-300 font-medium">Credit Limit:</span>
-                  <span className="text-blue-700 dark:text-blue-300"><CurrencyDisplay amount={selectedCustomer.creditLimit} /></span>
-                </div>
-                <div className="flex justify-between mb-2">
-                  <span className="text-blue-700 dark:text-blue-300 font-medium">Current Balance:</span>
-                  <span className="text-blue-700 dark:text-blue-300"><CurrencyDisplay amount={selectedCustomer.balance} /></span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-blue-700 dark:text-blue-300 font-medium">Available Credit:</span>
-                  <span className="text-blue-700 dark:text-blue-300"><CurrencyDisplay amount={availableCredit} /></span>
-                </div>
-              </div>
-            )}
 
             {/* Items */}
             <div>
@@ -600,32 +605,108 @@ export function Sales() {
                 >
                   <option value="paid">Paid</option>
                   <option value="pending">Pending (7 days due)</option>
+                  <option value="installment">Installment</option>
                 </select>
               </div>
             </div>
 
-            {/* Credit Option */}
-            {formData.status === 'pending' && selectedCustomer && selectedCustomer.creditLimit > 0 && (
-              <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={formData.useCredit}
-                    onChange={(e) => setFormData(prev => ({ ...prev, useCredit: e.target.checked }))}
-                    className="h-4 w-4 text-blue-600 dark:text-blue-500 border-gray-300 dark:border-gray-600 focus:ring-blue-500"
-                  />
-                  <span className="ml-2 text-yellow-800 dark:text-yellow-300">
-                    Use customer credit for this sale
-                  </span>
-                </label>
-                <p className="mt-2 text-sm text-yellow-700 dark:text-yellow-400">
-                  {hasAvailableCredit 
-                    ? `Available credit: ${availableCredit}`
-                    : `Warning: Customer has reached their credit limit of ${selectedCustomer.creditLimit}`
-                  }
-                </p>
+            {/* Installment Options */}
+            {formData.status === 'installment' && (
+              <div className="space-y-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100">Installment Plan Details</h3>
+                
+                {!selectedCustomer && (
+                  <div className="p-3 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded-lg">
+                    <p className="text-yellow-800 dark:text-yellow-200 text-sm">
+                      Please select a customer to create an installment plan
+                    </p>
+                  </div>
+                )}
+                
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div>
+                    <label className="block text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">
+                      Down Payment
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.installmentDownPayment}
+                      onChange={(e) => setFormData(prev => ({ ...prev, installmentDownPayment: parseFloat(e.target.value) || 0 }))}
+                      className="w-full rounded-lg border border-blue-300 dark:border-blue-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">
+                      Term (Months)
+                    </label>
+                    <select
+                      value={formData.installmentTerms}
+                      onChange={(e) => setFormData(prev => ({ ...prev, installmentTerms: parseInt(e.target.value) }))}
+                      className="w-full rounded-lg border border-blue-300 dark:border-blue-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    >
+                      <option value={3}>3 months</option>
+                      <option value={6}>6 months</option>
+                      <option value={12}>12 months</option>
+                      <option value={24}>24 months</option>
+                      <option value={36}>36 months</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">
+                      Interest Rate (%)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.1"
+                      value={formData.installmentInterestRate}
+                      onChange={(e) => setFormData(prev => ({ ...prev, installmentInterestRate: parseFloat(e.target.value) || 0 }))}
+                      className="w-full rounded-lg border border-blue-300 dark:border-blue-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+                
+                {/* Installment Summary */}
+                <div className="p-3 bg-white dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-blue-700">
+                  <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Payment Summary</h4>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Total Amount:</span>
+                      <span className="font-medium text-gray-900 dark:text-white">
+                        <CurrencyDisplay amount={formData.items.reduce((sum, item) => sum + item.total, 0)} />
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Down Payment:</span>
+                      <span className="font-medium text-gray-900 dark:text-white">
+                        <CurrencyDisplay amount={formData.installmentDownPayment} />
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Remaining Balance:</span>
+                      <span className="font-medium text-gray-900 dark:text-white">
+                        <CurrencyDisplay amount={formData.items.reduce((sum, item) => sum + item.total, 0) - formData.installmentDownPayment} />
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Monthly Payment:</span>
+                      <span className="font-medium text-blue-600 dark:text-blue-400">
+                        <CurrencyDisplay amount={
+                          ((formData.items.reduce((sum, item) => sum + item.total, 0) - formData.installmentDownPayment) * 
+                          (1 + formData.installmentInterestRate / 100)) / formData.installmentTerms
+                        } />
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
+
 
             {/* Total */}
             <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
@@ -866,6 +947,7 @@ export function Sales() {
             <option value="paid">Paid</option>
             <option value="pending">Pending</option>
             <option value="overdue">Overdue</option>
+            <option value="installment">Installment</option>
           </select>
         </div>
       </div>

@@ -40,11 +40,12 @@ export interface Sale {
   items: SaleItem[];
   total: number;
   paymentType: string;
-  status: 'paid' | 'pending' | 'overdue';
+  status: 'paid' | 'pending' | 'overdue' | 'installment';
   date: Date;
   dueDate?: Date;
   invoiceNumber?: string;
   useCredit?: boolean;
+  installmentPlanId?: string;
 }
 
 export interface InventoryTransaction {
@@ -74,11 +75,17 @@ export interface Customer {
   phone?: string;
   email?: string;
   address?: string;
-  balance: number;
-  creditLimit: number;
   isActive: boolean;
   createdAt: Date;
   specialPricing?: Record<string, number>; // productId -> special price
+}
+
+export interface CustomerInstallmentSummary {
+  customerId: string;
+  totalUnpaidAmount: number;
+  overdueAmount: number;
+  activeInstallments: number;
+  nextPaymentDate?: Date;
 }
 
 export interface Return {

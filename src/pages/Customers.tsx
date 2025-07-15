@@ -1,21 +1,19 @@
 import React, { useState } from 'react';
-import { Plus, Search, Edit, Trash2, Users, AlertTriangle, CreditCard, Tag } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Users, AlertTriangle, Tag } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { Customer } from '../types';
-import { CreditLimitManager } from '../components/CreditLimitManager';
 import { CustomerPricing } from '../components/CustomerPricing';
 import { CurrencyDisplay } from '../components/CurrencyDisplay';
 import { CurrencyInput } from '../components/CurrencyInput';
 
 export function Customers() {
-  const { customers, addCustomer, updateCustomer, deleteCustomer } = useStore();
+  const { customers, addCustomer, updateCustomer, deleteCustomer, getCustomerInstallmentSummary } = useStore();
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterActive, setFilterActive] = useState<'all' | 'active' | 'inactive'>('all');
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleteCountdown, setDeleteCountdown] = useState<number>(0);
-  const [showCreditManager, setShowCreditManager] = useState<Customer | null>(null);
   const [showCustomerPricing, setShowCustomerPricing] = useState<Customer | null>(null);
 
   // Filter customers
@@ -57,15 +55,6 @@ export function Customers() {
     }
   };
 
-  const handleUpdateCreditLimit = async (customerId: string, newCreditLimit: number) => {
-    const customer = customers.find(c => c.id === customerId);
-    if (!customer) return;
-    
-    await updateCustomer(customerId, {
-      ...customer,
-      creditLimit: newCreditLimit
-    });
-  };
 
   const CustomerForm = ({ customer, onClose }: { customer?: Customer; onClose: () => void }) => {
     const [formData, setFormData] = useState({
@@ -73,7 +62,6 @@ export function Customers() {
       phone: customer?.phone || '',
       email: customer?.email || '',
       address: customer?.address || '',
-      creditLimit: customer?.creditLimit || 0,
       isActive: customer?.isActive ?? true,
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -160,20 +148,6 @@ export function Customers() {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Credit Limit
-              </label>
-              <CurrencyInput
-                value={formData.creditLimit}
-                onChange={(value) => setFormData(prev => ({ ...prev, creditLimit: value }))}
-                min={0}
-                step={100}
-              />
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                Set to 0 for no credit limit
-              </p>
-            </div>
 
             <div className="flex items-center">
               <input
@@ -274,7 +248,7 @@ export function Customers() {
                   Contact
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                  Credit Status
+                  Installments
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
                   Status
@@ -286,19 +260,8 @@ export function Customers() {
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
               {filteredCustomers.map((customer) => {
-                // Calculate credit utilization percentage
-                const creditUtilization = customer.creditLimit > 0 
-                  ? (customer.balance / customer.creditLimit) * 100 
-                  : 0;
-                
-                // Determine credit status color
-                const creditStatusColor = customer.creditLimit === 0 
-                  ? 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300' 
-                  : creditUtilization > 90 
-                    ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' 
-                    : creditUtilization > 70 
-                      ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' 
-                      : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
+                // Get installment summary for customer
+                const installmentSummary = getCustomerInstallmentSummary(customer.id);
                 
                 // Check if customer has special pricing
                 const hasSpecialPricing = customer.specialPricing && Object.keys(customer.specialPricing).length > 0;
@@ -320,26 +283,27 @@ export function Customers() {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {customer.creditLimit > 0 ? (
+                      {installmentSummary.activeInstallments > 0 ? (
                         <div>
                           <div className="text-sm text-gray-900 dark:text-gray-300">
-                            Balance: <CurrencyDisplay amount={customer.balance} /> / <CurrencyDisplay amount={customer.creditLimit} />
+                            {installmentSummary.activeInstallments} active plan{installmentSummary.activeInstallments > 1 ? 's' : ''}
                           </div>
-                          <div className="w-32 bg-gray-200 dark:bg-gray-600 rounded-full h-1.5 mt-1">
-                            <div 
-                              className={`h-1.5 rounded-full ${
-                                creditUtilization > 90 
-                                  ? 'bg-red-500' 
-                                  : creditUtilization > 70 
-                                    ? 'bg-yellow-500' 
-                                    : 'bg-green-500'
-                              }`}
-                              style={{ width: `${Math.min(creditUtilization, 100)}%` }}
-                            ></div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-300">
+                            Unpaid: <CurrencyDisplay amount={installmentSummary.totalUnpaidAmount} />
                           </div>
+                          {installmentSummary.overdueAmount > 0 && (
+                            <div className="text-sm font-medium text-red-600 dark:text-red-400">
+                              Overdue: <CurrencyDisplay amount={installmentSummary.overdueAmount} />
+                            </div>
+                          )}
+                          {installmentSummary.nextPaymentDate && (
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                              Next: {installmentSummary.nextPaymentDate.toLocaleDateString()}
+                            </div>
+                          )}
                         </div>
                       ) : (
-                        <span className="text-sm text-gray-500 dark:text-gray-400">No credit</span>
+                        <span className="text-sm text-gray-500 dark:text-gray-400">No installments</span>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -367,13 +331,6 @@ export function Customers() {
                           title="Edit Customer"
                         >
                           <Edit className="h-4 w-4" />
-                        </button>
-                        <button 
-                          onClick={() => setShowCreditManager(customer)}
-                          className="text-purple-600 dark:text-purple-400 hover:text-purple-900 dark:hover:text-purple-300"
-                          title="Manage Credit Limit"
-                        >
-                          <CreditCard className="h-4 w-4" />
                         </button>
                         <button 
                           onClick={() => setShowCustomerPricing(customer)}
@@ -429,16 +386,6 @@ export function Customers() {
         <CustomerForm
           customer={editingCustomer}
           onClose={() => setEditingCustomer(null)}
-        />
-      )}
-      {showCreditManager && (
-        <CreditLimitManager
-          customerId={showCreditManager.id}
-          customerName={showCreditManager.name}
-          currentBalance={showCreditManager.balance}
-          currentCreditLimit={showCreditManager.creditLimit}
-          onClose={() => setShowCreditManager(null)}
-          onUpdate={(newLimit) => handleUpdateCreditLimit(showCreditManager.id, newLimit)}
         />
       )}
       {showCustomerPricing && (

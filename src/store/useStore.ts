@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase, handleSupabaseError, transformSupabaseData, transformToSupabaseData } from '../lib/supabase';
-import { User, Product, Sale, Customer, Expense, InventoryTransaction, UserSettings, Return, PaymentType } from '../types';
+import { User, Product, Sale, Customer, Expense, InventoryTransaction, UserSettings, Return, PaymentType, InstallmentPlan, InstallmentPayment, CustomerInstallmentSummary } from '../types';
 import { plans } from '../utils/plans';
 
 // Helper function to generate a unique invoice number
@@ -50,6 +50,8 @@ interface StoreState {
   userSettings: UserSettings | null;
   monthlyGoal: number;
   paymentTypes: PaymentType[];
+  installmentPlans: InstallmentPlan[];
+  installmentPayments: InstallmentPayment[];
 
   // Auth actions
   signIn: (email: string, password: string, plan?: string) => Promise<void>;
@@ -94,6 +96,14 @@ interface StoreState {
   updatePaymentType: (id: string, name: string) => Promise<void>;
   deletePaymentType: (id: string) => Promise<void>;
 
+  // Installment actions
+  addInstallmentPlan: (plan: Omit<InstallmentPlan, 'id' | 'createdAt' | 'updatedAt' | 'payments'>) => Promise<void>;
+  updateInstallmentPlan: (id: string, plan: Partial<InstallmentPlan>) => Promise<void>;
+  deleteInstallmentPlan: (id: string) => Promise<void>;
+  addInstallmentPayment: (payment: Omit<InstallmentPayment, 'id' | 'createdAt'>) => Promise<void>;
+  updateInstallmentPayment: (id: string, payment: Partial<InstallmentPayment>) => Promise<void>;
+  getCustomerInstallmentSummary: (customerId: string) => CustomerInstallmentSummary;
+
   // User settings
   updateUserProfile: (data: Partial<User>) => Promise<void>;
   updateUserSettings: (data: Partial<UserSettings>) => Promise<void>;
@@ -125,6 +135,8 @@ export const useStore = create<StoreState>()(
       userSettings: null,
       monthlyGoal: 50000,
       paymentTypes: [...defaultPaymentTypes],
+      installmentPlans: [],
+      installmentPayments: [],
 
       // Auth actions
       signIn: async (email, password, plan = 'free') => {
@@ -445,17 +457,7 @@ export const useStore = create<StoreState>()(
             }
           }
 
-          // Update customer balance if using credit
-          let updatedCustomers = [...customers];
-          if (sale.useCredit && sale.customerId) {
-            const customerIndex = updatedCustomers.findIndex(c => c.id === sale.customerId);
-            if (customerIndex !== -1) {
-              updatedCustomers[customerIndex] = {
-                ...updatedCustomers[customerIndex],
-                balance: updatedCustomers[customerIndex].balance + sale.total
-              };
-            }
-          }
+          // No longer updating customer balance for credit
 
           // For demo account, just update local state
           if (user.id === 'demo-user-id') {
@@ -468,8 +470,7 @@ export const useStore = create<StoreState>()(
             
             set({ 
               sales: [...sales, newSale],
-              products: updatedProducts,
-              customers: updatedCustomers
+              products: updatedProducts
             });
             return;
           }
@@ -496,22 +497,12 @@ export const useStore = create<StoreState>()(
             }
           }
 
-          // Update customer balance if using credit
-          if (sale.useCredit && sale.customerId) {
-            const customer = customers.find(c => c.id === sale.customerId);
-            if (customer) {
-              await supabase
-                .from('customers')
-                .update({ balance: customer.balance + sale.total })
-                .eq('id', sale.customerId);
-            }
-          }
+          // No longer updating customer balance for credit
 
           const newSale = transformSupabaseData.sale(data);
           set({ 
             sales: [...sales, newSale],
-            products: updatedProducts,
-            customers: updatedCustomers
+            products: updatedProducts
           });
         } catch (error) {
           console.error('Add sale error:', error);
@@ -1015,6 +1006,148 @@ export const useStore = create<StoreState>()(
         }
       },
 
+      // Installment actions
+      addInstallmentPlan: async (plan) => {
+        try {
+          const { installmentPlans } = get();
+          
+          const newPlan: InstallmentPlan = {
+            id: `plan-${Date.now()}`,
+            ...plan,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            payments: []
+          };
+          
+          set({ installmentPlans: [...installmentPlans, newPlan] });
+          
+          // Generate installment payment schedule
+          const monthlyAmount = (plan.remainingBalance * (1 + plan.interestRate / 100)) / plan.termMonths;
+          const paymentSchedule: Omit<InstallmentPayment, 'id' | 'createdAt'>[] = [];
+          
+          for (let i = 0; i < plan.termMonths; i++) {
+            const dueDate = new Date(plan.startDate);
+            dueDate.setMonth(dueDate.getMonth() + i + 1);
+            
+            paymentSchedule.push({
+              installmentPlanId: newPlan.id,
+              amount: monthlyAmount,
+              dueDate,
+              status: 'pending'
+            });
+          }
+          
+          // Add payment schedule
+          for (const payment of paymentSchedule) {
+            await get().addInstallmentPayment(payment);
+          }
+          
+        } catch (error) {
+          console.error('Add installment plan error:', error);
+          throw error;
+        }
+      },
+
+      updateInstallmentPlan: async (id, plan) => {
+        try {
+          const { installmentPlans } = get();
+          
+          const updatedPlans = installmentPlans.map(p => 
+            p.id === id ? { ...p, ...plan, updatedAt: new Date() } : p
+          );
+          
+          set({ installmentPlans: updatedPlans });
+        } catch (error) {
+          console.error('Update installment plan error:', error);
+          throw error;
+        }
+      },
+
+      deleteInstallmentPlan: async (id) => {
+        try {
+          const { installmentPlans, installmentPayments } = get();
+          
+          const filteredPlans = installmentPlans.filter(p => p.id !== id);
+          const filteredPayments = installmentPayments.filter(p => p.installmentPlanId !== id);
+          
+          set({ 
+            installmentPlans: filteredPlans,
+            installmentPayments: filteredPayments
+          });
+        } catch (error) {
+          console.error('Delete installment plan error:', error);
+          throw error;
+        }
+      },
+
+      addInstallmentPayment: async (payment) => {
+        try {
+          const { installmentPayments } = get();
+          
+          const newPayment: InstallmentPayment = {
+            id: `payment-${Date.now()}`,
+            ...payment,
+            createdAt: new Date()
+          };
+          
+          set({ installmentPayments: [...installmentPayments, newPayment] });
+        } catch (error) {
+          console.error('Add installment payment error:', error);
+          throw error;
+        }
+      },
+
+      updateInstallmentPayment: async (id, payment) => {
+        try {
+          const { installmentPayments } = get();
+          
+          const updatedPayments = installmentPayments.map(p => 
+            p.id === id ? { ...p, ...payment } : p
+          );
+          
+          set({ installmentPayments: updatedPayments });
+        } catch (error) {
+          console.error('Update installment payment error:', error);
+          throw error;
+        }
+      },
+
+      getCustomerInstallmentSummary: (customerId) => {
+        const { installmentPlans, installmentPayments } = get();
+        
+        // Get all installment plans for the customer
+        const customerPlans = installmentPlans.filter(p => p.customerId === customerId && p.status === 'active');
+        
+        // Get all payments for customer plans
+        const customerPayments = installmentPayments.filter(p => 
+          customerPlans.some(plan => plan.id === p.installmentPlanId)
+        );
+        
+        // Calculate totals
+        const totalUnpaidAmount = customerPayments
+          .filter(p => p.status === 'pending')
+          .reduce((sum, p) => sum + p.amount, 0);
+        
+        const overdueAmount = customerPayments
+          .filter(p => p.status === 'overdue')
+          .reduce((sum, p) => sum + p.amount, 0);
+        
+        const activeInstallments = customerPlans.length;
+        
+        // Find next payment date
+        const nextPaymentDate = customerPayments
+          .filter(p => p.status === 'pending')
+          .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())[0]?.dueDate;
+        
+        return {
+          customerId,
+          totalUnpaidAmount,
+          overdueAmount,
+          activeInstallments,
+          nextPaymentDate
+        };
+      },
+
       // User settings
       updateUserProfile: async (data) => {
         try {
@@ -1329,8 +1462,6 @@ export const useStore = create<StoreState>()(
               phone: '+63 912 345 6789',
               email: 'juan@example.com',
               address: 'Makati City, Metro Manila',
-              balance: 0,
-              creditLimit: 10000,
               isActive: true,
               createdAt: new Date(),
             },
@@ -1340,8 +1471,6 @@ export const useStore = create<StoreState>()(
               phone: '+63 923 456 7890',
               email: 'maria@example.com',
               address: 'Quezon City, Metro Manila',
-              balance: 2500,
-              creditLimit: 15000,
               isActive: true,
               createdAt: new Date(),
             },
@@ -1351,8 +1480,6 @@ export const useStore = create<StoreState>()(
               phone: '+63 934 567 8901',
               email: 'pedro@example.com',
               address: 'Pasig City, Metro Manila',
-              balance: 0,
-              creditLimit: 5000,
               isActive: true,
               createdAt: new Date(),
             },
@@ -1519,6 +1646,8 @@ export const useStore = create<StoreState>()(
         userSettings: state.userSettings,
         monthlyGoal: state.monthlyGoal,
         paymentTypes: state.paymentTypes,
+        installmentPlans: state.installmentPlans,
+        installmentPayments: state.installmentPayments,
       }),
     }
   )
