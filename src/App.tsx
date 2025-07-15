@@ -29,6 +29,11 @@ function App() {
   const [showTour, setShowTour] = useState(false);
   const [forceShow, setForceShow] = useState(false);
   
+  // Debug logging
+  useEffect(() => {
+    console.log('App Debug:', { user, isLoading, isInitialized, forceShow });
+  }, [user, isLoading, isInitialized, forceShow]);
+  
   // Check URL parameters for tour
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -40,6 +45,7 @@ function App() {
   // Force show app after 3 seconds to prevent infinite loading
   useEffect(() => {
     const timer = setTimeout(() => {
+      console.log('Force showing app after 3 seconds');
       setForceShow(true);
     }, 3000);
     return () => clearTimeout(timer);
@@ -47,17 +53,21 @@ function App() {
 
   // Show loading spinner while initializing auth (but not longer than 3 seconds)
   if ((!isInitialized || isLoading) && !forceShow) {
+    console.log('Showing loading spinner');
     return (
       <ThemeProvider>
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
             <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+            <p className="text-xs text-gray-500 mt-2">Debug: Loading={isLoading ? 'true' : 'false'}, Init={isInitialized ? 'true' : 'false'}</p>
           </div>
         </div>
       </ThemeProvider>
     );
   }
+
+  console.log('Rendering main app');
 
   return (
     <ThemeProvider>
@@ -77,6 +87,24 @@ function App() {
           
           {/* Redirect root to landing if not authenticated, dashboard if authenticated */}
           <Route path="/" element={user ? <Navigate to="/dashboard" /> : <Navigate to="/landing" />} />
+          
+          {/* Fallback route */}
+          <Route path="*" element={
+            <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+              <div className="text-center">
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">BizManager</h1>
+                <p className="text-gray-600 dark:text-gray-400 mb-4">Page not found or routing issue</p>
+                <p className="text-sm text-gray-500 dark:text-gray-500">
+                  User: {user ? 'Authenticated' : 'Not authenticated'} | 
+                  Path: {window.location.pathname}
+                </p>
+                <div className="mt-4">
+                  <a href="/landing" className="text-blue-600 hover:underline mr-4">Go to Landing</a>
+                  <a href="/login" className="text-blue-600 hover:underline">Go to Login</a>
+                </div>
+              </div>
+            </div>
+          } />
           
           {/* Protected Routes */}
           <Route path="/dashboard" element={user ? <Layout /> : <Navigate to="/login" />}>
