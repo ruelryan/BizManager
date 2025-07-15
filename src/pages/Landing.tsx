@@ -49,6 +49,24 @@ export function Landing() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
   
+  useEffect(() => {
+    // Use IntersectionObserver for smoother, more efficient scroll animations
+    const elements = document.querySelectorAll('.scroll-animation');
+    const observer = new window.IntersectionObserver(
+      (entries, obs) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('animate-fade-in');
+            obs.unobserve(entry.target); // Only animate once
+          }
+        });
+      },
+      { threshold: 0.15 }
+    );
+    elements.forEach(el => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
+  
   const features = [
     {
       icon: Package,
