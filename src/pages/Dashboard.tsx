@@ -1,6 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
 import {
   DollarSign,
   TrendingUp,
@@ -11,7 +10,16 @@ import {
   Target,
   Settings,
   Plus,
-  Users,
+  RefreshCw,
+  Download,
+  Star,
+  Phone,
+  ShoppingBag,
+  Clock,
+  Zap,
+  BarChart3,
+  Calendar,
+  Gift,
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { useStore } from '../store/useStore';
@@ -119,7 +127,303 @@ export function Dashboard() {
     setShowGoalSetting(false);
   };
 
-  const StatCard = ({ title, value, change, icon: Icon, color = 'blue' }: any) => (
+  // Enhanced Quick Actions Logic
+  const getSmartQuickActions = () => {
+    const actions = [];
+    
+    // 1. Context-Aware Actions
+    if (lowStockProducts.length > 0) {
+      actions.push({
+        id: 'restock-urgent',
+        title: 'Restock Items',
+        description: `${lowStockProducts.length} items need restocking`,
+        icon: RefreshCw,
+        color: 'orange',
+        priority: 'high',
+        action: () => window.location.href = '/inventory?filter=low-stock',
+        badge: lowStockProducts.length,
+      });
+    }
+    
+    if (unpaidInvoices.length > 0) {
+      actions.push({
+        id: 'follow-up-invoices',
+        title: 'Follow Up Invoices',
+        description: `${unpaidInvoices.length} unpaid invoices`,
+        icon: Clock,
+        color: 'red',
+        priority: 'high',
+        action: () => window.location.href = '/sales?filter=unpaid',
+        badge: unpaidInvoices.length,
+      });
+    }
+    
+    // 2. Analytics-Driven Actions
+    const topSellingProducts = products
+      .map(product => {
+        const salesCount = sales.filter(sale => 
+          sale.items.some(item => item.productId === product.id) && 
+          sale.status === 'paid'
+        ).length;
+        return { ...product, salesCount };
+      })
+      .sort((a, b) => b.salesCount - a.salesCount)
+      .slice(0, 3);
+    
+    if (topSellingProducts.length > 0 && topSellingProducts[0].salesCount > 0) {
+      actions.push({
+        id: 'promote-bestseller',
+        title: 'Promote Best Seller',
+        description: `${topSellingProducts[0].name} is trending`,
+        icon: Star,
+        color: 'yellow',
+        priority: 'medium',
+        action: () => window.location.href = `/products?highlight=${topSellingProducts[0].id}`,
+      });
+    }
+    
+    // 3. Goal-Based Actions
+    if (revenueProgress > 80 && revenueProgress < 100) {
+      actions.push({
+        id: 'push-to-goal',
+        title: 'Push to Goal',
+        description: `${(100 - revenueProgress).toFixed(1)}% to reach monthly goal`,
+        icon: Target,
+        color: 'green',
+        priority: 'medium',
+        action: () => window.location.href = '/sales?action=new&focus=goal',
+      });
+    }
+    
+    // 4. Time-Based Actions
+    const todayHour = new Date().getHours();
+    if (todayHour >= 17 && todaySales.length > 0) {
+      actions.push({
+        id: 'daily-summary',
+        title: 'Daily Summary',
+        description: `Review today's ${todaySales.length} sales`,
+        icon: BarChart3,
+        color: 'blue',
+        priority: 'low',
+        action: () => window.location.href = '/reports?period=today',
+      });
+    }
+    
+    // 5. Customer-Based Actions
+    const topCustomers = sales
+      .filter(sale => sale.status === 'paid')
+      .reduce((acc, sale) => {
+        const customer = acc.find(c => c.name === sale.customerName);
+        if (customer) {
+          customer.total += sale.total;
+          customer.count += 1;
+        } else {
+          acc.push({ name: sale.customerName, total: sale.total, count: 1 });
+        }
+        return acc;
+      }, [] as Array<{ name: string; total: number; count: number }>)
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 1);
+    
+    if (topCustomers.length > 0) {
+      actions.push({
+        id: 'contact-top-customer',
+        title: 'Contact Top Customer',
+        description: `${topCustomers[0].name} - ${topCustomers[0].count} purchases`,
+        icon: Phone,
+        color: 'purple',
+        priority: 'low',
+        action: () => window.location.href = `/customers?search=${topCustomers[0].name}`,
+      });
+    }
+    
+    // 6. Always Available Core Actions
+    const coreActions = [
+      {
+        id: 'new-sale',
+        title: 'New Sale',
+        description: 'Create a new sale',
+        icon: Plus,
+        color: 'blue',
+        priority: 'core',
+        action: () => window.location.href = '/sales?action=new',
+      },
+      {
+        id: 'add-product',
+        title: 'Add Product',
+        description: 'Add new product',
+        icon: Package,
+        color: 'green',
+        priority: 'core',
+        action: () => window.location.href = '/products?action=new',
+      },
+      {
+        id: 'export-data',
+        title: 'Export Data',
+        description: 'Download reports',
+        icon: Download,
+        color: 'gray',
+        priority: 'core',
+        action: () => window.location.href = '/reports?action=export',
+      },
+    ];
+    
+    // 7. Workflow Shortcuts
+    if (products.length > 10) {
+      actions.push({
+        id: 'bulk-update',
+        title: 'Bulk Update',
+        description: 'Update multiple products',
+        icon: Zap,
+        color: 'indigo',
+        priority: 'medium',
+        action: () => window.location.href = '/products?action=bulk',
+      });
+    }
+
+    // 8. Seasonal & Time-Based Opportunities
+    const currentMonth = new Date().getMonth();
+    const isHolidaySeason = currentMonth === 11 || currentMonth === 0; // December or January
+    const isBackToSchool = currentMonth === 7 || currentMonth === 8; // August or September
+    
+    if (isHolidaySeason && sales.length > 5) {
+      actions.push({
+        id: 'holiday-promotion',
+        title: 'Holiday Promotion',
+        description: 'Create seasonal campaigns',
+        icon: Gift,
+        color: 'red',
+        priority: 'medium',
+        action: () => window.location.href = '/products?action=promotion&type=holiday',
+      });
+    }
+
+    // 9. Revenue Optimization
+    if (currentRevenue > 0) {
+      const averageOrderValue = currentRevenue / currentMonthSales.length;
+      const potentialRevenue = convertAmount(averageOrderValue * 1.2, 'PHP');
+      
+      if (averageOrderValue > 100) {
+        actions.push({
+          id: 'upsell-opportunity',
+          title: 'Upsell Opportunity',
+          description: `Increase AOV by ${formatAmount(potentialRevenue - convertAmount(averageOrderValue, 'PHP'), 'PHP')}`,
+          icon: TrendingUp,
+          color: 'green',
+          priority: 'medium',
+          action: () => window.location.href = '/products?action=upsell',
+        });
+      }
+    }
+
+    // 10. Inventory Management
+    const totalProducts = products.length;
+    const lowStockPercentage = (lowStockProducts.length / totalProducts) * 100;
+    
+    if (lowStockPercentage > 20) {
+      actions.push({
+        id: 'inventory-review',
+        title: 'Inventory Review',
+        description: `${lowStockPercentage.toFixed(0)}% of products need attention`,
+        icon: Package,
+        color: 'orange',
+        priority: 'high',
+        action: () => window.location.href = '/inventory?action=review',
+      });
+    }
+
+    // 11. Customer Retention
+    const repeatCustomers = sales.reduce((acc, sale) => {
+      acc[sale.customerName] = (acc[sale.customerName] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    const loyalCustomers = Object.entries(repeatCustomers).filter(([_, count]) => count >= 3);
+    
+    if (loyalCustomers.length > 0) {
+      actions.push({
+        id: 'reward-loyal-customers',
+        title: 'Reward Loyalty',
+        description: `${loyalCustomers.length} loyal customers to appreciate`,
+        icon: Star,
+        color: 'purple',
+        priority: 'low',
+        action: () => window.location.href = '/customers?filter=loyal',
+      });
+    }
+    
+    // Sort by priority and return top 6 actions
+    const priorityOrder = { high: 1, medium: 2, low: 3, core: 4 };
+    const allActions = [...actions, ...coreActions];
+    
+    return allActions
+      .sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority])
+      .slice(0, 6);
+  };
+
+  const smartActions = getSmartQuickActions();
+
+  // Quick Action Card Component
+  const QuickActionCard = ({ action }: { action: {
+    id: string;
+    title: string;
+    description: string;
+    icon: React.ComponentType<{ className?: string }>;
+    color: string;
+    priority: string;
+    action: () => void;
+    badge?: number;
+  } }) => {
+    const getColorClasses = (color: string) => {
+      const colorMap = {
+        blue: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 group-hover:bg-blue-200 dark:group-hover:bg-blue-800/40',
+        green: 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 group-hover:bg-green-200 dark:group-hover:bg-green-800/40',
+        red: 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 group-hover:bg-red-200 dark:group-hover:bg-red-800/40',
+        orange: 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 group-hover:bg-orange-200 dark:group-hover:bg-orange-800/40',
+        purple: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 group-hover:bg-purple-200 dark:group-hover:bg-purple-800/40',
+        yellow: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 group-hover:bg-yellow-200 dark:group-hover:bg-yellow-800/40',
+        indigo: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 group-hover:bg-indigo-200 dark:group-hover:bg-indigo-800/40',
+        gray: 'bg-gray-100 dark:bg-gray-900/30 text-gray-600 dark:text-gray-400 group-hover:bg-gray-200 dark:group-hover:bg-gray-800/40',
+      };
+      return colorMap[color as keyof typeof colorMap] || colorMap.blue;
+    };
+
+    const getBorderColor = (priority: string) => {
+      return priority === 'high' ? 'border-red-200 dark:border-red-800 shadow-red-100 dark:shadow-red-900/20' : 
+             priority === 'medium' ? 'border-yellow-200 dark:border-yellow-800 shadow-yellow-100 dark:shadow-yellow-900/20' : 
+             'border-gray-200 dark:border-gray-700';
+    };
+
+    return (
+      <div className="relative">
+        <button
+          onClick={action.action}
+          className={`w-full flex items-center space-x-3 p-4 rounded-lg border ${getBorderColor(action.priority)} hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 group shadow-sm hover:shadow-md`}
+        >
+          <div className={`rounded-lg p-2 transition-colors ${getColorClasses(action.color)}`}>
+            <action.icon className="h-5 w-5" />
+          </div>
+          <div className="flex-1 text-left">
+            <p className="font-medium text-gray-900 dark:text-white">{action.title}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">{action.description}</p>
+          </div>
+          {action.badge && (
+            <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center font-bold">
+              {action.badge}
+            </div>
+          )}
+        </button>
+      </div>
+    );
+  };
+
+  const StatCard = ({ title, value, change, icon: Icon, color = 'blue' }: {
+    title: string;
+    value: React.ReactNode;
+    change?: number;
+    icon: React.ComponentType<{ className?: string }>;
+    color?: string;
+  }) => (
     <div className="rounded-xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-200 dark:border-gray-700 transition-all duration-200 hover:shadow-md">
       <div className="flex items-center justify-between">
         <div>
@@ -157,12 +461,16 @@ export function Dashboard() {
   );
 
   // Custom tooltip component for dark mode
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload, label }: {
+    active?: boolean;
+    payload?: Array<{ name: string; value: number; color: string }>;
+    label?: string;
+  }) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-3">
           <p className="text-sm font-medium text-gray-900 dark:text-white">{`Day ${label}`}</p>
-          {payload.map((entry: any, index: number) => (
+          {payload.map((entry, index: number) => (
             <p key={index} className="text-sm text-gray-600 dark:text-gray-300">
               <span style={{ color: entry.color }}>{entry.name}: </span>
               {entry.name === 'Revenue' ? formatAmount(entry.value, 'PHP') : entry.value}
@@ -219,69 +527,41 @@ export function Dashboard() {
           />
         </div>
 
-        {/* Quick Actions */}
+        {/* Smart Quick Actions */}
         <div className="rounded-xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-200 dark:border-gray-700 quick-actions">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h2>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <CustomTooltip content="Quickly process a new sale transaction">
-              <Link
-                to="/sales?action=new"
-                className="flex items-center space-x-3 p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group"
-              >
-                <div className="rounded-lg bg-blue-100 dark:bg-blue-900/30 p-2 group-hover:bg-blue-200 dark:group-hover:bg-blue-800/40 transition-colors">
-                  <Plus className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Smart Actions</h2>
+            <div className="flex items-center space-x-1 text-xs text-gray-500 dark:text-gray-400">
+              <Zap className="h-3 w-3" />
+              <span>AI-powered</span>
+            </div>
+          </div>
+          
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {smartActions.map((action) => (
+              <QuickActionCard key={action.id} action={action} />
+            ))}
+          </div>
+          
+          {/* Action Categories Legend */}
+          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-1">
+                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                  <span>Urgent</span>
                 </div>
-                <div>
-                  <p className="font-medium text-gray-900 dark:text-white">New Sale</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Create a new sale</p>
+                <div className="flex items-center space-x-1">
+                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                  <span>Important</span>
                 </div>
-              </Link>
-            </CustomTooltip>
-            
-            <CustomTooltip content="Add a new product to your inventory">
-              <Link
-                to="/products?action=new"
-                className="flex items-center space-x-3 p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group"
-              >
-                <div className="rounded-lg bg-green-100 dark:bg-green-900/30 p-2 group-hover:bg-green-200 dark:group-hover:bg-green-800/40 transition-colors">
-                  <Package className="h-5 w-5 text-green-600 dark:text-green-400" />
+                <div className="flex items-center space-x-1">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <span>Routine</span>
                 </div>
-                <div>
-                  <p className="font-medium text-gray-900 dark:text-white">Add Product</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Add new product</p>
-                </div>
-              </Link>
-            </CustomTooltip>
-
-            <CustomTooltip content="Add a new customer to your database">
-              <Link
-                to="/customers?action=new"
-                className="flex items-center space-x-3 p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group"
-              >
-                <div className="rounded-lg bg-purple-100 dark:bg-purple-900/30 p-2 group-hover:bg-purple-200 dark:group-hover:bg-purple-800/40 transition-colors">
-                  <Users className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                </div>
-                <div>
-                  <p className="font-medium text-gray-900 dark:text-white">Add Customer</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Add new customer</p>
-                </div>
-              </Link>
-            </CustomTooltip>
-
-            <CustomTooltip content="View detailed business analytics and reports">
-              <Link
-                to="/reports"
-                className="flex items-center space-x-3 p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group"
-              >
-                <div className="rounded-lg bg-orange-100 dark:bg-orange-900/30 p-2 group-hover:bg-orange-200 dark:group-hover:bg-orange-800/40 transition-colors">
-                  <FileText className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-                </div>
-                <div>
-                  <p className="font-medium text-gray-900 dark:text-white">View Reports</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Business insights</p>
-                </div>
-              </Link>
-            </CustomTooltip>
+              </div>
+              <span className="text-xs">Actions adapt to your business needs</span>
+            </div>
           </div>
         </div>
 
