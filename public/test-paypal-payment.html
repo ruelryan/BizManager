@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test PayPal Payment - Supabase Webhook</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #1f2937;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            color: #1f2937;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            background: #10b981;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .info-box {
+            background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%);
+            border: 1px solid #3b82f6;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .info-box h3 {
+            color: #1e40af;
+            margin-bottom: 10px;
+        }
+        
+        .webhook-url {
+            font-family: 'Monaco', 'Menlo', monospace;
+            background: rgba(59, 130, 246, 0.1);
+            padding: 8px 12px;
+            border-radius: 6px;
+            word-break: break-all;
+            font-size: 13px;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+        
+        .test-section {
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .paypal-button-container {
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .test-button {
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .test-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        
+        .success {
+            background: #ecfdf5;
+            border: 1px solid #10b981;
+            color: #065f46;
+        }
+        
+        .error {
+            background: #fef2f2;
+            border: 1px solid #ef4444;
+            color: #7f1d1d;
+        }
+        
+        .loading {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            color: #92400e;
+        }
+        
+        .checklist {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .checklist li {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(59, 130, 246, 0.1);
+        }
+        
+        .checklist li:last-child {
+            border-bottom: none;
+        }
+    </style>
+    <script src="https://www.paypal.com/sdk/js?client-id=test&currency=USD"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><span class="status-indicator"></span>PayPal Webhook Test - Supabase Only</h1>
+            <p>Testing PayPal webhook with n8n webhook disabled</p>
+        </div>
+        
+        <div class="info-box">
+            <h3>🎯 Test Configuration</h3>
+            <p><strong>Active Webhook URL:</strong></p>
+            <div class="webhook-url">https://ywzplutpijvwktwqurox.supabase.co/functions/v1/paypal-webhook-handler</div>
+            <p style="margin-top: 10px;"><strong>Webhook ID:</strong> 5PH68071G2935921J</p>
+            <p><strong>Status:</strong> n8n webhook should be DISABLED</p>
+        </div>
+        
+        <div class="info-box">
+            <h3>📋 Pre-Test Checklist:</h3>
+            <ul class="checklist">
+                <li>✅ Disable n8n webhook in PayPal Developer Dashboard</li>
+                <li>✅ Verify Supabase webhook is still active</li>
+                <li>✅ Open Supabase Function logs in another tab</li>
+                <li>✅ Ready to monitor incoming webhook events</li>
+            </ul>
+        </div>
+        
+        <div class="test-section">
+            <h3>🧪 Test Payment</h3>
+            <p>Click the PayPal button below to make a test payment. This will trigger a PAYMENT.CAPTURE.COMPLETED webhook event that should now go exclusively to your Supabase function.</p>
+            
+            <div class="paypal-button-container">
+                <div id="paypal-button-container"></div>
+            </div>
+            
+            <button class="test-button" onclick="testWebhookSimulator()">
+                🚀 Alternative: Test with Webhook Simulator
+            </button>
+        </div>
+        
+        <div class="test-section">
+            <h3>📊 Monitoring Instructions</h3>
+            <ol>
+                <li><strong>Open Supabase Dashboard:</strong> Go to your Supabase project dashboard</li>
+                <li><strong>Navigate to Functions:</strong> Go to Edge Functions → paypal-webhook-handler</li>
+                <li><strong>Open Logs:</strong> Click on the "Logs" tab to see real-time function invocations</li>
+                <li><strong>Make Payment:</strong> Use the PayPal button above to trigger a test payment</li>
+                <li><strong>Watch for Logs:</strong> You should see POST requests appearing in the logs</li>
+            </ol>
+        </div>
+        
+        <div id="result" class="result" style="display: none;"></div>
+    </div>
+
+    <script>
+        // PayPal Button Configuration
+        paypal.Buttons({
+            createOrder: function(data, actions) {
+                return actions.order.create({
+                    purchase_units: [{
+                        amount: {
+                            value: '3.55',
+                            currency_code: 'USD'
+                        },
+                        description: 'Test Payment for Supabase Webhook',
+                        custom_id: 'test-user-' + Date.now() // This will help identify the test
+                    }],
+                    application_context: {
+                        brand_name: 'BizManager Test',
+                        landing_page: 'BILLING',
+                        shipping_preference: 'NO_SHIPPING',
+                        user_action: 'PAY_NOW'
+                    }
+                });
+            },
+            onApprove: function(data, actions) {
+                return actions.order.capture().then(function(details) {
+                    showResult('success', 'Payment completed successfully!\\n\\nTransaction ID: ' + details.id + '\\nPayer: ' + details.payer.name.given_name + '\\n\\nNow check your Supabase function logs for the webhook event.');
+                });
+            },
+            onError: function(err) {
+                showResult('error', 'Payment failed: ' + JSON.stringify(err, null, 2));
+            },
+            onCancel: function(data) {
+                showResult('error', 'Payment cancelled by user');
+            }
+        }).render('#paypal-button-container');
+
+        function showResult(type, message) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result ' + type;
+            resultDiv.textContent = message;
+        }
+
+        function testWebhookSimulator() {
+            showResult('loading', 'Opening PayPal Webhook Simulator...');
+            
+            // Open PayPal webhook simulator
+            window.open('https://developer.paypal.com/dashboard/webhooks/simulator', '_blank');
+            
+            setTimeout(() => {
+                showResult('success', 'PayPal Webhook Simulator opened in new tab.\\n\\nInstructions:\\n1. Select your Supabase webhook (5PH68071G2935921J)\\n2. Choose event: PAYMENT.CAPTURE.COMPLETED\\n3. Click "Send Event"\\n4. Check your Supabase function logs');
+            }, 1000);
+        }
+
+        // Auto-focus and highlight important info
+        window.addEventListener('load', function() {
+            console.log('🎯 Test Page Loaded');
+            console.log('📡 Webhook URL: https://ywzplutpijvwktwqurox.supabase.co/functions/v1/paypal-webhook-handler');
+            console.log('🆔 Webhook ID: 5PH68071G2935921J');
+            console.log('⚠️  Make sure n8n webhook is DISABLED before testing!');
+        });
+    </script>
+</body>
+</html>
