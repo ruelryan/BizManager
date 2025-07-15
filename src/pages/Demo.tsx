@@ -85,9 +85,9 @@ export function Demo() {
       {/* Demo Hero */}
       <section className="py-16 bg-gradient-to-b from-blue-50 to-white dark:from-gray-800 dark:to-gray-900">
         <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">See BizManager in Action</h1>
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Experience BizManager Instantly</h1>
           <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto mb-8">
-            Watch our demo to see how BizManager can transform your business operations and help you grow.
+            Explore all Pro features with our interactive demo and feature showcase.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -98,6 +98,9 @@ export function Demo() {
               <Crown className="mr-2 h-5 w-5" />
               Start Interactive Pro Demo
             </button>
+            <p className="text-gray-600 dark:text-gray-400 text-sm mt-4">
+              No sign-up required. Experience all Pro features instantly.
+            </p>
           </div>
         </div>
       </section>
