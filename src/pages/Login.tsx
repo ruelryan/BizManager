@@ -20,19 +20,16 @@ export function Login() {
   const [error, setError] = React.useState('');
   const [formData, setFormData] = React.useState({
     name: '',
-    email: isSignupPage ? '' : 'demo@businessmanager.com',
-    password: isSignupPage ? '' : 'demo123',
+    email: '',
+    password: '',
     plan: user?.plan || 'free' as 'free' | 'starter' | 'pro',
   });
 
   // Update form state when route changes
   React.useEffect(() => {
     setShowSignUp(isSignupPage);
-    if (isSignupPage) {
-      setFormData(prev => ({ ...prev, email: '', password: '' }));
-    } else {
-      setFormData(prev => ({ ...prev, email: 'demo@businessmanager.com', password: 'demo123' }));
-    }
+    // Clear form data when switching between login and signup
+    setFormData(prev => ({ ...prev, email: '', password: '', name: '' }));
   }, [isSignupPage]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -247,6 +244,25 @@ export function Login() {
                 </button>
               </div>
             </div>
+
+            {/* Demo Account Helper */}
+            {!showSignUp && (
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-medium text-blue-900 dark:text-blue-300">Try the Demo Account</h4>
+                    <p className="text-xs text-blue-700 dark:text-blue-400">Test all features without creating an account</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, email: 'demo@businessmanager.com', password: 'demo123' }))}
+                    className="text-xs px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                  >
+                    Use Demo
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Plan Selection (only for demo sign-in) */}
             {!showSignUp && formData.email === 'demo@businessmanager.com' && (

@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { HelpCircle } from 'lucide-react';
 import introJs from 'intro.js';
@@ -49,28 +50,49 @@ const dashboardTour: TourStep[] = [
 ];
 
 export function ProductTour() {
-  const { userSettings, updateUserSettings } = useStore();
+  const { userSettings, updateUserSettings, user } = useStore();
+  const location = useLocation();
   const [showTourButton, setShowTourButton] = React.useState(false);
 
+  // Only show tour on dashboard and authenticated routes
+  const shouldShowTour = React.useMemo(() => {
+    const allowedPaths = ['/dashboard', '/sales', '/products', '/customers', '/inventory', '/reports'];
+    return user && allowedPaths.includes(location.pathname);
+  }, [location.pathname, user]);
+
   useEffect(() => {
-    // Show tour automatically for new users
-    if (userSettings && !userSettings.hasCompletedTour) {
-      // Small delay to ensure DOM is ready
-      setTimeout(() => {
-        startTour();
-      }, 1000);
+    // Only show tour if we're on an allowed path and user is authenticated
+    if (shouldShowTour && userSettings && !userSettings.hasCompletedTour) {
+      // Only auto-start on dashboard
+      if (location.pathname === '/dashboard') {
+        // Small delay to ensure DOM is ready
+        setTimeout(() => {
+          startTour();
+        }, 1500);
+      }
     }
-    setShowTourButton(true);
-  }, [userSettings]);
+    setShowTourButton(shouldShowTour);
+  }, [userSettings, shouldShowTour, location.pathname]);
 
   const startTour = () => {
+    // Check if we have the required elements
+    const requiredElements = ['.quick-actions', '[data-tour="sales"]', '[data-tour="products"]'];
+    const missingElements = requiredElements.filter(selector => !document.querySelector(selector));
+    
+    if (missingElements.length > 0) {
+      console.warn('Tour elements missing:', missingElements);
+      // Wait a bit more for elements to render
+      setTimeout(() => startTour(), 1000);
+      return;
+    }
+
     const intro = introJs();
     
     intro.setOptions({
       steps: dashboardTour,
       showProgress: true,
-      showBullets: false,
-      exitOnOverlayClick: false,
+      showBullets: true,
+      exitOnOverlayClick: true,
       exitOnEsc: true,
       nextLabel: 'Next →',
       prevLabel: '← Back',
@@ -80,10 +102,10 @@ export function ProductTour() {
       hideNext: false,
       scrollToElement: true,
       scrollPadding: 30,
-      disableInteraction: true,
+      disableInteraction: false,
       tooltipClass: 'custom-tooltip',
       highlightClass: 'custom-highlight',
-      overlayOpacity: 0.5,
+      overlayOpacity: 0.3,
     });
 
     intro.oncomplete(() => {
@@ -93,6 +115,11 @@ export function ProductTour() {
 
     intro.onexit(() => {
       // Mark tour as completed even if skipped
+      updateUserSettings({ hasCompletedTour: true });
+    });
+
+    intro.onerror(() => {
+      console.error('Tour error - marking as completed');
       updateUserSettings({ hasCompletedTour: true });
     });
 
@@ -106,11 +133,18 @@ export function ProductTour() {
       {/* Tour Button */}
       <button
         onClick={startTour}
-        className="fixed bottom-20 right-4 z-40 bg-blue-600 dark:bg-blue-500 text-white p-3 rounded-full shadow-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors lg:bottom-4"
-        title="Start Product Tour"
+        className="fixed bottom-20 right-4 z-40 bg-blue-600 dark:bg-blue-500 text-white p-3 rounded-full shadow-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-all duration-200 lg:bottom-4 hover:scale-110"
+        title="Take a guided tour of BizManager"
       >
         <HelpCircle className="h-6 w-6" />
       </button>
+      
+      {/* Tour completion notification */}
+      {userSettings?.hasCompletedTour && (
+        <div className="fixed bottom-32 right-4 z-30 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-3 py-2 rounded-lg shadow-md text-sm lg:bottom-16">
+          Tour completed! Click to replay
+        </div>
+      )}
 
       {/* Custom CSS for tour styling */}
       <style jsx global>{`
