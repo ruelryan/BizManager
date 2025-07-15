@@ -300,3 +300,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ---
 
 Built with ❤️ for small and medium businesses to manage their operations efficiently.
+
+## Deployment Status
+- Build fixed: Removed installments feature
+- Last updated: $(date)
