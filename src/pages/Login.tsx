@@ -230,7 +230,7 @@ export function Login() {
             </div>
 
             {/* Demo Account Helper */}
-            {!showSignUp && (
+            {!showSignUp && false && (
               <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                 <div className="flex items-center justify-between">
                   <div>
@@ -249,7 +249,7 @@ export function Login() {
             )}
 
             {/* Plan Selection (only for demo sign-in) */}
-            {!showSignUp && formData.email === 'demo@businessmanager.com' && (
+            {!showSignUp && false && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                   Select Plan to Test

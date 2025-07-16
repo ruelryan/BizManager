@@ -104,7 +104,6 @@ interface StoreState {
   // Internal methods
   initAuth: () => Promise<void>;
   loadUserData: () => Promise<void>;
-  loadDemoData: () => Promise<void>;
 }
 
 export const useStore = create<StoreState>()(
@@ -129,32 +128,11 @@ export const useStore = create<StoreState>()(
       signIn: async (email, password, plan = 'free') => {
         try {
           set({ isLoading: true });
-          
-          // For demo account, create a mock user
-          if (email === 'demo@businessmanager.com' && password === 'demo123') {
-            const demoUser: User = {
-              id: 'demo-user-id',
-              email: 'demo@businessmanager.com',
-              name: 'Demo User',
-              plan: plan as 'free' | 'starter' | 'pro',
-              subscriptionExpiry: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days from now
-            };
-            
-            set({ user: demoUser });
-            
-            // Load demo data
-            await get().loadDemoData();
-            
-            return;
-          }
-          
           const { data, error } = await supabase.auth.signInWithPassword({
             email,
             password,
           });
-
           if (error) throw error;
-
           if (data.user) {
             // Try to get profile data, but don't fail if table doesn't exist or no profile found
             let profileData = null;
@@ -163,23 +141,19 @@ export const useStore = create<StoreState>()(
                 .from('profiles')
                 .select('*')
                 .eq('id', data.user.id)
-                .maybeSingle(); // Use maybeSingle() instead of single() to avoid PGRST116 error
-              
+                .maybeSingle();
               if (profileError && profileError.code !== 'PGRST116') {
                 throw profileError;
               }
-              
               profileData = profile;
             } catch (profileError) {
               console.warn('Could not fetch profile:', profileError);
             }
-
             const { data: settingsData } = await supabase
               .from('user_settings')
               .select('*')
               .eq('user_id', data.user.id)
               .single();
-
             const user: User = {
               id: data.user.id,
               email: data.user.email || '',
@@ -187,9 +161,7 @@ export const useStore = create<StoreState>()(
               plan: settingsData?.plan || 'free',
               subscriptionExpiry: settingsData?.subscription_expiry ? new Date(settingsData.subscription_expiry) : undefined,
             };
-
             set({ user });
-            
             // Load user data
             await get().loadUserData();
           }
@@ -267,25 +239,8 @@ export const useStore = create<StoreState>()(
       signOut: async () => {
         try {
           set({ isLoading: true });
-          
-          // For demo account, just clear the state
-          if (get().user?.id === 'demo-user-id') {
-            set({ 
-              user: null,
-              products: [],
-              sales: [],
-              customers: [],
-              expenses: [],
-              inventoryTransactions: [],
-              returns: [],
-              userSettings: null
-            });
-            return;
-          }
-          
           const { error } = await supabase.auth.signOut();
           if (error) throw error;
-          
           // Clear all data
           set({ 
             user: null,
@@ -315,18 +270,6 @@ export const useStore = create<StoreState>()(
           const { user } = get();
           if (!user) throw new Error('User not authenticated');
 
-          // For demo account, just add to local state
-          if (user.id === 'demo-user-id') {
-            const newProduct: Product = {
-              id: `product-${Date.now()}`,
-              ...product,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            };
-            set(state => ({ products: [...state.products, newProduct] }));
-            return;
-          }
-
           const { data, error } = await supabase
             .from('products')
             .insert(transformToSupabaseData.product(product, user.id))
@@ -347,15 +290,6 @@ export const useStore = create<StoreState>()(
         try {
           const { user, products } = get();
           if (!user) throw new Error('User not authenticated');
-
-          // For demo account, just update local state
-          if (user.id === 'demo-user-id') {
-            const updatedProducts = products.map(p => 
-              p.id === id ? { ...p, ...product, updatedAt: new Date() } : p
-            );
-            set({ products: updatedProducts });
-            return;
-          }
 
           const { error } = await supabase
             .from('products')
@@ -378,13 +312,6 @@ export const useStore = create<StoreState>()(
         try {
           const { user, products } = get();
           if (!user) throw new Error('User not authenticated');
-
-          // For demo account, just update local state
-          if (user.id === 'demo-user-id') {
-            const filteredProducts = products.filter(p => p.id !== id);
-            set({ products: filteredProducts });
-            return;
-          }
 
           const { error } = await supabase
             .from('products')
@@ -431,22 +358,6 @@ export const useStore = create<StoreState>()(
 
           // No longer updating customer balance for credit
 
-          // For demo account, just update local state
-          if (user.id === 'demo-user-id') {
-            const newSale: Sale = {
-              id: `sale-${Date.now()}`,
-              ...sale,
-              invoiceNumber,
-              date: new Date(),
-            };
-            
-            set({ 
-              sales: [...sales, newSale],
-              products: updatedProducts
-            });
-            return;
-          }
-
           // Create sale in database
           const { data, error } = await supabase
             .from('sales')
@@ -487,15 +398,6 @@ export const useStore = create<StoreState>()(
           const { user, sales } = get();
           if (!user) throw new Error('User not authenticated');
 
-          // For demo account, just update local state
-          if (user.id === 'demo-user-id') {
-            const updatedSales = sales.map(s => 
-              s.id === id ? { ...s, ...sale } : s
-            );
-            set({ sales: updatedSales });
-            return;
-          }
-
           const { error } = await supabase
             .from('sales')
             .update(transformToSupabaseData.sale(sale, user.id))
@@ -518,13 +420,6 @@ export const useStore = create<StoreState>()(
           const { user, sales } = get();
           if (!user) throw new Error('User not authenticated');
 
-          // For demo account, just update local state
-          if (user.id === 'demo-user-id') {
-            const filteredSales = sales.filter(s => s.id !== id);
-            set({ sales: filteredSales });
-            return;
-          }
-
           const { error } = await supabase
             .from('sales')
             .delete()
@@ -545,17 +440,6 @@ export const useStore = create<StoreState>()(
         try {
           const { user, customers } = get();
           if (!user) throw new Error('User not authenticated');
-
-          // For demo account, just add to local state
-          if (user.id === 'demo-user-id') {
-            const newCustomer: Customer = {
-              id: `customer-${Date.now()}`,
-              ...customer,
-              createdAt: new Date(),
-            };
-            set({ customers: [...customers, newCustomer] });
-            return;
-          }
 
           const { data, error } = await supabase
             .from('customers')
@@ -578,15 +462,6 @@ export const useStore = create<StoreState>()(
           const { user, customers } = get();
           if (!user) throw new Error('User not authenticated');
 
-          // For demo account, just update local state
-          if (user.id === 'demo-user-id') {
-            const updatedCustomers = customers.map(c => 
-              c.id === id ? { ...c, ...customer } : c
-            );
-            set({ customers: updatedCustomers });
-            return;
-          }
-
           const { error } = await supabase
             .from('customers')
             .update(transformToSupabaseData.customer(customer, user.id))
@@ -608,13 +483,6 @@ export const useStore = create<StoreState>()(
         try {
           const { user, customers } = get();
           if (!user) throw new Error('User not authenticated');
-
-          // For demo account, just update local state
-          if (user.id === 'demo-user-id') {
-            const filteredCustomers = customers.filter(c => c.id !== id);
-            set({ customers: filteredCustomers });
-            return;
-          }
 
           const { error } = await supabase
             .from('customers')
@@ -671,15 +539,6 @@ export const useStore = create<StoreState>()(
             return obj;
           }, {} as Record<string, number>);
           
-          // For demo account, just update local state
-          if (user.id === 'demo-user-id') {
-            const updatedCustomers = customers.map(c => 
-              c.id === customerId ? { ...c, specialPricing: pricingObject } : c
-            );
-            set({ customers: updatedCustomers });
-            return;
-          }
-          
           // Update in database
           const { error } = await supabase
             .from('customers')
@@ -705,16 +564,6 @@ export const useStore = create<StoreState>()(
           const { user, expenses } = get();
           if (!user) throw new Error('User not authenticated');
 
-          // For demo account, just add to local state
-          if (user.id === 'demo-user-id') {
-            const newExpense: Expense = {
-              id: `expense-${Date.now()}`,
-              ...expense,
-            };
-            set({ expenses: [...expenses, newExpense] });
-            return;
-          }
-
           const { data, error } = await supabase
             .from('expenses')
             .insert(transformToSupabaseData.expense(expense, user.id))
@@ -735,15 +584,6 @@ export const useStore = create<StoreState>()(
         try {
           const { user, expenses } = get();
           if (!user) throw new Error('User not authenticated');
-
-          // For demo account, just update local state
-          if (user.id === 'demo-user-id') {
-            const updatedExpenses = expenses.map(e => 
-              e.id === id ? { ...e, ...expense } : e
-            );
-            set({ expenses: updatedExpenses });
-            return;
-          }
 
           const { error } = await supabase
             .from('expenses')
@@ -766,13 +606,6 @@ export const useStore = create<StoreState>()(
         try {
           const { user, expenses } = get();
           if (!user) throw new Error('User not authenticated');
-
-          // For demo account, just update local state
-          if (user.id === 'demo-user-id') {
-            const filteredExpenses = expenses.filter(e => e.id !== id);
-            set({ expenses: filteredExpenses });
-            return;
-          }
 
           const { error } = await supabase
             .from('expenses')
@@ -983,20 +816,12 @@ export const useStore = create<StoreState>()(
         try {
           const { user } = get();
           if (!user) throw new Error('User not authenticated');
-          
-          // For demo account, just update local state
-          if (user.id === 'demo-user-id') {
-            set({ user: { ...user, ...data } });
-            return;
-          }
-          
           // Update auth metadata if name is provided
           if (data.name) {
             await supabase.auth.updateUser({
               data: { full_name: data.name }
             });
           }
-          
           // Try to update profile, but don't fail if table doesn't exist
           try {
             const { error } = await supabase
@@ -1005,12 +830,10 @@ export const useStore = create<StoreState>()(
                 full_name: data.name,
               })
               .eq('id', user.id);
-              
             if (error) throw handleSupabaseError(error);
           } catch (profileError) {
             console.warn('Could not update profile, table may not exist:', profileError);
           }
-          
           // Update local state
           set({ user: { ...user, ...data } });
         } catch (error) {
@@ -1023,14 +846,6 @@ export const useStore = create<StoreState>()(
         try {
           const { user, userSettings } = get();
           if (!user) throw new Error('User not authenticated');
-          
-          // For demo account, just update local state
-          if (user.id === 'demo-user-id') {
-            set({ 
-              userSettings: userSettings ? { ...userSettings, ...data } : { userId: user.id, ...data } as UserSettings
-            });
-            return;
-          }
           
           // Update or insert user settings with explicit conflict resolution
           const { error } = await supabase
@@ -1147,11 +962,6 @@ export const useStore = create<StoreState>()(
           const { user } = get();
           if (!user) return;
           
-          // Skip for demo user
-          if (user.id === 'demo-user-id') {
-            return;
-          }
-          
           // Load products
           const { data: productsData, error: productsError } = await supabase
             .from('products')
@@ -1214,252 +1024,6 @@ export const useStore = create<StoreState>()(
         } catch (error) {
           console.error('Load user data error:', error);
           throw error;
-        }
-      },
-
-      // Load demo data
-      loadDemoData: async () => {
-        try {
-          // Generate demo products
-          const demoProducts: Product[] = [
-            {
-              id: 'product-1',
-              name: 'Smartphone X',
-              category: 'Electronics',
-              price: 15000,
-              cost: 12000,
-              currentStock: 25,
-              minStock: 5,
-              barcode: '1234567890123',
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            },
-            {
-              id: 'product-2',
-              name: 'Laptop Pro',
-              category: 'Electronics',
-              price: 45000,
-              cost: 38000,
-              currentStock: 10,
-              minStock: 3,
-              barcode: '2345678901234',
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            },
-            {
-              id: 'product-3',
-              name: 'Wireless Earbuds',
-              category: 'Accessories',
-              price: 2500,
-              cost: 1800,
-              currentStock: 30,
-              minStock: 10,
-              barcode: '3456789012345',
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            },
-            {
-              id: 'product-4',
-              name: 'Smart Watch',
-              category: 'Wearables',
-              price: 8000,
-              cost: 6500,
-              currentStock: 15,
-              minStock: 5,
-              barcode: '4567890123456',
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            },
-            {
-              id: 'product-5',
-              name: 'Bluetooth Speaker',
-              category: 'Audio',
-              price: 3500,
-              cost: 2800,
-              currentStock: 20,
-              minStock: 8,
-              barcode: '5678901234567',
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            },
-          ];
-          
-          // Generate demo customers
-          const demoCustomers: Customer[] = [
-            {
-              id: 'customer-1',
-              name: 'Juan Dela Cruz',
-              phone: '+63 912 345 6789',
-              email: 'juan@example.com',
-              address: 'Makati City, Metro Manila',
-              isActive: true,
-              createdAt: new Date(),
-            },
-            {
-              id: 'customer-2',
-              name: 'Maria Santos',
-              phone: '+63 923 456 7890',
-              email: 'maria@example.com',
-              address: 'Quezon City, Metro Manila',
-              isActive: true,
-              createdAt: new Date(),
-            },
-            {
-              id: 'customer-3',
-              name: 'Pedro Reyes',
-              phone: '+63 934 567 8901',
-              email: 'pedro@example.com',
-              address: 'Pasig City, Metro Manila',
-              isActive: true,
-              createdAt: new Date(),
-            },
-          ];
-          
-          // Generate demo sales
-          const demoSales: Sale[] = [
-            {
-              id: 'sale-1',
-              customerId: 'customer-1',
-              customerName: 'Juan Dela Cruz',
-              customerEmail: 'juan@example.com',
-              items: [
-                {
-                  productId: 'product-1',
-                  productName: 'Smartphone X',
-                  quantity: 1,
-                  price: 15000,
-                  total: 15000,
-                },
-                {
-                  productId: 'product-3',
-                  productName: 'Wireless Earbuds',
-                  quantity: 1,
-                  price: 2500,
-                  total: 2500,
-                },
-              ],
-              total: 17500,
-              paymentType: 'cash',
-              status: 'paid',
-              date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
-              invoiceNumber: 'INV-001234',
-            },
-            {
-              id: 'sale-2',
-              customerId: 'customer-2',
-              customerName: 'Maria Santos',
-              customerEmail: 'maria@example.com',
-              items: [
-                {
-                  productId: 'product-2',
-                  productName: 'Laptop Pro',
-                  quantity: 1,
-                  price: 45000,
-                  total: 45000,
-                },
-              ],
-              total: 45000,
-              paymentType: 'card',
-              status: 'paid',
-              date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
-              invoiceNumber: 'INV-001235',
-            },
-            {
-              id: 'sale-3',
-              customerId: 'customer-3',
-              customerName: 'Pedro Reyes',
-              customerEmail: 'pedro@example.com',
-              items: [
-                {
-                  productId: 'product-4',
-                  productName: 'Smart Watch',
-                  quantity: 1,
-                  price: 8000,
-                  total: 8000,
-                },
-                {
-                  productId: 'product-5',
-                  productName: 'Bluetooth Speaker',
-                  quantity: 2,
-                  price: 3500,
-                  total: 7000,
-                },
-              ],
-              total: 15000,
-              paymentType: 'gcash',
-              status: 'pending',
-              date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
-              invoiceNumber: 'INV-001236',
-              dueDate: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000), // Due in 6 days
-            },
-          ];
-          
-          // Generate demo expenses
-          const demoExpenses: Expense[] = [
-            {
-              id: 'expense-1',
-              description: 'Office Rent',
-              amount: 15000,
-              category: 'Rent',
-              date: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000), // 15 days ago
-              paymentMethod: 'transfer',
-              notes: 'Monthly office rent payment',
-            },
-            {
-              id: 'expense-2',
-              description: 'Electricity Bill',
-              amount: 5000,
-              category: 'Utilities',
-              date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), // 10 days ago
-              paymentMethod: 'gcash',
-              notes: 'Monthly electricity bill',
-            },
-            {
-              id: 'expense-3',
-              description: 'Internet Subscription',
-              amount: 2500,
-              category: 'Utilities',
-              date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
-              paymentMethod: 'card',
-              notes: 'Monthly internet subscription',
-            },
-          ];
-          
-          // Generate demo user settings
-          const demoUserSettings: UserSettings = {
-            userId: 'demo-user-id',
-            monthlyGoal: 500000,
-            currency: 'PHP',
-            businessName: 'Demo Business',
-            businessAddress: 'Makati City, Metro Manila, Philippines',
-            businessPhone: '+63 912 345 6789',
-            businessEmail: 'demo@businessmanager.com',
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            plan: 'pro', // Demo users get pro features
-          };
-          
-          // Generate additional payment types
-          const additionalPaymentTypes: PaymentType[] = [
-            { id: 'payment-type-1', name: 'PayMaya' },
-            { id: 'payment-type-2', name: 'Grab Pay' },
-            { id: 'payment-type-3', name: 'WeChat Pay' }
-          ];
-          
-          // Set demo data
-          set({
-            products: demoProducts,
-            customers: demoCustomers,
-            sales: demoSales,
-            expenses: demoExpenses,
-            userSettings: demoUserSettings,
-            monthlyGoal: demoUserSettings.monthlyGoal,
-            inventoryTransactions: [],
-            returns: [],
-            paymentTypes: [...defaultPaymentTypes, ...additionalPaymentTypes]
-          });
-        } catch (error) {
-          console.error('Load demo data error:', error);
         }
       },
     }),

@@ -628,23 +628,6 @@ export function Profile() {
             </div>
           </div>
 
-          {/* Demo Account Notice */}
-          {user?.id === 'demo-user-id' && (
-            <div className="rounded-xl bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-6">
-              <h3 className="text-sm font-semibold text-yellow-800 dark:text-yellow-300 mb-2">Demo Account</h3>
-              <p className="text-xs text-yellow-700 dark:text-yellow-400">
-                You're using a demo account. Data will not be permanently saved. 
-                Create a real account to save your business data.
-              </p>
-              <button
-                onClick={() => navigate('/login')}
-                className="mt-3 w-full rounded-lg bg-yellow-600 px-4 py-2 text-white text-sm font-medium hover:bg-yellow-700 transition-colors"
-              >
-                Create Real Account
-              </button>
-            </div>
-          )}
-
           {/* Trial Expiry Warning */}
           {inFreeTrial && user?.subscriptionExpiry && (
             <div className="rounded-xl bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 p-6">

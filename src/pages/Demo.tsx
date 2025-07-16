@@ -55,20 +55,8 @@ export function Demo() {
   // Get the current feature's icon component
   const CurrentFeatureIcon = features[currentFeature].icon;
 
-  // Start interactive tour
-  const startInteractiveTour = () => {
-    // Set up demo Pro account
-    setUser({
-      id: 'demo-user-id',
-      name: 'Demo User',
-      email: 'demo@businessmanager.com',
-      plan: 'pro',
-      subscriptionExpiry: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days from now
-    });
-    
-    // Navigate to dashboard with tour parameter
-    navigate('/dashboard?tour=true');
-  };
+  // Remove startInteractiveTour and demo user logic
+  // Remove the 'Start Interactive Pro Demo' button and related demo text
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-200">
@@ -90,38 +78,12 @@ export function Demo() {
             Explore all Pro features with our interactive demo and feature showcase.
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button
-              onClick={startInteractiveTour}
-              className="bg-blue-600 dark:bg-blue-500 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-all duration-200 shadow-md flex items-center justify-center"
-            >
-              <Crown className="mr-2 h-5 w-5" />
-              Start Interactive Pro Demo
-            </button>
-            <p className="text-gray-600 dark:text-gray-400 text-sm mt-4">
-              No sign-up required. Experience all Pro features instantly.
-            </p>
-          </div>
+          {/* Remove the 'Start Interactive Pro Demo' button and related demo text */}
         </div>
       </section>
 
       {/* Interactive Demo CTA */}
-      <section className="py-16 bg-gradient-to-br from-blue-600 to-purple-600">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold text-white mb-6">Ready to Try It Yourself?</h2>
-          <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-            Experience all Pro features with our interactive demo. No sign-up required!
-          </p>
-          <button
-            onClick={startInteractiveTour}
-            className="bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold text-lg hover:bg-gray-100 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center mx-auto"
-          >
-            <Crown className="mr-2 h-5 w-5" />
-            Start Interactive Pro Demo
-            <ArrowRight className="ml-2 h-5 w-5" />
-          </button>
-        </div>
-      </section>
+      {/* Remove the 'Start Interactive Pro Demo' button and related demo text */}
 
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-8">
