@@ -26,6 +26,7 @@ import { MobileBottomNav } from './MobileBottomNav';
 import { GlobalSearch } from './GlobalSearch';
 import { FloatingActionButton } from './FloatingActionButton';
 import { Tooltip } from './Tooltip';
+import { useTheme } from '../contexts/ThemeContext';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home, tourId: 'dashboard' },
@@ -43,6 +44,7 @@ export function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut, isOnline } = useStore();
+  const { theme } = useTheme();
 
   if (!user) {
     return <Navigate to="/landing" replace />;
@@ -95,9 +97,12 @@ export function Layout() {
           {/* Logo */}
           <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-6 py-4">
             <div className="flex items-center space-x-3">
-              <div className="rounded-lg bg-blue-600 dark:bg-blue-500 p-2 shadow-sm">
-                <BarChart3 className="h-6 w-6 text-white" />
-              </div>
+              <img
+                src={theme === 'dark' ? '/logo-dark.png' : '/logo-light.png'}
+                alt="BizManager Logo"
+                className="w-10 h-10 rounded-lg shadow-sm"
+                style={{ background: 'transparent' }}
+              />
               <h1 className="text-xl font-bold text-gray-900 dark:text-white">BizManager</h1>
             </div>
             <button

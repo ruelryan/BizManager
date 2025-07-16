@@ -3,11 +3,13 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { BarChart3, Mail, Lock, Eye, EyeOff, Crown, Star, Package, AlertCircle, UserPlus } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { ThemeToggle } from '../components/ThemeToggle';
+import { useTheme } from '../contexts/ThemeContext';
 
 export function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const { signIn, signInWithGoogle, signUp, isLoading, user } = useStore();
+  const { theme } = useTheme();
   
   // Check if we're on the signup page
   const isSignupPage = location.pathname === '/signup';
@@ -110,9 +112,12 @@ export function Login() {
       <div className="max-w-md w-full">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl mb-4 shadow-lg">
-            <BarChart3 className="h-8 w-8 text-white" />
-          </div>
+          <img
+            src={theme === 'dark' ? '/logo-dark.png' : '/logo-light.png'}
+            alt="BizManager Logo"
+            className="inline-block w-16 h-16 mb-4 rounded-xl shadow-lg"
+            style={{ background: 'transparent' }}
+          />
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">BizManager</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
             {showSignUp ? 'Create your account' : 'Sign in to your account'}

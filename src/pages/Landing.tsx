@@ -202,11 +202,14 @@ export function Landing() {
       }`}>
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
-            {/* Logo */}
+            {/* Logo in header */}
             <Link to="/" className="flex items-center space-x-2 opacity-0 animate-[fadeIn_0.5s_ease-out_0.2s_forwards]">
-              <div className="w-10 h-10 bg-blue-600 dark:bg-blue-500 rounded-lg flex items-center justify-center">
-                <BarChart3 className="h-6 w-6 text-white" />
-              </div>
+              <img
+                src={theme === 'dark' ? '/logo-dark.png' : '/logo-light.png'}
+                alt="BizManager Logo"
+                className="w-10 h-10 rounded-lg shadow-sm"
+                style={{ background: 'transparent' }}
+              />
               <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">BizManager</span>
             </Link>
 
@@ -627,7 +630,12 @@ export function Landing() {
             <div className="md:col-span-1">
               <div className="flex items-center space-x-2 mb-4">
                 <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <BarChart3 className="h-5 w-5 text-white" />
+                  <img
+                    src={theme === 'dark' ? '/logo-dark.png' : '/logo-light.png'}
+                    alt="BizManager Logo"
+                    className="w-5 h-5 rounded-lg shadow-sm"
+                    style={{ background: 'transparent' }}
+                  />
                 </div>
                 <span className="text-lg font-bold">BizManager</span>
               </div>

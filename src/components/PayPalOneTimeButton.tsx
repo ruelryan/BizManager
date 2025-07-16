@@ -3,6 +3,7 @@ import { PayPalButtons, PayPalScriptProvider } from '@paypal/react-paypal-js';
 import { useStore } from '../store/useStore';
 import { plans } from '../utils/plans';
 import { useTheme } from '../contexts/ThemeContext';
+import { fetchExchangeRates, currencies } from '../utils/currency';
 
 interface PayPalOneTimeButtonProps {
   planId: string;
@@ -14,13 +15,20 @@ export function PayPalOneTimeButton({ planId, onSuccess, onError }: PayPalOneTim
   const { user } = useStore();
   const { theme } = useTheme();
   const plan = plans.find(p => p.id === planId);
+  const [usdPrice, setUsdPrice] = React.useState<string>('');
+
+  React.useEffect(() => {
+    async function updateRate() {
+      await fetchExchangeRates();
+      const rate = currencies['USD'].rate;
+      setUsdPrice(((plan?.price || 0) * rate).toFixed(2));
+    }
+    updateRate();
+  }, [plan]);
 
   if (!plan || plan.price === 0) {
     return null;
   }
-
-  // Convert PHP to USD (approximate rate - you should use a real exchange rate API)
-  const usdPrice = (plan.price / 56).toFixed(2); // Approximate PHP to USD conversion
 
   // PayPal configuration for one-time payments with dark mode support
   const initialOptions = {
@@ -76,7 +84,7 @@ export function PayPalOneTimeButton({ planId, onSuccess, onError }: PayPalOneTim
     <PayPalScriptProvider options={initialOptions}>
       <div className="paypal-button-container">
         {/* Add custom CSS for dark mode compatibility */}
-        <style jsx>{`
+        <style>{`
           .paypal-button-container {
             /* Ensure PayPal buttons work well in dark mode */
             background: transparent;
