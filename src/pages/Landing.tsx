@@ -518,4 +518,16 @@ export function Landing() {
                       tier.popular
                         ? 'bg-blue-600 dark:bg-blue-500 text-white hover:bg-blue-700 dark:hover:bg-blue-600 shadow-md'
                         : 'border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800'
-                    }`
+                    }`}
+                  >
+                    {user ? 'Upgrade Now' : 'Start Free'}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
