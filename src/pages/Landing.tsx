@@ -293,7 +293,6 @@ export function Landing() {
                 className="bg-blue-600 dark:bg-blue-500 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-all duration-200 shadow-md flex items-center w-full sm:w-auto justify-center"
               >
                 {user ? "Go to Dashboard" : "Start Your 14-Day Trial"}
-                <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </div>
             

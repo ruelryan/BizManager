@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase, handleSupabaseError, transformSupabaseData, transformToSupabaseData } from '../lib/supabase';
-import { User, Product, Sale, Customer, Expense, InventoryTransaction, UserSettings, Return, PaymentType } from '../types';
+import { User, Product, Sale, Customer, Expense, InventoryTransaction, UserSettings, Return, PaymentType, Subscription } from '../types';
 import { plans } from '../utils/plans';
 
 // Helper function to generate a unique invoice number
@@ -31,6 +31,24 @@ export const getEffectivePlan = (user: User | null) => {
   if (!user) return 'free';
   if (isInFreeTrial(user)) return 'pro'; // During trial, user has pro features
   return user.plan;
+};
+
+// Helper function to check if subscription is active
+export const isSubscriptionActive = (user: User | null) => {
+  if (!user?.subscription) return false;
+  return user.subscription.status === 'ACTIVE' && !user.subscription.cancel_at_period_end;
+};
+
+// Helper function to check if subscription will cancel at period end
+export const willCancelAtPeriodEnd = (user: User | null) => {
+  if (!user?.subscription) return false;
+  return user.subscription.cancel_at_period_end;
+};
+
+// Helper function to get next billing date
+export const getNextBillingDate = (user: User | null) => {
+  if (!user?.subscription) return null;
+  return user.subscription.next_billing_time || user.subscription.current_period_end;
 };
 
 interface StoreState {
@@ -98,6 +116,11 @@ interface StoreState {
   updateUserSettings: (data: Partial<UserSettings>) => Promise<void>;
   setMonthlyGoal: (goal: number) => void;
 
+  // Subscription management
+  cancelSubscription: (reason?: string) => Promise<void>;
+  reactivateSubscription: () => Promise<void>;
+  loadSubscriptionData: () => Promise<void>;
+
   // Export data
   exportReportData: () => string;
 
@@ -162,8 +185,9 @@ export const useStore = create<StoreState>()(
               subscriptionExpiry: settingsData?.subscription_expiry ? new Date(settingsData.subscription_expiry) : undefined,
             };
             set({ user });
-            // Load user data
+            // Load user data and subscription data
             await get().loadUserData();
+            await get().loadSubscriptionData();
           }
         } catch (error) {
           console.error('Sign in error:', error);
@@ -900,6 +924,141 @@ export const useStore = create<StoreState>()(
         return csv;
       },
 
+      // Subscription management
+      cancelSubscription: async (reason?: string) => {
+        const { user } = get();
+        if (!user?.subscription) {
+          throw new Error('No active subscription to cancel');
+        }
+
+        try {
+          // Call the cancel subscription API
+          const response = await fetch(`${supabase.supabaseUrl}/functions/v1/cancel-subscription`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+            },
+            body: JSON.stringify({
+              subscriptionId: user.subscription.paypal_subscription_id,
+              reason: reason || 'User requested cancellation'
+            })
+          });
+
+          if (!response.ok) {
+            throw new Error(`Failed to cancel subscription: ${response.statusText}`);
+          }
+
+          // Update local state
+          set(state => ({
+            user: state.user ? {
+              ...state.user,
+              subscription: state.user.subscription ? {
+                ...state.user.subscription,
+                cancel_at_period_end: true,
+                cancelled_at: new Date(),
+                cancellation_reason: reason || 'User requested cancellation'
+              } : undefined
+            } : null
+          }));
+
+          // Reload subscription data to ensure sync
+          await get().loadSubscriptionData();
+
+        } catch (error) {
+          console.error('Failed to cancel subscription:', error);
+          throw error;
+        }
+      },
+
+      reactivateSubscription: async () => {
+        const { user } = get();
+        if (!user?.subscription) {
+          throw new Error('No subscription to reactivate');
+        }
+
+        try {
+          // Call the reactivate subscription API
+          const response = await fetch(`${supabase.supabaseUrl}/functions/v1/reactivate-subscription`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+            },
+            body: JSON.stringify({
+              subscriptionId: user.subscription.paypal_subscription_id
+            })
+          });
+
+          if (!response.ok) {
+            throw new Error(`Failed to reactivate subscription: ${response.statusText}`);
+          }
+
+          // Update local state
+          set(state => ({
+            user: state.user ? {
+              ...state.user,
+              subscription: state.user.subscription ? {
+                ...state.user.subscription,
+                cancel_at_period_end: false,
+                cancelled_at: undefined,
+                cancellation_reason: undefined
+              } : undefined
+            } : null
+          }));
+
+          // Reload subscription data to ensure sync
+          await get().loadSubscriptionData();
+
+        } catch (error) {
+          console.error('Failed to reactivate subscription:', error);
+          throw error;
+        }
+      },
+
+      loadSubscriptionData: async () => {
+        const { user } = get();
+        if (!user) return;
+
+        try {
+          // Load subscription data from database
+          const { data: subscriptionData, error } = await supabase
+            .from('subscriptions')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('status', 'ACTIVE')
+            .single();
+
+          if (error && error.code !== 'PGRST116') {
+            throw handleSupabaseError(error);
+          }
+
+          // Transform subscription data
+          const subscription = subscriptionData ? {
+            ...subscriptionData,
+            start_time: subscriptionData.start_time ? new Date(subscriptionData.start_time) : undefined,
+            current_period_start: subscriptionData.current_period_start ? new Date(subscriptionData.current_period_start) : undefined,
+            current_period_end: subscriptionData.current_period_end ? new Date(subscriptionData.current_period_end) : undefined,
+            cancelled_at: subscriptionData.cancelled_at ? new Date(subscriptionData.cancelled_at) : undefined,
+            next_billing_time: subscriptionData.next_billing_time ? new Date(subscriptionData.next_billing_time) : undefined,
+            created_at: new Date(subscriptionData.created_at),
+            updated_at: new Date(subscriptionData.updated_at)
+          } : undefined;
+
+          // Update user with subscription data
+          set(state => ({
+            user: state.user ? {
+              ...state.user,
+              subscription
+            } : null
+          }));
+
+        } catch (error) {
+          console.error('Failed to load subscription data:', error);
+          // Don't throw error here as it would break the app if subscription data is missing
+        }
+      },
+
       // Initialize auth state
       initAuth: async () => {
         try {
@@ -946,8 +1105,9 @@ export const useStore = create<StoreState>()(
 
             set({ user });
             
-            // Load user data
+            // Load user data and subscription data
             await get().loadUserData();
+            await get().loadSubscriptionData();
           }
         } catch (error) {
           console.error('Auth initialization error:', error);

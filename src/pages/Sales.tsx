@@ -214,6 +214,7 @@ export function Sales() {
                 type="button"
                 onClick={handleClear}
                 className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                aria-label="Clear selection"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -223,6 +224,7 @@ export function Sales() {
               onClick={handleScanCode}
               className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
               title="Enter Product Code"
+              aria-label="Scan product code"
             >
               <Tag className="h-4 w-4" />
             </button>
@@ -230,6 +232,7 @@ export function Sales() {
               type="button"
               onClick={() => setIsOpen(!isOpen)}
               className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              aria-label="Toggle product dropdown"
             >
               <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </button>
@@ -475,7 +478,7 @@ export function Sales() {
     };
 
     return (
-      <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-700">
           <div className="p-6 border-b border-gray-200 dark:border-gray-700">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
@@ -678,7 +681,7 @@ export function Sales() {
     const paymentTypeName = paymentTypes.find(pt => pt.id === sale.paymentType)?.name || sale.paymentType;
     
     return (
-      <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-700">
           <div className="p-6 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
@@ -690,6 +693,7 @@ export function Sales() {
                   onClick={() => handleShowDigitalReceipt(sale)}
                   className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 p-1"
                   title="View Digital Receipt"
+                  aria-label="View digital receipt"
                 >
                   <FileText className="h-5 w-5" />
                 </button>
@@ -697,12 +701,14 @@ export function Sales() {
                   onClick={handlePrintInvoice}
                   className="text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 p-1"
                   title="Download PDF"
+                  aria-label="Download PDF"
                 >
                   <Download className="h-5 w-5" />
                 </button>
                 <button
                   onClick={onClose}
                   className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  aria-label="Close sale details"
                 >
                   ✕
                 </button>
@@ -964,6 +970,7 @@ export function Sales() {
                               : 'text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400'
                           }`}
                           title={deleteConfirm === sale.id ? `Click again to confirm (${deleteCountdown}s)` : 'Delete sale'}
+                          aria-label={deleteConfirm === sale.id ? `Confirm delete sale (${deleteCountdown}s)` : 'Delete sale'}
                         >
                           {deleteConfirm === sale.id ? (
                             <div className="flex items-center space-x-1">

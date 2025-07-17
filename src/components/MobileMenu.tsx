@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { X, Moon, Sun } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
+import { useStore } from '../store/useStore';
 
 interface MobileMenuProps {
   isOpen: boolean;
@@ -10,6 +11,7 @@ interface MobileMenuProps {
 
 export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
   const { theme, toggleTheme } = useTheme();
+  const { user, signOut } = useStore();
   
   if (!isOpen) return null;
 
@@ -57,15 +59,6 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
             </li>
             <li>
               <Link
-                to="/demo"
-                className="block py-2 px-4 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
-                onClick={onClose}
-              >
-                Demo
-              </Link>
-            </li>
-            <li>
-              <Link
                 to="/contact"
                 className="block py-2 px-4 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
                 onClick={onClose}
@@ -73,24 +66,58 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
                 Contact
               </Link>
             </li>
+            {user && (
+              <>
+                <li>
+                  <Link
+                    to="/dashboard"
+                    className="block py-2 px-4 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
+                    onClick={onClose}
+                  >
+                    Dashboard
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/profile"
+                    className="block py-2 px-4 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
+                    onClick={onClose}
+                  >
+                    Profile
+                  </Link>
+                </li>
+                <li>
+                  <button
+                    onClick={async () => {
+                      await signOut();
+                      onClose();
+                    }}
+                    className="w-full text-left py-2 px-4 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900 rounded-lg font-medium"
+                  >
+                    Logout
+                  </button>
+                </li>
+              </>
+            )}
           </ul>
-          
-          <div className="border-t border-gray-200 dark:border-gray-800 my-4 pt-4">
-            <Link
-              to="/login"
-              className="block py-2 px-4 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
-              onClick={onClose}
-            >
-              Login
-            </Link>
-            <Link
-              to="/signup"
-              className="block py-2 px-4 mt-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-700 dark:hover:bg-blue-600"
-              onClick={onClose}
-            >
-              Sign Up Free
-            </Link>
-          </div>
+          {!user && (
+            <div className="border-t border-gray-200 dark:border-gray-800 my-4 pt-4">
+              <Link
+                to="/login"
+                className="block py-2 px-4 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
+                onClick={onClose}
+              >
+                Login
+              </Link>
+              <Link
+                to="/signup"
+                className="block py-2 px-4 mt-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-700 dark:hover:bg-blue-600"
+                onClick={onClose}
+              >
+                Sign Up Free
+              </Link>
+            </div>
+          )}
         </nav>
         
         <div className="p-4 border-t border-gray-200 dark:border-gray-800">

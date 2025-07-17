@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { BarChart3, Mail, Lock, Eye, EyeOff, Crown, Star, Package, AlertCircle, UserPlus } from 'lucide-react';
+import { BarChart3, Mail, Lock, Eye, EyeOff, AlertCircle, UserPlus } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { useTheme } from '../contexts/ThemeContext';
@@ -78,29 +78,6 @@ export function Login() {
     }
   };
 
-  const planOptions = [
-    {
-      id: 'free',
-      name: 'Free Plan',
-      description: 'Basic features with limitations',
-      icon: Package,
-      color: 'text-gray-600 dark:text-gray-400',
-    },
-    {
-      id: 'starter',
-      name: 'Starter Plan',
-      description: 'Unlimited products & basic reports',
-      icon: Star,
-      color: 'text-blue-600 dark:text-blue-400',
-    },
-    {
-      id: 'pro',
-      name: 'Pro Plan',
-      description: 'All features including PDF invoices & advanced analytics',
-      icon: Crown,
-      color: 'text-purple-600 dark:text-purple-400',
-    },
-  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4 transition-colors duration-200">
@@ -229,69 +206,7 @@ export function Login() {
               </div>
             </div>
 
-            {/* Demo Account Helper */}
-            {!showSignUp && false && (
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="text-sm font-medium text-blue-900 dark:text-blue-300">Try the Demo Account</h4>
-                    <p className="text-xs text-blue-700 dark:text-blue-400">Test all features without creating an account</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, email: 'demo@businessmanager.com', password: 'demo123' }))}
-                    className="text-xs px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-                  >
-                    Use Demo
-                  </button>
-                </div>
-              </div>
-            )}
 
-            {/* Plan Selection (only for demo sign-in) */}
-            {!showSignUp && false && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                  Select Plan to Test
-                </label>
-                <div className="space-y-2">
-                  {planOptions.map((plan) => {
-                    const IconComponent = plan.icon;
-                    return (
-                      <label
-                        key={plan.id}
-                        className={`flex items-center p-3 border rounded-lg cursor-pointer transition-all duration-200 ${
-                          formData.plan === plan.id
-                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-400'
-                            : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/30'
-                        }`}
-                      >
-                        <input
-                          type="radio"
-                          name="plan"
-                          value={plan.id}
-                          checked={formData.plan === plan.id}
-                          onChange={(e) => setFormData(prev => ({ ...prev, plan: e.target.value as any }))}
-                          className="sr-only"
-                        />
-                        <IconComponent className={`h-5 w-5 mr-3 ${plan.color}`} />
-                        <div className="flex-1">
-                          <div className="text-sm font-medium text-gray-900 dark:text-white">
-                            {plan.name}
-                          </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">
-                            {plan.description}
-                          </div>
-                        </div>
-                        {formData.plan === plan.id && (
-                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                        )}
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
 
             <button
               type="submit"
@@ -306,7 +221,7 @@ export function Login() {
               ) : showSignUp ? (
                 'Create Account'
               ) : (
-                `Sign In${formData.email === 'demo@businessmanager.com' ? ` as ${planOptions.find(p => p.id === formData.plan)?.name}` : ''}`
+                'Sign In'
               )}
             </button>
           </form>

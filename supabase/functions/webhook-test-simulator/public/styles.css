@@ -1,0 +1,35 @@
+body {
+  font-family: sans-serif;
+  max-width: 600px;
+  margin: auto;
+  padding: 20px;
+  background: #f9fafb;
+}
+h1 {
+  font-size: 24px;
+  color: #1f2937;
+}
+form, .result {
+  margin-top: 20px;
+}
+input, select {
+  display: block;
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 8px;
+}
+button {
+  background-color: #3b82f6;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.result {
+  font-family: monospace;
+  white-space: pre-wrap;
+  background: #f0f0f0;
+  padding: 10px;
+  border-radius: 4px;
+}

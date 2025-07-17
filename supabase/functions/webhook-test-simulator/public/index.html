@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>PayPal Webhook Test Simulator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <h1>PayPal Webhook Test Simulator</h1>
+  <form id="testForm">
+    <label>Event Type:
+      <select id="eventType">
+        <option value="PAYMENT.CAPTURE.COMPLETED">Payment Completed</option>
+        <option value="PAYMENT.CAPTURE.DECLINED">Payment Failed</option>
+      </select>
+    </label>
+    <label>User ID:
+      <input type="text" id="userId" placeholder="Optional" />
+    </label>
+    <label>Amount:
+      <input type="number" id="amount" value="199.00" />
+    </label>
+    <label>Currency:
+      <select id="currency">
+        <option value="USD">USD</option>
+        <option value="PHP">PHP</option>
+      </select>
+    </label>
+    <label>Transaction ID:
+      <input type="text" id="transactionId" placeholder="Optional" />
+    </label>
+    <button type="submit">Send Test Webhook</button>
+  </form>
+  <div id="result" class="result"></div>
+  <script src="script.js"></script>
+</body>
+</html>

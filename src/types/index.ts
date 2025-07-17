@@ -9,6 +9,26 @@ export interface User {
   businessAddress?: string;
   businessPhone?: string;
   businessEmail?: string;
+  subscription?: Subscription;
+}
+
+export interface Subscription {
+  id: string;
+  user_id: string;
+  paypal_subscription_id: string;
+  paypal_plan_id: string;
+  status: 'APPROVAL_PENDING' | 'APPROVED' | 'ACTIVE' | 'SUSPENDED' | 'CANCELLED' | 'EXPIRED';
+  plan_type: 'starter' | 'pro';
+  start_time?: Date;
+  current_period_start?: Date;
+  current_period_end?: Date;
+  cancel_at_period_end: boolean;
+  cancelled_at?: Date;
+  cancellation_reason?: string;
+  next_billing_time?: Date;
+  failed_payment_count: number;
+  created_at: Date;
+  updated_at: Date;
 }
 
 export interface Product {

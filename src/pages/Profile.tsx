@@ -458,7 +458,7 @@ export function Profile() {
               </div>
             </div>
 
-            {!inFreeTrial && user?.plan !== 'pro' && (
+            {!inFreeTrial && user?.plan !== 'free' && (
               <div className="mt-6">
                 <button
                   onClick={() => navigate('/pricing')}
@@ -466,6 +466,21 @@ export function Profile() {
                 >
                   <Crown className="mr-2 h-4 w-4 inline" />
                   Upgrade Plan
+                </button>
+              </div>
+            )}
+            {user?.plan !== 'free' && (
+              <div className="mt-4">
+                <button
+                  onClick={async () => {
+                    if (window.confirm('Are you sure you want to cancel your subscription? You will lose access to paid features.')) {
+                      await updateUserSettings({ plan: 'free' });
+                      setMessage({ type: 'success', text: 'Subscription cancelled. You are now on the Free plan.' });
+                    }
+                  }}
+                  className="w-full rounded-lg bg-red-600 px-4 py-2 text-white font-medium hover:bg-red-700 transition-colors mt-2"
+                >
+                  Cancel Subscription
                 </button>
               </div>
             )}
