@@ -11,8 +11,8 @@ export function TrialStatus() {
   const daysRemaining = getTrialDaysRemaining(user);
   const trialUsed = hasUsedTrial(user);
 
-  // Don't show anything if user has a paid subscription
-  if (user.subscription?.status === 'ACTIVE') {
+  // Don't show trial status if user has an active subscription
+  if (user.subscription?.status === 'ACTIVE' && !user.subscription?.cancel_at_period_end) {
     return null;
   }
 

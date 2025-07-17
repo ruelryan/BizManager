@@ -570,13 +570,15 @@ async function handleSubscriptionActivated(supabase, event) {
       console.log('✅ Subscription record updated successfully');
     }
     
-    // Update user settings
+    // Update user settings and terminate trial if active
     const { error: settingsError } = await supabase.from('user_settings').upsert({
       user_id: customId,
       plan: planType,
       subscription_expiry: currentPeriodEnd.toISOString(),
       paypal_subscription_id: subscriptionId,
       payment_status: 'active',
+      // Terminate trial when subscription activates
+      is_in_trial: false,
       subscription_status: 'active',
       auto_renew: true,
       last_payment_date: new Date().toISOString()
@@ -588,6 +590,7 @@ async function handleSubscriptionActivated(supabase, event) {
       console.error('Error updating user settings:', settingsError);
     } else {
       console.log('✅ User settings updated successfully');
+      console.log('✅ Trial terminated and subscription activated');
     }
     
     // Record successful payment transaction

@@ -53,15 +53,15 @@ export const getTrialDaysRemaining = (user: User | null) => {
 export const getEffectivePlan = (user: User | null) => {
   if (!user) return 'free';
   
-  // If user is in active trial, they get pro features
-  if (isInFreeTrial(user)) return 'pro';
-  
-  // If user has active subscription, use subscription plan
+  // Priority 1: Active subscription takes precedence over everything
   if (isSubscriptionActive(user) && user.subscription) {
     return user.subscription.plan_type;
   }
   
-  // Otherwise, use their base plan
+  // Priority 2: If user is in active trial (and no subscription), they get pro features
+  if (isInFreeTrial(user)) return 'pro';
+  
+  // Priority 3: Otherwise, use their base plan
   return user.plan;
 };
 
@@ -155,6 +155,7 @@ interface StoreState {
 
   // Trial management
   startFreeTrial: () => Promise<void>;
+  terminateTrialOnSubscription: (subscriptionData: Subscription) => Promise<void>;
   endTrial: () => Promise<void>;
   checkTrialExpiry: () => Promise<void>;
 
@@ -1123,6 +1124,12 @@ export const useStore = create<StoreState>()(
           throw new Error('User has already used their free trial');
         }
 
+        // Check if user already has an active subscription
+        if (isSubscriptionActive(user)) {
+          console.log('User already has active subscription, skipping trial');
+          return;
+        }
+
         try {
           const trialStartDate = new Date();
           const trialEndDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
@@ -1158,6 +1165,33 @@ export const useStore = create<StoreState>()(
 
         } catch (error) {
           console.error('Failed to start free trial:', error);
+          throw error;
+        }
+      },
+
+      // Terminate trial when subscription is activated
+      terminateTrialOnSubscription: async (subscriptionData: Subscription) => {
+        const { user } = get();
+        if (!user || !user.isInTrial) {
+          console.log('User not in trial, no need to terminate');
+          return;
+        }
+
+        try {
+          // Update local state - trial is terminated, subscription is active
+          set(state => ({
+            user: state.user ? {
+              ...state.user,
+              isInTrial: false,
+              plan: subscriptionData.plan_type,
+              subscription: subscriptionData
+            } : null
+          }));
+
+          console.log('✅ Trial terminated, subscription activated');
+
+        } catch (error) {
+          console.error('Failed to terminate trial:', error);
           throw error;
         }
       },

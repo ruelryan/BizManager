@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Mail, Crown, Save, ArrowLeft, Building, Calendar, AlertCircle, Bell, CreditCard, MapPin, Wifi, WifiOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useStore, isInFreeTrial, getTrialDaysRemaining, hasUsedTrial } from '../store/useStore';
+import { useStore, isInFreeTrial, getTrialDaysRemaining, hasUsedTrial, getEffectivePlan } from '../store/useStore';
 import { TrialStatus } from '../components/TrialStatus';
 import { plans } from '../utils/plans';
 import { format } from 'date-fns';
@@ -23,7 +23,7 @@ interface PaymentTransaction {
 
 export function Profile() {
   const navigate = useNavigate();
-  const { user, userSettings, updateUserProfile, updateUserSettings, isLoading } = useStore();
+  const { user, userSettings, updateUserProfile, updateUserSettings, isLoading, cancelSubscription } = useStore();
   const [formData, setFormData] = useState({
     name: user?.name || '',
     email: user?.email || '',
@@ -388,8 +388,30 @@ export function Profile() {
 
         {/* Plan Information */}
         <div className="space-y-6">
-          {/* Free Trial Status */}
-          {inFreeTrial && (
+          {/* Subscription Status */}
+          {user?.subscription?.status === 'ACTIVE' && (
+            <div className="rounded-xl bg-green-600 p-6 text-white">
+              <div className="flex items-center mb-3">
+                <Crown className="h-6 w-6 mr-2" />
+                <h3 className="text-lg font-semibold">
+                  {user.subscription.plan_type === 'pro' ? 'Pro' : 'Starter'} Subscription Active
+                </h3>
+              </div>
+              <div className="space-y-2 text-sm opacity-90">
+                <div className="flex items-center">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  <span>Next billing: {user.subscription.next_billing_time?.toLocaleDateString()}</span>
+                </div>
+                <p>Your subscription is active and will renew automatically.</p>
+                {user.subscription.cancel_at_period_end && (
+                  <p className="text-yellow-200">⚠️ Subscription will cancel at period end</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Free Trial Status - Only show if no active subscription */}
+          {inFreeTrial && (!user?.subscription?.status || user?.subscription?.status !== 'ACTIVE') && (
             <div className="rounded-xl bg-blue-600 p-6 text-white">
               <div className="flex items-center mb-3">
                 <Crown className="h-6 w-6 mr-2" />
@@ -398,7 +420,7 @@ export function Profile() {
               <div className="space-y-2 text-sm opacity-90">
                 <div className="flex items-center">
                   <Calendar className="h-4 w-4 mr-2" />
-                  <span>Expires: {user?.subscriptionExpiry?.toLocaleDateString()}</span>
+                  <span>Expires: {user?.trialEndDate?.toLocaleDateString()}</span>
                 </div>
                 <p>You have access to all Pro features during your 14-day trial period.</p>
               </div>
@@ -417,41 +439,44 @@ export function Profile() {
             
             <div className="text-center">
               <div className={`inline-flex items-center rounded-full px-4 py-2 text-sm font-medium mb-3 ${
-                user?.plan === 'pro' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' :
-                user?.plan === 'starter' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
+                getEffectivePlan(user) === 'pro' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' :
+                getEffectivePlan(user) === 'starter' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
                 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
               }`}>
-                {user?.plan === 'pro' && <Crown className="mr-1 h-4 w-4" />}
-                {currentPlan?.name || 'Free'} Plan
+                {getEffectivePlan(user) === 'pro' && <Crown className="mr-1 h-4 w-4" />}
+                {plans.find(p => p.id === getEffectivePlan(user))?.name || 'Free'} Plan
+                {inFreeTrial && (!user?.subscription?.status || user?.subscription?.status !== 'ACTIVE') && (
+                  <span className="ml-2 text-xs bg-white/20 px-2 py-1 rounded">Trial</span>
+                )}
               </div>
               
               <div className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                {currentPlan?.price === 0 ? 'Free' : (
+                {plans.find(p => p.id === getEffectivePlan(user))?.price === 0 ? 'Free' : (
                   <CurrencyDisplay 
-                    amount={currentPlan?.price || 0} 
+                    amount={plans.find(p => p.id === getEffectivePlan(user))?.price || 0} 
                     fromCurrency="PHP"
                     showCurrencyCode={true}
                   />
                 )}
-                {currentPlan?.price !== 0 && '/month'}
+                {plans.find(p => p.id === getEffectivePlan(user))?.price !== 0 && '/month'}
               </div>
               
               <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-                {user?.plan === 'free' && (
+                {getEffectivePlan(user) === 'free' && (
                   <>
                     <p>• Up to 10 products</p>
                     <p>• Up to 30 sales/month</p>
                     <p>• Basic features</p>
                   </>
                 )}
-                {user?.plan === 'starter' && (
+                {getEffectivePlan(user) === 'starter' && (
                   <>
                     <p>• Unlimited products & sales</p>
                     <p>• Advanced dashboard</p>
                     <p>• Basic reports</p>
                   </>
                 )}
-                {user?.plan === 'pro' && (
+                {getEffectivePlan(user) === 'pro' && (
                   <>
                     <p>• Everything in Starter</p>
                     <p>• PDF invoices</p>
@@ -462,7 +487,7 @@ export function Profile() {
               </div>
             </div>
 
-            {!inFreeTrial && user?.plan !== 'free' && (
+            {!inFreeTrial && !user?.subscription?.status && getEffectivePlan(user) === 'free' && (
               <div className="mt-6">
                 <button
                   onClick={() => navigate('/pricing')}
@@ -473,13 +498,13 @@ export function Profile() {
                 </button>
               </div>
             )}
-            {user?.plan !== 'free' && (
+            {user?.subscription?.status === 'ACTIVE' && (
               <div className="mt-4">
                 <button
                   onClick={async () => {
-                    if (window.confirm('Are you sure you want to cancel your subscription? You will lose access to paid features.')) {
-                      await updateUserSettings({ plan: 'free' });
-                      setMessage({ type: 'success', text: 'Subscription cancelled. You are now on the Free plan.' });
+                    if (window.confirm('Are you sure you want to cancel your subscription? You will continue to have access until the end of your current billing period.')) {
+                      await cancelSubscription();
+                      setMessage({ type: 'success', text: 'Subscription cancelled. You will have access until the end of your current billing period.' });
                     }
                   }}
                   className="w-full rounded-lg bg-red-600 px-4 py-2 text-white font-medium hover:bg-red-700 transition-colors mt-2"
