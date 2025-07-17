@@ -127,10 +127,11 @@ Deno.serve(async (req)=>{
     // Process the webhook event based on type
     console.log('=== PROCESSING WEBHOOK EVENT ===');
     await processWebhookEvent(supabase, webhookEvent);
-    // Mark event as processed
+    // Mark event as processed (clear any previous errors)
     const { error: updateError } = await supabase.from('webhook_events').update({
       processed: true,
-      processed_at: new Date().toISOString()
+      processed_at: new Date().toISOString(),
+      processing_error: null  // Clear any previous errors
     }).eq('event_id', webhookEvent.id);
     if (updateError) {
       console.error('Error marking event as processed:', updateError);
@@ -147,6 +148,18 @@ Deno.serve(async (req)=>{
     console.error('=== WEBHOOK PROCESSING ERROR ===');
     console.error('Error details:', error);
     console.error('Error stack:', error.stack);
+    
+    // Mark event as processed with error
+    const { error: updateError } = await supabase.from('webhook_events').update({
+      processed: true,
+      processed_at: new Date().toISOString(),
+      processing_error: error.message
+    }).eq('event_id', webhookEvent.id);
+    
+    if (updateError) {
+      console.error('Error marking event as processed with error:', updateError);
+    }
+    
     return new Response(`Webhook processing failed: ${error.message}`, {
       status: 500,
       headers: corsHeaders
