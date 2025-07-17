@@ -10,6 +10,11 @@ export interface User {
   businessPhone?: string;
   businessEmail?: string;
   subscription?: Subscription;
+  // Trial management
+  isInTrial: boolean;
+  trialStartDate?: Date;
+  trialEndDate?: Date;
+  trialUsed: boolean;
 }
 
 export interface Subscription {

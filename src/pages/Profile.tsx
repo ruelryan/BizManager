@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { User, Mail, Crown, Save, ArrowLeft, Building, Calendar, AlertCircle, Bell, CreditCard, MapPin, Wifi, WifiOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useStore, isInFreeTrial } from '../store/useStore';
+import { useStore, isInFreeTrial, getTrialDaysRemaining, hasUsedTrial } from '../store/useStore';
+import { TrialStatus } from '../components/TrialStatus';
 import { plans } from '../utils/plans';
 import { format } from 'date-fns';
 import { supabase } from '../lib/supabase';
@@ -181,6 +182,9 @@ export function Profile() {
           <p className="text-gray-600 dark:text-gray-400">Manage your account information and business preferences</p>
         </div>
       </div>
+
+      {/* Trial Status */}
+      <TrialStatus />
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Profile Form */}

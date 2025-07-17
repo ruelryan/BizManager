@@ -20,16 +20,48 @@ const defaultPaymentTypes: PaymentType[] = [
   { id: 'gcash', name: 'GCash', isDefault: true },
 ];
 
-// Helper function to check if user is in free trial
+// Helper function to check if user is in active free trial
 export const isInFreeTrial = (user: User | null) => {
-  if (!user || !user.subscriptionExpiry) return false;
-  return user.subscriptionExpiry > new Date();
+  if (!user) return false;
+  
+  // Check if user is explicitly in trial and trial hasn't expired
+  if (user.isInTrial && user.trialEndDate) {
+    return user.trialEndDate > new Date();
+  }
+  
+  return false;
 };
 
-// Helper function to get effective plan (considering trial)
+// Helper function to check if user has used their trial
+export const hasUsedTrial = (user: User | null) => {
+  if (!user) return false;
+  return user.trialUsed || false;
+};
+
+// Helper function to get days remaining in trial
+export const getTrialDaysRemaining = (user: User | null) => {
+  if (!isInFreeTrial(user) || !user?.trialEndDate) return 0;
+  
+  const now = new Date();
+  const diffTime = user.trialEndDate.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  return Math.max(0, diffDays);
+};
+
+// Helper function to get effective plan (considering trial and subscription)
 export const getEffectivePlan = (user: User | null) => {
   if (!user) return 'free';
-  if (isInFreeTrial(user)) return 'pro'; // During trial, user has pro features
+  
+  // If user is in active trial, they get pro features
+  if (isInFreeTrial(user)) return 'pro';
+  
+  // If user has active subscription, use subscription plan
+  if (isSubscriptionActive(user) && user.subscription) {
+    return user.subscription.plan_type;
+  }
+  
+  // Otherwise, use their base plan
   return user.plan;
 };
 
@@ -121,6 +153,11 @@ interface StoreState {
   reactivateSubscription: () => Promise<void>;
   loadSubscriptionData: () => Promise<void>;
 
+  // Trial management
+  startFreeTrial: () => Promise<void>;
+  endTrial: () => Promise<void>;
+  checkTrialExpiry: () => Promise<void>;
+
   // Export data
   exportReportData: () => string;
 
@@ -183,11 +220,18 @@ export const useStore = create<StoreState>()(
               name: profileData?.full_name || data.user.user_metadata?.full_name || 'User',
               plan: settingsData?.plan || 'free',
               subscriptionExpiry: settingsData?.subscription_expiry ? new Date(settingsData.subscription_expiry) : undefined,
+              isInTrial: settingsData?.is_in_trial || false,
+              trialStartDate: settingsData?.trial_start_date ? new Date(settingsData.trial_start_date) : undefined,
+              trialEndDate: settingsData?.trial_end_date ? new Date(settingsData.trial_end_date) : undefined,
+              trialUsed: settingsData?.trial_used || false,
             };
             set({ user });
             // Load user data and subscription data
             await get().loadUserData();
             await get().loadSubscriptionData();
+            
+            // Check if trial has expired
+            await get().checkTrialExpiry();
           }
         } catch (error) {
           console.error('Sign in error:', error);
@@ -241,16 +285,24 @@ export const useStore = create<StoreState>()(
               console.warn('Could not create profile, table may not exist:', profileError);
             }
 
+            const trialEndDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+            
             const user: User = {
               id: data.user.id,
               email: data.user.email || '',
               name: name,
               plan: 'free',
-              // Set subscription expiry to 14 days from now for free trial
-              subscriptionExpiry: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+              subscriptionExpiry: undefined, // Will be set when they subscribe
+              isInTrial: true,
+              trialStartDate: new Date(),
+              trialEndDate: trialEndDate,
+              trialUsed: false,
             };
 
             set({ user });
+            
+            // Start the free trial
+            await get().startFreeTrial();
           }
         } catch (error) {
           console.error('Sign up error:', error);
@@ -1059,6 +1111,101 @@ export const useStore = create<StoreState>()(
         }
       },
 
+      // Trial management
+      startFreeTrial: async () => {
+        const { user } = get();
+        if (!user) {
+          throw new Error('User must be logged in to start trial');
+        }
+
+        // Check if user has already used their trial
+        if (user.trialUsed) {
+          throw new Error('User has already used their free trial');
+        }
+
+        try {
+          const trialStartDate = new Date();
+          const trialEndDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+
+          // Update user settings in database
+          const { error } = await supabase.from('user_settings').upsert({
+            user_id: user.id,
+            is_in_trial: true,
+            trial_start_date: trialStartDate.toISOString(),
+            trial_end_date: trialEndDate.toISOString(),
+            trial_used: true, // Mark as used immediately to prevent re-activation
+            plan: 'free' // Keep base plan as free during trial
+          }, {
+            onConflict: 'user_id'
+          });
+
+          if (error) {
+            throw error;
+          }
+
+          // Update local state
+          set(state => ({
+            user: state.user ? {
+              ...state.user,
+              isInTrial: true,
+              trialStartDate,
+              trialEndDate,
+              trialUsed: true
+            } : null
+          }));
+
+          console.log('✅ Free trial started successfully');
+
+        } catch (error) {
+          console.error('Failed to start free trial:', error);
+          throw error;
+        }
+      },
+
+      endTrial: async () => {
+        const { user } = get();
+        if (!user) return;
+
+        try {
+          // Update user settings in database
+          const { error } = await supabase.from('user_settings').update({
+            is_in_trial: false,
+            plan: 'free' // Ensure they're on free plan after trial
+          }).eq('user_id', user.id);
+
+          if (error) {
+            throw error;
+          }
+
+          // Update local state
+          set(state => ({
+            user: state.user ? {
+              ...state.user,
+              isInTrial: false,
+              plan: 'free'
+            } : null
+          }));
+
+          console.log('✅ Trial ended, user moved to free plan');
+
+        } catch (error) {
+          console.error('Failed to end trial:', error);
+          throw error;
+        }
+      },
+
+      checkTrialExpiry: async () => {
+        const { user } = get();
+        if (!user || !user.isInTrial || !user.trialEndDate) return;
+
+        // Check if trial has expired
+        const now = new Date();
+        if (user.trialEndDate <= now) {
+          console.log('Trial has expired, ending trial...');
+          await get().endTrial();
+        }
+      },
+
       // Initialize auth state
       initAuth: async () => {
         try {
@@ -1101,6 +1248,10 @@ export const useStore = create<StoreState>()(
               name: profileData?.full_name || data.session.user.user_metadata?.full_name || 'User',
               plan: settingsData?.plan || 'free',
               subscriptionExpiry: settingsData?.subscription_expiry ? new Date(settingsData.subscription_expiry) : undefined,
+              isInTrial: settingsData?.is_in_trial || false,
+              trialStartDate: settingsData?.trial_start_date ? new Date(settingsData.trial_start_date) : undefined,
+              trialEndDate: settingsData?.trial_end_date ? new Date(settingsData.trial_end_date) : undefined,
+              trialUsed: settingsData?.trial_used || false,
             };
 
             set({ user });
