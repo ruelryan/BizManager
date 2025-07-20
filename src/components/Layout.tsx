@@ -24,6 +24,7 @@ import { GlobalSearch } from './GlobalSearch';
 import { FloatingActionButton } from './FloatingActionButton';
 import { Tooltip } from './Tooltip';
 import { useTheme } from '../contexts/ThemeContext';
+import { SubscriptionMonitor } from './SubscriptionMonitor';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home, tourId: 'dashboard' },
@@ -166,6 +167,11 @@ export function Layout() {
                   </span>
                 </div>
               </Tooltip>
+            </div>
+
+            {/* Subscription Status Monitor */}
+            <div className="mb-3">
+              <SubscriptionMonitor compact={true} />
             </div>
 
             {/* User Info with Dropdown */}

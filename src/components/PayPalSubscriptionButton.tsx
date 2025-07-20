@@ -153,14 +153,14 @@ export function PayPalSubscriptionButton({
         {/* Subscription information */}
         <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
           <p className="text-xs text-blue-700 dark:text-blue-300 text-center">
-            🔄 Your {planName} subscription will be activated automatically after payment confirmation. You can cancel anytime and continue using until your current period ends.
+            🔄 Your {planName} subscription will activate immediately and auto-renew monthly. Cancel anytime with no fees.
           </p>
         </div>
 
         {/* Billing information */}
         <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
           <p className="text-xs text-gray-600 dark:text-gray-400 text-center">
-            💳 Recurring billing will be charged monthly. Cancel anytime from your profile settings.
+            💳 Auto-renewing monthly billing. Manage your subscription from your profile settings.
           </p>
         </div>
       </div>

@@ -4,7 +4,7 @@ import { ArrowLeft, Check, Shield, AlertCircle, Sun, Moon } from 'lucide-react';
 import { plans } from '../utils/plans';
 import { useStore } from '../store/useStore';
 import { ThemeToggle } from '../components/ThemeToggle';
-import { PayPalOneTimeButton } from '../components/PayPalOneTimeButton';
+import { PayPalSubscriptionButton } from '../components/PayPalSubscriptionButton';
 import { useTheme } from '../contexts/ThemeContext';
 
 export function Upgrade() {
@@ -14,41 +14,56 @@ export function Upgrade() {
   const { theme, toggleTheme } = useTheme();
   const [selectedPlan, setSelectedPlan] = React.useState(location.state?.planId || 'starter');
   const [paymentError, setPaymentError] = React.useState<string | null>(null);
+  const [paypalPlanId, setPaypalPlanId] = React.useState<string | null>(null);
+  const [loadingPlanId, setLoadingPlanId] = React.useState(true);
 
   const plan = plans.find(p => p.id === selectedPlan);
 
-  const handlePayPalSuccess = async () => {
-    // Update user plan after successful PayPal payment
-    if (user) {
-      const { updateUserSettings } = useStore.getState();
-      const subscriptionExpiry = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000); // 14 days from now
-      
+  // Fetch PayPal Plan ID from database
+  React.useEffect(() => {
+    const fetchPayPalPlanId = async () => {
       try {
-        // Update the plan in the database
-        await updateUserSettings({
-          plan: selectedPlan as any,
-          subscriptionExpiry: subscriptionExpiry
-        });
+        setLoadingPlanId(true);
+        const { supabase } = await import('../lib/supabase');
         
-        // Update local state
-        setUser({
-          ...user,
-          plan: selectedPlan as any,
-          subscriptionExpiry: subscriptionExpiry,
-        });
+        // Map our plan IDs to PayPal product IDs
+        const paypalProductId = selectedPlan === 'starter' ? 'BIZMANAGER_STARTER' : 'BIZMANAGER_PRO';
         
-        navigate('/', { state: { upgraded: true, paymentMethod: 'PayPal' } });
+        const { data, error } = await supabase
+          .from('paypal_billing_plans')
+          .select('paypal_plan_id')
+          .eq('paypal_product_id', paypalProductId)
+          .eq('status', 'ACTIVE')
+          .single();
+          
+        if (error) {
+          console.error('Error fetching PayPal plan ID:', error);
+          setPaymentError('Unable to load payment options. Please try again.');
+        } else {
+          setPaypalPlanId(data.paypal_plan_id);
+        }
       } catch (error) {
-        console.error('Failed to update user plan:', error);
-        // Even if database update fails, still update local state and navigate
-        setUser({
-          ...user,
-          plan: selectedPlan as any,
-          subscriptionExpiry: subscriptionExpiry,
-        });
-        navigate('/', { state: { upgraded: true, paymentMethod: 'PayPal' } });
+        console.error('Error fetching PayPal plan ID:', error);
+        setPaymentError('Unable to load payment options. Please try again.');
+      } finally {
+        setLoadingPlanId(false);
       }
-    }
+    };
+
+    fetchPayPalPlanId();
+  }, [selectedPlan]);
+
+  const handlePayPalSubscriptionSuccess = async (subscriptionId: string) => {
+    console.log('Subscription created successfully:', subscriptionId);
+    
+    // Navigate to success page - webhook will handle the actual subscription activation
+    navigate('/profile', { 
+      state: { 
+        subscriptionCreated: true, 
+        subscriptionId: subscriptionId,
+        planName: plan?.name 
+      } 
+    });
   };
 
   const handlePayPalError = (error: any) => {
@@ -81,7 +96,7 @@ export function Upgrade() {
             Back
           </button>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Upgrade to {plan.name}</h1>
-          <p className="text-gray-600 dark:text-gray-400">Complete your subscription to unlock premium features</p>
+          <p className="text-gray-600 dark:text-gray-400">Start your monthly subscription to unlock premium features. Cancel anytime.</p>
         </div>
 
         <div className="grid gap-8 lg:grid-cols-2">
@@ -94,7 +109,8 @@ export function Upgrade() {
                 <span className="text-lg font-medium text-gray-900 dark:text-white">{plan.name} Plan</span>
                 <div className="text-right">
                   <span className="text-2xl font-bold text-gray-900 dark:text-white">₱{plan.price}/month</span>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">≈ ${usdPrice} USD</div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">≈ ${usdPrice} USD monthly</div>
+                  <div className="text-xs text-blue-600 dark:text-blue-400">🔄 Auto-renewing</div>
                 </div>
               </div>
             </div>
@@ -219,21 +235,46 @@ export function Upgrade() {
                 </div>
               </div>
               
-              {/* PayPal Button */}
-              <PayPalOneTimeButton
-                planId={selectedPlan}
-                onSuccess={handlePayPalSuccess}
-                onError={handlePayPalError}
-              />
+              {/* PayPal Subscription Button */}
+              {loadingPlanId ? (
+                <div className="flex justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <span className="ml-2 text-gray-600 dark:text-gray-400">Loading payment options...</span>
+                </div>
+              ) : paypalPlanId ? (
+                <PayPalSubscriptionButton
+                  planId={paypalPlanId}
+                  planName={plan?.name || selectedPlan}
+                  onSuccess={handlePayPalSubscriptionSuccess}
+                  onError={handlePayPalError}
+                />
+              ) : (
+                <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                  <p className="text-red-700 dark:text-red-300 text-center">
+                    Unable to load payment options. Please try again later.
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Total */}
             <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mb-6">
               <div className="flex items-center justify-between text-lg font-semibold">
-                <span className="text-gray-900 dark:text-white">Total</span>
+                <span className="text-gray-900 dark:text-white">Monthly Total</span>
                 <div className="text-right">
                   <span className="text-gray-900 dark:text-white">₱{plan.price}/month</span>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">${usdPrice} USD</div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">${usdPrice} USD recurring</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Auto-Renewal Notice */}
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4">
+              <div className="flex items-center">
+                <AlertCircle className="mr-2 h-5 w-5 text-blue-600 dark:text-blue-400" />
+                <div className="text-sm text-blue-800 dark:text-blue-300">
+                  <p className="font-medium">Auto-Renewing Subscription</p>
+                  <p>Your subscription will automatically renew monthly. Cancel anytime from your profile settings - no cancellation fees.</p>
                 </div>
               </div>
             </div>

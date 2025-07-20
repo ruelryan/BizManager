@@ -292,8 +292,14 @@ async function processWebhookEvent(supabase, event) {
     case 'BILLING.SUBSCRIPTION.EXPIRED':
       await handleSubscriptionExpired(supabase, event);
       break;
+    case 'BILLING.SUBSCRIPTION.PAYMENT.COMPLETED':
+      await handleSubscriptionPaymentCompleted(supabase, event);
+      break;
     case 'BILLING.SUBSCRIPTION.PAYMENT.FAILED':
       await handleSubscriptionPaymentFailed(supabase, event);
+      break;
+    case 'BILLING.SUBSCRIPTION.CYCLE.COMPLETED':
+      await handleSubscriptionCycleCompleted(supabase, event);
       break;
     case 'BILLING.SUBSCRIPTION.RE-ACTIVATED':
       await handleSubscriptionReactivated(supabase, event);
@@ -1005,6 +1011,163 @@ async function handleSubscriptionUpdated(supabase, event) {
     throw error;
   }
 }
+async function handleSubscriptionPaymentCompleted(supabase, event) {
+  const { resource } = event;
+  const subscriptionId = resource.id;
+  const lastPayment = resource.billing_info?.last_payment;
+  const nextBillingTime = resource.billing_info?.next_billing_time;
+  
+  console.log('=== PROCESSING SUBSCRIPTION PAYMENT COMPLETION ===');
+  console.log('Subscription ID:', subscriptionId);
+  console.log('Last Payment:', JSON.stringify(lastPayment, null, 2));
+  console.log('Next Billing Time:', nextBillingTime);
+  
+  if (!lastPayment) {
+    console.error('No payment information found in subscription payment completion');
+    return;
+  }
+  
+  try {
+    // Get subscription details
+    const { data: subscription, error: getError } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('paypal_subscription_id', subscriptionId)
+      .single();
+    
+    if (getError || !subscription) {
+      console.error('Subscription not found:', subscriptionId);
+      return;
+    }
+    
+    // Calculate new current period dates (extend by 1 month)
+    const currentPeriodStart = new Date();
+    const currentPeriodEnd = new Date();
+    currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 1);
+    
+    // Update subscription with new period and reset failure count
+    const { error: updateError } = await supabase.from('subscriptions').update({
+      status: 'ACTIVE',
+      current_period_start: currentPeriodStart.toISOString(),
+      current_period_end: currentPeriodEnd.toISOString(),
+      next_billing_time: nextBillingTime,
+      failed_payment_count: 0, // Reset failure count on successful payment
+      last_payment_amount: parseFloat(lastPayment.amount?.value || '0'),
+      last_payment_date: new Date().toISOString()
+    }).eq('paypal_subscription_id', subscriptionId);
+    
+    if (updateError) {
+      console.error('Error updating subscription:', updateError);
+    } else {
+      console.log('✅ Subscription period extended successfully');
+    }
+    
+    // Update user settings with new expiry
+    const { error: settingsError } = await supabase.from('user_settings').update({
+      subscription_expiry: currentPeriodEnd.toISOString(),
+      payment_status: 'active',
+      last_payment_date: new Date().toISOString()
+    }).eq('user_id', subscription.user_id);
+    
+    if (settingsError) {
+      console.error('Error updating user settings:', settingsError);
+    } else {
+      console.log('✅ User settings updated with new expiry date');
+    }
+    
+    // Record the recurring payment transaction
+    const amount = parseFloat(lastPayment.amount?.value || '0');
+    const currency = lastPayment.amount?.currency_code || 'USD';
+    
+    const { error: transactionError } = await supabase.from('payment_transactions').insert({
+      user_id: subscription.user_id,
+      paypal_transaction_id: lastPayment.transaction_id || subscriptionId + '_renewal_' + Date.now(),
+      transaction_type: 'subscription_renewal',
+      amount: amount,
+      currency: currency,
+      status: 'completed',
+      plan_id: subscription.plan_type,
+      payment_method: 'paypal_subscription',
+      net_amount: amount,
+      metadata: {
+        subscription_id: subscriptionId,
+        billing_cycle: 'monthly',
+        payment_details: lastPayment,
+        ...resource
+      }
+    });
+    
+    if (transactionError) {
+      console.error('Error recording renewal transaction:', transactionError);
+    } else {
+      console.log('✅ Renewal payment transaction recorded');
+    }
+    
+    // Queue renewal success notification
+    await supabase.from('notification_queue').insert({
+      user_id: subscription.user_id,
+      notification_type: 'subscription_renewed',
+      title: 'Subscription Renewed',
+      message: `Your ${subscription.plan_type} subscription has been automatically renewed for another month. Next billing: ${new Date(nextBillingTime).toLocaleDateString()}`,
+      metadata: {
+        subscription_id: subscriptionId,
+        amount: amount,
+        currency: currency,
+        next_billing: nextBillingTime,
+        plan: subscription.plan_type
+      }
+    });
+    
+    console.log('🎉 Subscription renewal completed successfully');
+    
+  } catch (error) {
+    console.error('Error in handleSubscriptionPaymentCompleted:', error);
+    throw error;
+  }
+}
+
+async function handleSubscriptionCycleCompleted(supabase, event) {
+  const { resource } = event;
+  const subscriptionId = resource.id;
+  const cycles = resource.billing_info?.cycle_executions;
+  
+  console.log('=== PROCESSING SUBSCRIPTION CYCLE COMPLETION ===');
+  console.log('Subscription ID:', subscriptionId);
+  console.log('Cycles:', JSON.stringify(cycles, null, 2));
+  
+  try {
+    // Get subscription details
+    const { data: subscription, error: getError } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('paypal_subscription_id', subscriptionId)
+      .single();
+    
+    if (getError || !subscription) {
+      console.error('Subscription not found:', subscriptionId);
+      return;
+    }
+    
+    // Update subscription with cycle information
+    const { error: updateError } = await supabase.from('subscriptions').update({
+      billing_cycles: cycles || resource.billing_info,
+      cycle_count: cycles ? cycles.length : (subscription.cycle_count || 0) + 1
+    }).eq('paypal_subscription_id', subscriptionId);
+    
+    if (updateError) {
+      console.error('Error updating subscription cycles:', updateError);
+    } else {
+      console.log('✅ Subscription cycle information updated');
+    }
+    
+    console.log('✅ Subscription cycle completion processed');
+    
+  } catch (error) {
+    console.error('Error in handleSubscriptionCycleCompleted:', error);
+    throw error;
+  }
+}
+
 async function updateWebhookProcessingError(supabase, eventId, error) {
   try {
     await supabase.from('webhook_events').update({

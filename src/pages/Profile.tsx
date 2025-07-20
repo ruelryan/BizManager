@@ -9,6 +9,8 @@ import { supabase } from '../lib/supabase';
 import { CurrencySelector } from '../components/CurrencySelector';
 import { CurrencyDisplay } from '../components/CurrencyDisplay';
 import { useUserLocation } from '../hooks/useUserLocation';
+import { SubscriptionMonitor } from '../components/SubscriptionMonitor';
+import { SubscriptionManagement } from '../components/SubscriptionManagement';
 
 interface PaymentTransaction {
   id: string;
@@ -38,6 +40,7 @@ export function Profile() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showPaymentHistory, setShowPaymentHistory] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showSubscriptionManagement, setShowSubscriptionManagement] = useState(false);
   const [paymentHistory, setPaymentHistory] = useState<PaymentTransaction[]>([]);
   const [isLoadingPayments, setIsLoadingPayments] = useState(false);
   
@@ -433,6 +436,22 @@ export function Profile() {
             </div>
           )}
 
+          {/* Subscription Monitoring */}
+          <div className="space-y-4">
+            <SubscriptionMonitor showDetails={true} className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700" />
+            
+            {/* Subscription Management Button */}
+            <div className="text-center">
+              <button
+                onClick={() => setShowSubscriptionManagement(true)}
+                className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Manage Subscription
+              </button>
+            </div>
+          </div>
+
           {/* Current Plan */}
           <div className="rounded-xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-200 dark:border-gray-700">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Current Plan</h3>
@@ -704,6 +723,15 @@ export function Profile() {
           </div>
         </div>
       </div>
+
+      {/* Subscription Management Modal */}
+      {showSubscriptionManagement && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <SubscriptionManagement onClose={() => setShowSubscriptionManagement(false)} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
