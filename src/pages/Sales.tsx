@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { format } from 'date-fns';
-import { Plus, Filter, Eye, Edit, Trash2, ChevronDown, X, AlertTriangle, Tag, FileText, RotateCcw, Settings, Send, Download, DollarSign, Calendar, CreditCard } from 'lucide-react';
+import { Plus, Filter, Eye, Edit, Trash2, ChevronDown, X, AlertTriangle, Tag, FileText, RotateCcw, Settings, Send, Download, DollarSign, Calendar, CreditCard, Monitor } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { Sale, SaleItem } from '../types';
 import { BarcodeScanner } from '../components/BarcodeScanner';
@@ -8,11 +8,13 @@ import { DigitalReceipt } from '../components/DigitalReceipt';
 import { ReturnRefundForm } from '../components/ReturnRefundForm';
 import { PaymentTypeManager } from '../components/PaymentTypeManager';
 import { CurrencyDisplay } from '../components/CurrencyDisplay';
+import { POSInterface } from '../components/POSInterface';
 import { useReactToPrint } from 'react-to-print';
 
 export function Sales() {
   const { sales, products, customers, addSale, updateSale, deleteSale, paymentTypes } = useStore();
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showPOSInterface, setShowPOSInterface] = useState(false);
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
   const [viewingSale, setViewingSale] = useState<Sale | null>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'paid' | 'pending' | 'overdue'>('all');
@@ -855,6 +857,14 @@ export function Sales() {
             <span>Return/Refund</span>
           </button>
           <button
+            onClick={() => setShowPOSInterface(true)}
+            data-tour="pos-interface"
+            className="flex items-center space-x-2 rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700 transition-colors"
+          >
+            <Monitor className="h-5 w-5" />
+            <span>POS Sale</span>
+          </button>
+          <button
             onClick={() => setShowAddForm(true)}
             data-tour="add-sale"
             className="flex items-center space-x-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 transition-colors"
@@ -1040,6 +1050,16 @@ export function Sales() {
       {showPaymentTypeManager && (
         <PaymentTypeManager
           onClose={() => setShowPaymentTypeManager(false)}
+        />
+      )}
+      {showPOSInterface && (
+        <POSInterface
+          onClose={() => setShowPOSInterface(false)}
+          onSaleComplete={(sale) => {
+            setShowPOSInterface(false);
+            // Optional: Show the completed sale
+            setViewingSale(sale);
+          }}
         />
       )}
     </div>
