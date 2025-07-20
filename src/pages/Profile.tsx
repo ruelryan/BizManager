@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Mail, Crown, Save, ArrowLeft, Building, Calendar, AlertCircle, Bell, CreditCard, MapPin, Wifi, WifiOff } from 'lucide-react';
+import { User, Mail, Crown, Save, ArrowLeft, Building, Calendar, AlertCircle, Bell, CreditCard, MapPin, Wifi, WifiOff, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useStore, isInFreeTrial, getTrialDaysRemaining, hasUsedTrial, getEffectivePlan } from '../store/useStore';
 import { TrialStatus } from '../components/TrialStatus';
