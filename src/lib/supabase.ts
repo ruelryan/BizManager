@@ -82,8 +82,7 @@ export const transformSupabaseData = {
     createdAt: safeDate(data.created_at),
     isActive: data.is_active,
     creditLimit: Number(data.credit_limit) || 0,
-    balance: Number(data.balance) || 0,
-    specialPricing: data.special_pricing || {}
+    balance: Number(data.balance) || 0
   }),
 
   expense: (data: any) => ({
@@ -153,7 +152,6 @@ export const transformToSupabaseData = {
     balance: data.balance || 0,
     credit_limit: data.creditLimit || 0,
     is_active: data.isActive,
-    special_pricing: data.specialPricing || {},
     user_id: userId
   }),
 
