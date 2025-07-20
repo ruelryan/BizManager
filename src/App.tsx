@@ -24,9 +24,10 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { ProductTour } from './components/ProductTour';
 
 function App() {
-  const { user, isLoading, isInitialized, signIn } = useStore();
+  const { user, isLoading, isInitialized } = useStore();
   const [showTour, setShowTour] = useState(false);
   const [forceShow, setForceShow] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   
   // Debug logging
   useEffect(() => {
@@ -41,16 +42,24 @@ function App() {
     }
   }, []);
 
-  // Force show app after 3 seconds to prevent infinite loading
+  // Force show app after 5 seconds to prevent infinite loading, with retry mechanism
   useEffect(() => {
     const timer = setTimeout(() => {
-      console.log('Force showing app after 3 seconds');
+      console.log('Force showing app after 5 seconds');
       setForceShow(true);
-    }, 3000);
+    }, 5000);
     return () => clearTimeout(timer);
   }, []);
 
-  // Show loading spinner while initializing auth (but not longer than 3 seconds)
+  // Add retry mechanism for failed auth
+  const handleRetry = () => {
+    setRetryCount(prev => prev + 1);
+    setForceShow(false);
+    // Trigger auth reinit
+    useStore.getState().initAuth();
+  };
+
+  // Show loading spinner while initializing auth (but not longer than 5 seconds)
   if ((!isInitialized || isLoading) && !forceShow) {
     console.log('Showing loading spinner');
     return (
@@ -60,6 +69,15 @@ function App() {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
             <p className="text-gray-600 dark:text-gray-400">Loading...</p>
             <p className="text-xs text-gray-500 mt-2">Debug: Loading={isLoading ? 'true' : 'false'}, Init={isInitialized ? 'true' : 'false'}</p>
+            {retryCount > 0 && (
+              <p className="text-xs text-gray-500 mt-1">Retry attempt: {retryCount}</p>
+            )}
+            <button 
+              onClick={handleRetry}
+              className="mt-4 px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Retry Loading
+            </button>
           </div>
         </div>
       </ThemeProvider>

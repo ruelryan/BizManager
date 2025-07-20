@@ -59,7 +59,8 @@ export function Login() {
     setError('');
     try {
       await signInWithGoogle();
-      // Redirect will be handled by auth state change listener
+      // Navigate to intended destination after successful Google sign-in
+      navigate(from);
     } catch (err: any) {
       setError(err.message || 'Failed to sign in with Google');
     }

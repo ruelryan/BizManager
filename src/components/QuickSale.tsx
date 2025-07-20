@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, X, Search, ShoppingCart, CreditCard, Banknote, QrCode } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Search, ShoppingCart, CreditCard, Banknote, QrCode } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { Product, SaleItem } from '../types';
 import { CurrencyDisplay } from './CurrencyDisplay';

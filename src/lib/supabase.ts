@@ -40,12 +40,6 @@ export const handleSupabaseError = (error: any) => {
   throw new Error('An unexpected error occurred');
 };
 
-// Helper function to get current user ID
-const getCurrentUserId = async () => {
-  const { data: { user } } = await supabase.auth.getUser();
-  return user?.id;
-};
-
 // Helper function to safely create Date objects
 const safeDate = (dateValue: any): Date => {
   if (!dateValue) return new Date();

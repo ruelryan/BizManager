@@ -5,7 +5,6 @@ import {
   ShoppingCart, 
   Package, 
   BarChart3, 
-  FileText, 
   TrendingUp,
   Settings,
   LogOut,
@@ -16,8 +15,6 @@ import {
   WifiOff,
   Receipt,
   User,
-  Tag, 
-  CreditCard,
   Users
 } from 'lucide-react';
 import { useStore, isInFreeTrial, getEffectivePlan } from '../store/useStore';

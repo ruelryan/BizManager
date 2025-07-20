@@ -2,7 +2,6 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase, handleSupabaseError, transformSupabaseData, transformToSupabaseData } from '../lib/supabase';
 import { User, Product, Sale, Customer, Expense, InventoryTransaction, UserSettings, Return, PaymentType, Subscription } from '../types';
-import { plans } from '../utils/plans';
 
 // Helper function to generate a unique invoice number
 const generateInvoiceNumber = () => {
@@ -210,11 +209,22 @@ export const useStore = create<StoreState>()(
             } catch (profileError) {
               console.warn('Could not fetch profile:', profileError);
             }
-            const { data: settingsData } = await supabase
-              .from('user_settings')
-              .select('*')
-              .eq('user_id', data.user.id)
-              .single();
+            // Try to get user settings, but don't fail if they don't exist
+            let settingsData = null;
+            try {
+              const { data: settings, error: settingsError } = await supabase
+                .from('user_settings')
+                .select('*')
+                .eq('user_id', data.user.id)
+                .maybeSingle();
+              
+              if (settingsError && settingsError.code !== 'PGRST116') {
+                throw settingsError;
+              }
+              settingsData = settings;
+            } catch (settingsError) {
+              console.warn('Could not fetch user settings:', settingsError);
+            }
             const user: User = {
               id: data.user.id,
               email: data.user.email || '',
@@ -347,16 +357,28 @@ export const useStore = create<StoreState>()(
           const { user } = get();
           if (!user) throw new Error('User not authenticated');
 
-          const { data, error } = await supabase
-            .from('products')
-            .insert(transformToSupabaseData.product(product, user.id))
-            .select()
-            .single();
+          const newProduct = {
+            ...product,
+            id: Date.now().toString(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
 
-          if (error) throw handleSupabaseError(error);
+          // Only make database call for real users, not demo users
+          if (user.id !== 'demo-user-id') {
+            const { data, error } = await supabase
+              .from('products')
+              .insert(transformToSupabaseData.product(product, user.id))
+              .select()
+              .single();
 
-          const newProduct = transformSupabaseData.product(data);
-          set(state => ({ products: [...state.products, newProduct] }));
+            if (error) throw handleSupabaseError(error);
+            const dbProduct = transformSupabaseData.product(data);
+            set(state => ({ products: [...state.products, dbProduct] }));
+          } else {
+            // For demo users, just update local state
+            set(state => ({ products: [...state.products, newProduct] }));
+          }
         } catch (error) {
           console.error('Add product error:', error);
           throw error;
@@ -368,12 +390,15 @@ export const useStore = create<StoreState>()(
           const { user, products } = get();
           if (!user) throw new Error('User not authenticated');
 
-          const { error } = await supabase
-            .from('products')
-            .update(transformToSupabaseData.product(product, user.id))
-            .eq('id', id);
+          // Only make database call for real users, not demo users
+          if (user.id !== 'demo-user-id') {
+            const { error } = await supabase
+              .from('products')
+              .update(transformToSupabaseData.product(product, user.id))
+              .eq('id', id);
 
-          if (error) throw handleSupabaseError(error);
+            if (error) throw handleSupabaseError(error);
+          }
 
           const updatedProducts = products.map(p => 
             p.id === id ? { ...p, ...product, updatedAt: new Date() } : p
@@ -390,12 +415,15 @@ export const useStore = create<StoreState>()(
           const { user, products } = get();
           if (!user) throw new Error('User not authenticated');
 
-          const { error } = await supabase
-            .from('products')
-            .delete()
-            .eq('id', id);
+          // Only make database call for real users, not demo users
+          if (user.id !== 'demo-user-id') {
+            const { error } = await supabase
+              .from('products')
+              .delete()
+              .eq('id', id);
 
-          if (error) throw handleSupabaseError(error);
+            if (error) throw handleSupabaseError(error);
+          }
 
           const filteredProducts = products.filter(p => p.id !== id);
           set({ products: filteredProducts });
@@ -435,35 +463,49 @@ export const useStore = create<StoreState>()(
 
           // No longer updating customer balance for credit
 
-          // Create sale in database
-          const { data, error } = await supabase
-            .from('sales')
-            .insert(transformToSupabaseData.sale({
-              ...sale,
-              invoiceNumber,
-            }, user.id))
-            .select()
-            .single();
+          const newSale = {
+            ...sale,
+            id: Date.now().toString(),
+            invoiceNumber,
+            date: new Date(),
+          };
 
-          if (error) throw handleSupabaseError(error);
+          // Only make database call for real users, not demo users
+          if (user.id !== 'demo-user-id') {
+            // Create sale in database
+            const { data, error } = await supabase
+              .from('sales')
+              .insert(transformToSupabaseData.sale({
+                ...sale,
+                invoiceNumber,
+              }, user.id))
+              .select()
+              .single();
 
-          // Update products in database
-          for (const product of updatedProducts) {
-            if (products.find(p => p.id === product.id)?.currentStock !== product.currentStock) {
-              await supabase
-                .from('products')
-                .update({ stock: product.currentStock })
-                .eq('id', product.id);
+            if (error) throw handleSupabaseError(error);
+
+            // Update products in database
+            for (const product of updatedProducts) {
+              if (products.find(p => p.id === product.id)?.currentStock !== product.currentStock) {
+                await supabase
+                  .from('products')
+                  .update({ stock: product.currentStock })
+                  .eq('id', product.id);
+              }
             }
+
+            const dbSale = transformSupabaseData.sale(data);
+            set({ 
+              sales: [...sales, dbSale],
+              products: updatedProducts
+            });
+          } else {
+            // For demo users, just update local state
+            set({ 
+              sales: [...sales, newSale],
+              products: updatedProducts
+            });
           }
-
-          // No longer updating customer balance for credit
-
-          const newSale = transformSupabaseData.sale(data);
-          set({ 
-            sales: [...sales, newSale],
-            products: updatedProducts
-          });
         } catch (error) {
           console.error('Add sale error:', error);
           throw error;
@@ -518,16 +560,27 @@ export const useStore = create<StoreState>()(
           const { user, customers } = get();
           if (!user) throw new Error('User not authenticated');
 
-          const { data, error } = await supabase
-            .from('customers')
-            .insert(transformToSupabaseData.customer(customer, user.id))
-            .select()
-            .single();
+          const newCustomer = {
+            ...customer,
+            id: Date.now().toString(),
+            createdAt: new Date(),
+          };
 
-          if (error) throw handleSupabaseError(error);
+          // Only make database call for real users, not demo users
+          if (user.id !== 'demo-user-id') {
+            const { data, error } = await supabase
+              .from('customers')
+              .insert(transformToSupabaseData.customer(customer, user.id))
+              .select()
+              .single();
 
-          const newCustomer = transformSupabaseData.customer(data);
-          set({ customers: [...customers, newCustomer] });
+            if (error) throw handleSupabaseError(error);
+            const dbCustomer = transformSupabaseData.customer(data);
+            set({ customers: [...customers, dbCustomer] });
+          } else {
+            // For demo users, just update local state
+            set({ customers: [...customers, newCustomer] });
+          }
         } catch (error) {
           console.error('Add customer error:', error);
           throw error;
@@ -1270,11 +1323,22 @@ export const useStore = create<StoreState>()(
               console.warn('Could not fetch profile:', profileError);
             }
 
-            const { data: settingsData } = await supabase
-              .from('user_settings')
-              .select('*')
-              .eq('user_id', data.session.user.id)
-              .single();
+            // Try to get user settings, but don't fail if they don't exist
+            let settingsData = null;
+            try {
+              const { data: settings, error: settingsError } = await supabase
+                .from('user_settings')
+                .select('*')
+                .eq('user_id', data.session.user.id)
+                .maybeSingle();
+              
+              if (settingsError && settingsError.code !== 'PGRST116') {
+                throw settingsError;
+              }
+              settingsData = settings;
+            } catch (settingsError) {
+              console.warn('Could not fetch user settings:', settingsError);
+            }
 
             const user: User = {
               id: data.session.user.id,
@@ -1344,7 +1408,7 @@ export const useStore = create<StoreState>()(
             .from('user_settings')
             .select('*')
             .eq('user_id', user.id)
-            .single();
+            .maybeSingle();
             
           if (settingsError && settingsError.code !== 'PGRST116') {
             throw handleSupabaseError(settingsError);

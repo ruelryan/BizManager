@@ -5,29 +5,29 @@ import './index.css';
 
 console.log('main.tsx loaded');
 
-// Simple fallback content
-const FallbackApp = () => (
-  <div style={{ 
-    minHeight: '100vh', 
-    display: 'flex', 
-    alignItems: 'center', 
-    justifyContent: 'center',
-    backgroundColor: '#f9fafb',
-    fontFamily: 'system-ui, -apple-system, sans-serif'
-  }}>
-    <div style={{ textAlign: 'center', padding: '2rem' }}>
-      <h1 style={{ color: '#111827', marginBottom: '1rem' }}>BizManager</h1>
-      <p style={{ color: '#6b7280', marginBottom: '2rem' }}>Business Management System</p>
-      <div style={{ marginBottom: '2rem' }}>
-        <a href="/landing" style={{ color: '#3b82f6', textDecoration: 'none', marginRight: '1rem' }}>Landing</a>
-        <a href="/login" style={{ color: '#3b82f6', textDecoration: 'none' }}>Login</a>
-      </div>
-      <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>
-        If you see this, the React app failed to load properly.
-      </p>
-    </div>
-  </div>
-);
+// Simple fallback content (for potential future use)
+// const FallbackApp = () => (
+//   <div style={{ 
+//     minHeight: '100vh', 
+//     display: 'flex', 
+//     alignItems: 'center', 
+//     justifyContent: 'center',
+//     backgroundColor: '#f9fafb',
+//     fontFamily: 'system-ui, -apple-system, sans-serif'
+//   }}>
+//     <div style={{ textAlign: 'center', padding: '2rem' }}>
+//       <h1 style={{ color: '#111827', marginBottom: '1rem' }}>BizManager</h1>
+//       <p style={{ color: '#6b7280', marginBottom: '2rem' }}>Business Management System</p>
+//       <div style={{ marginBottom: '2rem' }}>
+//         <a href="/landing" style={{ color: '#3b82f6', textDecoration: 'none', marginRight: '1rem' }}>Landing</a>
+//         <a href="/login" style={{ color: '#3b82f6', textDecoration: 'none' }}>Login</a>
+//       </div>
+//       <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>
+//         If you see this, the React app failed to load properly.
+//       </p>
+//     </div>
+//   </div>
+// );
 
 try {
   console.log('Creating root element');

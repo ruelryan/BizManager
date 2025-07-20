@@ -24,8 +24,14 @@ export function PayPalSubscriptionButton({
   }
 
   // PayPal configuration for subscriptions
+  const paypalClientId = import.meta.env.VITE_PAYPAL_CLIENT_ID;
+  
+  if (!paypalClientId || paypalClientId === "test") {
+    console.error('PayPal client ID is not configured properly. Please set VITE_PAYPAL_CLIENT_ID environment variable.');
+  }
+
   const initialOptions = {
-    clientId: import.meta.env.VITE_PAYPAL_CLIENT_ID || "test",
+    clientId: paypalClientId || "test",
     currency: "USD",
     intent: "subscription" as const,
     vault: true, // Required for subscriptions

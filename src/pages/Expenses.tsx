@@ -128,7 +128,10 @@ export function Expenses() {
                   min="0"
                   step="0.01"
                   value={formData.amount}
-                  onChange={(e) => setFormData(prev => ({ ...prev, amount: parseFloat(e.target.value) }))}
+                  onChange={(e) => {
+                    const value = parseFloat(e.target.value) || 0;
+                    setFormData(prev => ({ ...prev, amount: value }));
+                  }}
                   className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
