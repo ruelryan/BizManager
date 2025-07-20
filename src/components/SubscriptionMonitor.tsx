@@ -17,6 +17,16 @@ export function SubscriptionMonitor({
   className = '' 
 }: SubscriptionMonitorProps) {
   const { user } = useStore();
+  
+  // Wrap useSubscriptionStatus in a try-catch to handle errors gracefully
+  let subscriptionData;
+  try {
+    subscriptionData = useSubscriptionStatus();
+  } catch (error) {
+    console.error('Error in SubscriptionMonitor:', error);
+    return null; // Don't render if there's an error
+  }
+  
   const { 
     subscription, 
     subscriptionStatus, 
@@ -26,7 +36,7 @@ export function SubscriptionMonitor({
     lastFetched,
     refreshSubscriptionStatus,
     syncWithPayPal 
-  } = useSubscriptionStatus();
+  } = subscriptionData;
 
   // Don't show for demo user
   if (!user || user.id === 'demo-user-id') {

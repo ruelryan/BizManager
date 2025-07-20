@@ -64,17 +64,18 @@ export function useSubscriptionStatus() {
     setError(null);
 
     try {
-      // Fetch subscription details
+      // Fetch subscription details - using maybeSingle() to handle empty results gracefully
       const { data: subscriptionData, error: subscriptionError } = await supabase
         .from('subscriptions')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
-      if (subscriptionError && subscriptionError.code !== 'PGRST116') {
-        throw subscriptionError;
+      if (subscriptionError) {
+        console.error('Error fetching subscription:', subscriptionError);
+        // Don't throw error, just log it and continue with null subscription
       }
 
       setSubscription(subscriptionData);

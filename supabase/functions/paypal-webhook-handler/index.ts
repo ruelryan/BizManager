@@ -1177,4 +1177,4 @@ async function updateWebhookProcessingError(supabase, eventId, error) {
   } catch (updateError) {
     console.error('Failed to update webhook error:', updateError);
   }
-} //error handling update
+} //update July 21

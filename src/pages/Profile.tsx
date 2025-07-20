@@ -440,7 +440,6 @@ export function Profile() {
           <div className="space-y-4">
             <SubscriptionMonitor showDetails={true} className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700" />
             
-            {/* Subscription Management Button */}
             <div className="text-center">
               <button
                 onClick={() => setShowSubscriptionManagement(true)}
