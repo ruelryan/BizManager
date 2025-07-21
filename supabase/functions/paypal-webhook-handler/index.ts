@@ -556,10 +556,24 @@ async function handleSubscriptionActivated(supabase, event) {
   }
   
   try {
-    // Determine plan type from PayPal plan ID
+    // Determine plan type by looking up the PayPal plan ID in our database
     let planType = 'starter';
-    if (planId && planId.includes('PRO')) {
-      planType = 'pro';
+    if (planId) {
+      const { data: billingPlan, error: planError } = await supabase
+        .from('paypal_billing_plans')
+        .select('paypal_product_id')
+        .eq('paypal_plan_id', planId)
+        .single();
+      
+      if (planError) {
+        console.log('Could not find billing plan in database:', planError);
+        console.log('Falling back to starter plan');
+      } else if (billingPlan?.paypal_product_id === 'BIZMANAGER_PRO') {
+        planType = 'pro';
+        console.log('✅ Determined plan type as PRO from database lookup');
+      } else {
+        console.log('✅ Determined plan type as STARTER from database lookup');
+      }
     }
     
     // Calculate current period end (30 days from start)
@@ -739,10 +753,24 @@ async function handleSubscriptionCreated(supabase, event) {
   }
   
   try {
-    // Determine plan type
+    // Determine plan type by looking up the PayPal plan ID in our database
     let planType = 'starter';
-    if (planId && planId.includes('PRO')) {
-      planType = 'pro';
+    if (planId) {
+      const { data: billingPlan, error: planError } = await supabase
+        .from('paypal_billing_plans')
+        .select('paypal_product_id')
+        .eq('paypal_plan_id', planId)
+        .single();
+      
+      if (planError) {
+        console.log('Could not find billing plan in database:', planError);
+        console.log('Falling back to starter plan');
+      } else if (billingPlan?.paypal_product_id === 'BIZMANAGER_PRO') {
+        planType = 'pro';
+        console.log('✅ Determined plan type as PRO from database lookup');
+      } else {
+        console.log('✅ Determined plan type as STARTER from database lookup');
+      }
     }
     
     // Create subscription record
@@ -971,10 +999,24 @@ async function handleSubscriptionUpdated(supabase, event) {
       return;
     }
     
-    // Determine new plan type
+    // Determine new plan type by looking up the PayPal plan ID in our database
     let newPlanType = 'starter';
-    if (planId && planId.includes('PRO')) {
-      newPlanType = 'pro';
+    if (planId) {
+      const { data: billingPlan, error: planError } = await supabase
+        .from('paypal_billing_plans')
+        .select('paypal_product_id')
+        .eq('paypal_plan_id', planId)
+        .single();
+      
+      if (planError) {
+        console.log('Could not find billing plan in database:', planError);
+        console.log('Falling back to starter plan');
+      } else if (billingPlan?.paypal_product_id === 'BIZMANAGER_PRO') {
+        newPlanType = 'pro';
+        console.log('✅ Determined new plan type as PRO from database lookup');
+      } else {
+        console.log('✅ Determined new plan type as STARTER from database lookup');
+      }
     }
     
     // Update subscription
