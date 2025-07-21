@@ -128,12 +128,19 @@ Deno.serve(async (req) => {
         console.log(`✅ Product created: ${product.id}`);
         
         // Store in database
-        await supabase.from('paypal_products').upsert({
+        const { data: productInsertData, error: productInsertError } = await supabase.from('paypal_products').upsert({
           paypal_product_id: product.id,
           name: product.name,
           description: product.description,
           category: product.category
         });
+        
+        if (productInsertError) {
+          console.error('❌ Database insert error for product:', productInsertError);
+          throw new Error(`Failed to store product in database: ${productInsertError.message}`);
+        } else {
+          console.log('✅ Product stored in database:', productInsertData);
+        }
       } else {
         const errorText = await productResponse.text();
         console.error(`Failed to create product ${productData.id}:`, errorText);
@@ -252,15 +259,22 @@ Deno.serve(async (req) => {
         console.log(`✅ Billing plan created: ${plan.id}`);
         
         // Store in database
-        await supabase.from('paypal_billing_plans').upsert({
+        const { data: insertData, error: insertError } = await supabase.from('paypal_billing_plans').upsert({
           paypal_plan_id: plan.id,
           paypal_product_id: planData.product_id,
           name: plan.name,
           description: plan.description,
           status: plan.status,
-          billing_cycles: plan.billing_cycles,
-          payment_preferences: plan.payment_preferences
+          billing_cycles: plan.billing_cycles || planData.billing_cycles, // Use the billing_cycles from our request data
+          payment_preferences: plan.payment_preferences || planData.payment_preferences
         });
+        
+        if (insertError) {
+          console.error('❌ Database insert error for billing plan:', insertError);
+          throw new Error(`Failed to store billing plan in database: ${insertError.message}`);
+        } else {
+          console.log('✅ Billing plan stored in database:', insertData);
+        }
       } else {
         const errorText = await planResponse.text();
         console.error(`Failed to create billing plan ${planData.name}:`, errorText);

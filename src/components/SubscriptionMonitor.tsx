@@ -198,8 +198,11 @@ export function SubscriptionMonitor({
           <div className="flex items-center space-x-2">
             <Calendar className="h-3 w-3" />
             <span>
-              Current period: {new Date(subscription.current_period_start).toLocaleDateString()} - 
-              {new Date(subscription.current_period_end).toLocaleDateString()}
+              Current period: {
+                subscription.current_period_start && subscription.current_period_end
+                  ? `${new Date(subscription.current_period_start).toLocaleDateString()} - ${new Date(subscription.current_period_end).toLocaleDateString()}`
+                  : 'Not available'
+              }
             </span>
           </div>
           

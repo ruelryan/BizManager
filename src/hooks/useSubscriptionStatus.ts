@@ -47,13 +47,13 @@ export function useSubscriptionStatus() {
   const subscriptionStatus = subscription ? {
     isActive: subscription.status === 'ACTIVE',
     isCancelled: subscription.cancel_at_period_end || subscription.cancelled_at !== null,
-    isExpired: new Date() > new Date(subscription.current_period_end),
+    isExpired: subscription.current_period_end ? new Date() > new Date(subscription.current_period_end) : false,
     hasFailedPayments: (subscription.failed_payment_count || 0) > 0,
-    daysUntilRenewal: Math.ceil((new Date(subscription.next_billing_time).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)),
-    daysUntilExpiry: Math.ceil((new Date(subscription.current_period_end).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)),
+    daysUntilRenewal: subscription.next_billing_time ? Math.ceil((new Date(subscription.next_billing_time).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 0,
+    daysUntilExpiry: subscription.current_period_end ? Math.ceil((new Date(subscription.current_period_end).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 0,
     shouldShowRenewalNotice: subscription.status === 'ACTIVE' && !subscription.cancel_at_period_end,
-    shouldShowCancellationNotice: subscription.cancel_at_period_end && new Date() < new Date(subscription.current_period_end),
-    shouldShowExpiredNotice: new Date() > new Date(subscription.current_period_end) && subscription.status !== 'CANCELLED',
+    shouldShowCancellationNotice: subscription.cancel_at_period_end && subscription.current_period_end && new Date() < new Date(subscription.current_period_end),
+    shouldShowExpiredNotice: subscription.current_period_end && new Date() > new Date(subscription.current_period_end) && subscription.status !== 'CANCELLED',
     riskLevel: (subscription.failed_payment_count || 0) >= 2 ? 'high' : (subscription.failed_payment_count || 0) >= 1 ? 'medium' : 'low'
   } : null;
 
