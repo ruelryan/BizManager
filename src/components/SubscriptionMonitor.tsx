@@ -210,7 +210,7 @@ export function SubscriptionMonitor({
             <div className="flex items-center space-x-2">
               <CheckCircle className="h-3 w-3" />
               <span>
-                Last payment: ${subscription.last_payment_amount} on {new Date(subscription.last_payment_date).toLocaleDateString()}
+                Last payment: ₱{subscription.last_payment_amount} on {new Date(subscription.last_payment_date).toLocaleDateString()}
               </span>
             </div>
           )}
@@ -225,7 +225,7 @@ export function SubscriptionMonitor({
                       {transaction.transaction_type.replace('_', ' ')}
                     </span>
                     <div className="flex items-center space-x-2">
-                      <span>${transaction.amount}</span>
+                      <span>₱{transaction.amount}</span>
                       <span className={`px-2 py-1 rounded text-xs ${
                         transaction.status === 'completed' 
                           ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
