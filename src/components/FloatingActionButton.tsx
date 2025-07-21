@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Plus, ShoppingCart, Package, Users, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { QuickSale } from './QuickSale';
+import { POSInterface } from './POSInterface';
 
 export function FloatingActionButton() {
   const [isOpen, setIsOpen] = useState(false);
-  const [showQuickSale, setShowQuickSale] = useState(false);
+  const [showPOSInterface, setShowPOSInterface] = useState(false);
   const navigate = useNavigate();
 
   const actions = [
@@ -13,7 +13,7 @@ export function FloatingActionButton() {
       icon: ShoppingCart,
       label: 'Quick Sale',
       color: 'bg-blue-600 hover:bg-blue-700',
-      action: () => setShowQuickSale(true),
+      action: () => setShowPOSInterface(true),
     },
     {
       icon: Package,
@@ -72,9 +72,9 @@ export function FloatingActionButton() {
         </button>
       </div>
 
-      {/* Quick Sale Modal */}
-      {showQuickSale && (
-        <QuickSale onClose={() => setShowQuickSale(false)} />
+      {/* POS Interface Modal */}
+      {showPOSInterface && (
+        <POSInterface onClose={() => setShowPOSInterface(false)} />
       )}
 
       {/* Animation Styles */}

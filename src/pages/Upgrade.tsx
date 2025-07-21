@@ -16,6 +16,7 @@ export function Upgrade() {
   const [paymentError, setPaymentError] = React.useState<string | null>(null);
   const [paypalPlanId, setPaypalPlanId] = React.useState<string | null>(null);
   const [loadingPlanId, setLoadingPlanId] = React.useState(true);
+  const [isSettingUpPayPal, setIsSettingUpPayPal] = React.useState(false);
 
   const plan = plans.find(p => p.id === selectedPlan);
 
@@ -66,9 +67,40 @@ export function Upgrade() {
     });
   };
 
-  const handlePayPalError = (error: any) => {
+  const handlePayPalError = (error: Error | unknown) => {
     console.error('PayPal payment failed:', error);
     setPaymentError('PayPal payment failed. Please try again.');
+  };
+
+  // Set up PayPal products and plans
+  const setupPayPalProducts = async () => {
+    setIsSettingUpPayPal(true);
+    setPaymentError(null);
+    
+    try {
+      const { supabase } = await import('../lib/supabase');
+      
+      console.log('Setting up PayPal products...');
+      const { data, error } = await supabase.functions.invoke('setup-paypal-products', {
+        body: {}
+      });
+      
+      if (error) {
+        console.error('PayPal setup error:', error);
+        throw new Error(error.message || 'Failed to setup PayPal products');
+      }
+      
+      console.log('PayPal setup successful:', data);
+      
+      // Refresh the page to reload the plan IDs
+      window.location.reload();
+      
+    } catch (error) {
+      console.error('Failed to setup PayPal products:', error);
+      setPaymentError('Failed to setup PayPal products. Please ensure PayPal credentials are configured.');
+    } finally {
+      setIsSettingUpPayPal(false);
+    }
   };
 
   if (!plan) {
@@ -249,10 +281,29 @@ export function Upgrade() {
                   onError={handlePayPalError}
                 />
               ) : (
-                <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                  <p className="text-red-700 dark:text-red-300 text-center">
-                    Unable to load payment options. Please try again later.
-                  </p>
+                <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                  <div className="text-center">
+                    <p className="text-yellow-700 dark:text-yellow-300 mb-4">
+                      PayPal subscription products need to be set up first.
+                    </p>
+                    <button
+                      onClick={setupPayPalProducts}
+                      disabled={isSettingUpPayPal}
+                      className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isSettingUpPayPal ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Setting up PayPal...
+                        </>
+                      ) : (
+                        'Setup PayPal Products'
+                      )}
+                    </button>
+                    <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-2">
+                      This is a one-time setup process
+                    </p>
+                  </div>
                 </div>
               )}
             </div>

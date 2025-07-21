@@ -859,18 +859,10 @@ export function Sales() {
           <button
             onClick={() => setShowPOSInterface(true)}
             data-tour="pos-interface"
-            className="flex items-center space-x-2 rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700 transition-colors"
-          >
-            <Monitor className="h-5 w-5" />
-            <span>POS Sale</span>
-          </button>
-          <button
-            onClick={() => setShowAddForm(true)}
-            data-tour="add-sale"
             className="flex items-center space-x-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 transition-colors"
           >
-            <Plus className="h-5 w-5" />
-            <span>Add Sale</span>
+            <Monitor className="h-5 w-5" />
+            <span>New Sale</span>
           </button>
         </div>
       </div>
@@ -1015,13 +1007,6 @@ export function Sales() {
       )}
 
       {/* Modals */}
-      {showAddForm && <AddSaleForm onClose={() => setShowAddForm(false)} />}
-      {editingSale && (
-        <AddSaleForm 
-          sale={editingSale} 
-          onClose={() => setEditingSale(null)} 
-        />
-      )}
       {viewingSale && (
         <SaleViewModal 
           sale={viewingSale} 

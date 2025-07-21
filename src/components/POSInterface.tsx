@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { X, Plus, Minus, Search, ShoppingCart, CreditCard, DollarSign, User, Tag, Calculator, Trash2, Edit2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Plus, Minus, Search, ShoppingCart, CreditCard, User, Tag, Trash2 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { Product, Sale, SaleItem } from '../types';
 import { CurrencyDisplay } from './CurrencyDisplay';
@@ -19,12 +19,13 @@ interface POSInterfaceProps {
 }
 
 export function POSInterface({ onClose, onSaleComplete }: POSInterfaceProps) {
-  const { products, customers, addSale, paymentTypes } = useStore();
+  const { products, customers, addSale, paymentTypes, addCustomer } = useStore();
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<{id: string; name: string; email?: string; specialPricing?: Record<string, number>} | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [showCustomerSearch, setShowCustomerSearch] = useState(false);
+  const [showAddCustomer, setShowAddCustomer] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState(paymentTypes[0]?.id || 'cash');
@@ -143,12 +144,127 @@ export function POSInterface({ onClose, onSaleComplete }: POSInterfaceProps) {
       // Show success message
       alert('Sale completed successfully!');
       
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to process sale:', error);
-      alert('Failed to process sale: ' + error.message);
+      alert('Failed to process sale: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  // Add Customer modal
+  const AddCustomerModal = () => {
+    const [customerData, setCustomerData] = useState({
+      name: '',
+      email: '',
+      phone: '',
+      address: ''
+    });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!customerData.name.trim()) {
+        alert('Customer name is required');
+        return;
+      }
+
+      setIsSubmitting(true);
+      try {
+        const customer = await addCustomer({
+          name: customerData.name.trim(),
+          email: customerData.email.trim() || undefined,
+          phone: customerData.phone.trim() || undefined,
+          address: customerData.address.trim() || undefined
+        });
+
+        setSelectedCustomer(customer);
+        setShowAddCustomer(false);
+        setCustomerData({ name: '', email: '', phone: '', address: '' });
+      } catch (error) {
+        console.error('Failed to add customer:', error);
+        alert('Failed to add customer: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      } finally {
+        setIsSubmitting(false);
+      }
+    };
+
+    return (
+      <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Add New Customer</h3>
+          
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Name *
+              </label>
+              <input
+                type="text"
+                value={customerData.name}
+                onChange={(e) => setCustomerData(prev => ({ ...prev, name: e.target.value }))}
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                required
+                autoFocus
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Email
+              </label>
+              <input
+                type="email"
+                value={customerData.email}
+                onChange={(e) => setCustomerData(prev => ({ ...prev, email: e.target.value }))}
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Phone
+              </label>
+              <input
+                type="tel"
+                value={customerData.phone}
+                onChange={(e) => setCustomerData(prev => ({ ...prev, phone: e.target.value }))}
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Address
+              </label>
+              <textarea
+                value={customerData.address}
+                onChange={(e) => setCustomerData(prev => ({ ...prev, address: e.target.value }))}
+                rows={2}
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              />
+            </div>
+
+            <div className="flex space-x-3 pt-4">
+              <button
+                type="submit"
+                disabled={isSubmitting || !customerData.name.trim()}
+                className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? 'Adding...' : 'Add Customer'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowAddCustomer(false)}
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
   };
 
   // Payment interface
@@ -223,36 +339,36 @@ export function POSInterface({ onClose, onSaleComplete }: POSInterfaceProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-40 bg-white dark:bg-gray-900 flex">
+    <div className="fixed inset-0 z-40 bg-white dark:bg-gray-900 flex flex-col lg:flex-row">
       {/* Main POS Interface */}
-      <div className="flex-1 flex">
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         {/* Product Section */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-h-0">
           {/* Header */}
-          <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
+          <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-3 lg:p-4 flex-shrink-0">
             <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Point of Sale</h1>
-              <div className="flex items-center space-x-3">
+              <h1 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">Point of Sale</h1>
+              <div className="flex items-center space-x-2 lg:space-x-3">
                 <button
                   onClick={() => setShowScanner(true)}
-                  className="flex items-center space-x-2 bg-gray-100 dark:bg-gray-700 px-3 py-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600"
+                  className="flex items-center space-x-1 lg:space-x-2 bg-gray-100 dark:bg-gray-700 px-2 lg:px-3 py-1.5 lg:py-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 text-sm"
                 >
                   <Tag className="h-4 w-4" />
-                  <span>Scan</span>
+                  <span className="hidden sm:inline">Scan</span>
                 </button>
                 <button
                   onClick={onClose}
-                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 lg:hidden"
                 >
-                  <X className="h-6 w-6" />
+                  <X className="h-5 w-5" />
                 </button>
               </div>
             </div>
           </div>
 
           {/* Search and Categories */}
-          <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
-            <div className="flex items-center space-x-4">
+          <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-3 lg:p-4 flex-shrink-0">
+            <div className="flex flex-col space-y-3 lg:flex-row lg:items-center lg:space-y-0 lg:space-x-4">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
@@ -260,15 +376,15 @@ export function POSInterface({ onClose, onSaleComplete }: POSInterfaceProps) {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search products..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm lg:text-base"
                 />
               </div>
-              <div className="flex space-x-2 overflow-x-auto">
+              <div className="flex space-x-2 overflow-x-auto pb-1">
                 {categories.map(category => (
                   <button
                     key={category}
                     onClick={() => setSelectedCategory(category)}
-                    className={`px-3 py-2 rounded-lg whitespace-nowrap ${
+                    className={`px-3 py-1.5 lg:py-2 rounded-lg whitespace-nowrap text-sm lg:text-base ${
                       selectedCategory === category
                         ? 'bg-blue-600 text-white'
                         : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
@@ -282,11 +398,10 @@ export function POSInterface({ onClose, onSaleComplete }: POSInterfaceProps) {
           </div>
 
           {/* Products Grid */}
-          <div className="flex-1 p-4 overflow-y-auto">
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          <div className="flex-1 p-3 lg:p-4 overflow-y-auto pb-20 lg:pb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 lg:gap-4">
               {filteredProducts.map(product => {
                 const specialPrice = selectedCustomer?.specialPricing?.[product.id];
-                const displayPrice = specialPrice || product.price;
                 
                 return (
                   <button
@@ -334,12 +449,18 @@ export function POSInterface({ onClose, onSaleComplete }: POSInterfaceProps) {
           </div>
         </div>
 
-        {/* Cart Section */}
-        <div className="w-80 bg-gray-50 dark:bg-gray-900 border-l border-gray-200 dark:border-gray-700 flex flex-col">
+        {/* Cart Section - Mobile: Bottom sheet, Desktop: Right sidebar */}
+        <div className={`
+          lg:w-80 lg:bg-gray-50 lg:dark:bg-gray-900 lg:border-l lg:border-gray-200 lg:dark:border-gray-700 lg:flex lg:flex-col
+          fixed lg:relative bottom-0 lg:bottom-auto left-0 lg:left-auto right-0 lg:right-auto
+          bg-white dark:bg-gray-800 border-t lg:border-t-0 border-gray-200 dark:border-gray-700
+          max-h-96 lg:max-h-none z-50 lg:z-auto
+          flex flex-col
+        `}>
           {/* Cart Header */}
-          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="p-3 lg:p-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
             <div className="flex items-center justify-between">
-              <h2 className="font-semibold text-gray-900 dark:text-white flex items-center">
+              <h2 className="font-semibold text-gray-900 dark:text-white flex items-center text-sm lg:text-base">
                 <ShoppingCart className="h-5 w-5 mr-2" />
                 Cart ({cart.length})
               </h2>
@@ -466,6 +587,19 @@ export function POSInterface({ onClose, onSaleComplete }: POSInterfaceProps) {
         <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6">
             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Select Customer</h3>
+            
+            <div className="mb-4">
+              <button
+                onClick={() => {
+                  setShowCustomerSearch(false);
+                  setShowAddCustomer(true);
+                }}
+                className="w-full p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium"
+              >
+                + Add New Customer
+              </button>
+            </div>
+
             <div className="space-y-3 max-h-60 overflow-y-auto">
               {customers.map(customer => (
                 <button
@@ -490,6 +624,8 @@ export function POSInterface({ onClose, onSaleComplete }: POSInterfaceProps) {
           </div>
         </div>
       )}
+
+      {showAddCustomer && <AddCustomerModal />}
 
       {showScanner && (
         <BarcodeScanner
