@@ -65,7 +65,7 @@ export interface Sale {
   items: SaleItem[];
   total: number;
   paymentType: string;
-  status: 'paid' | 'pending' | 'overdue';
+  status: 'paid' | 'pending' | 'overdue' | 'refunded' | 'partially_refunded';
   date: Date;
   dueDate?: Date;
   invoiceNumber?: string;
@@ -77,10 +77,15 @@ export interface InventoryTransaction {
   id: string;
   productId: string;
   productName: string;
-  type: 'stock-in' | 'stock-out' | 'return';
+  type: 'stock-in' | 'stock-out' | 'return' | 'return_defective';
   quantity: number;
+  previousStock: number;
+  newStock: number;
   reason: string;
   date: Date;
+  userId: string;
+  referenceId?: string;
+  referenceType?: 'sale' | 'return' | 'adjustment';
 }
 
 export interface Expense {

@@ -19,7 +19,8 @@ import {
   ShoppingCart,
   Calendar,
   FileText,
-  Download
+  Download,
+  RotateCcw
 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { FeatureGate } from '../components/FeatureGate';
@@ -29,7 +30,7 @@ import { useCurrency } from '../hooks/useCurrency';
 type TimePeriod = 'month' | 'year' | 'all-time';
 
 export function Reports() {
-  const { sales, products, expenses, exportReportData } = useStore();
+  const { sales, products, expenses, returns, exportReportData } = useStore();
   const [selectedMonth, setSelectedMonth] = React.useState(new Date());
   const [selectedYear, setSelectedYear] = React.useState(new Date());
   const [timePeriod, setTimePeriod] = React.useState<TimePeriod>('month');
@@ -92,7 +93,14 @@ export function Reports() {
       expense.date >= startDate && expense.date <= endDate
     );
     
+    const periodReturns = returns.filter(returnItem =>
+      returnItem.date >= startDate && returnItem.date <= endDate
+    );
+    
     const totalRevenue = periodSales.reduce((sum, sale) => sum + (sale.total || 0), 0);
+    const totalReturns = periodReturns.reduce((sum, returnItem) => sum + returnItem.total, 0);
+    const netRevenue = totalRevenue - totalReturns;
+    
     const totalCostOfSales = periodSales.reduce((sum, sale) => 
       sum + sale.items.reduce((itemSum, item) => {
         const product = products.find(p => p.id === item.productId);
@@ -105,15 +113,21 @@ export function Reports() {
     
     return {
       totalRevenue,
+      totalReturns,
+      netRevenue,
       totalCostOfSales,
       totalExpenses,
       totalCashOutflow,
-      netIncome: totalRevenue - totalCashOutflow,
+      netIncome: netRevenue - totalCashOutflow,
       salesCount: periodSales.length,
+      returnsCount: periodReturns.length,
+      returnRate: totalRevenue > 0 ? (totalReturns / totalRevenue) * 100 : 0,
+      defectiveReturns: periodReturns.filter(ret => ret.items.some(item => item.isDefective)).length,
       sales: periodSales,
       expenses: periodExpenses,
+      returns: periodReturns,
     };
-  }, [sales, expenses, products]);
+  }, [sales, expenses, products, returns]);
 
   const currentData = getDataForPeriod(timePeriod, timePeriod === 'year' ? selectedYear : selectedMonth);
   const previousData = React.useMemo(() => {
@@ -413,13 +427,19 @@ export function Reports() {
         </div>
 
         {/* Summary Stats */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
           <StatCard
             title="Total Revenue"
             value={<CurrencyDisplay amount={currentData.totalRevenue} />}
             change={timePeriod === 'all-time' ? undefined : revenueChange}
             icon={DollarSign}
             color="green"
+          />
+          <StatCard
+            title="Returns"
+            value={<CurrencyDisplay amount={currentData.totalReturns} />}
+            icon={RotateCcw}
+            color="red"
           />
           <StatCard
             title="Total Sales"
@@ -435,8 +455,8 @@ export function Reports() {
             color="purple"
           />
           <StatCard
-            title="Profit Margin"
-            value={`${((currentData.netIncome / currentData.totalRevenue) * 100 || 0).toFixed(1)}%`}
+            title="Return Rate"
+            value={`${currentData.returnRate.toFixed(1)}%`}
             icon={FileText}
             color="orange"
           />

@@ -12,7 +12,7 @@ import { POSInterface } from '../components/POSInterface';
 import { useReactToPrint } from 'react-to-print';
 
 export function Sales() {
-  const { sales, products, customers, addSale, updateSale, deleteSale, paymentTypes } = useStore();
+  const { sales, products, customers, addSale, updateSale, deleteSale, addReturn, paymentTypes } = useStore();
   const [showAddForm, setShowAddForm] = useState(false);
   const [showPOSInterface, setShowPOSInterface] = useState(false);
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
@@ -50,6 +50,8 @@ export function Sales() {
       case 'paid': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
       case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
       case 'overdue': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
+      case 'refunded': return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300';
+      case 'partially_refunded': return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300';
       default: return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
     }
   };
@@ -120,11 +122,15 @@ export function Sales() {
     setShowDigitalReceipt(false);
   };
 
-  const handleReturnComplete = (returnData: any) => {
-    // In a real implementation, this would process the return/refund
-    console.log('Return data:', returnData);
-    alert('Return processed successfully');
-    setShowReturnForm(false);
+  const handleReturnComplete = async (returnData: any) => {
+    try {
+      const returnId = await addReturn(returnData);
+      alert(`Return ${returnId} processed successfully! Inventory has been updated and refund recorded.`);
+      setShowReturnForm(false);
+    } catch (error: any) {
+      console.error('Return processing error:', error);
+      alert(`Failed to process return: ${error.message}`);
+    }
   };
 
   const SearchableProductSelect = ({ 

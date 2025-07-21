@@ -15,7 +15,8 @@ import {
   WifiOff,
   Receipt,
   User,
-  Users
+  Users,
+  RotateCcw
 } from 'lucide-react';
 import { useStore, isInFreeTrial, getEffectivePlan } from '../store/useStore';
 import { ThemeToggle } from './ThemeToggle';
@@ -31,6 +32,7 @@ const navigation = [
   { name: 'Sales', href: '/sales', icon: ShoppingCart, tourId: 'sales' },
   { name: 'Products', href: '/products', icon: Package, tourId: 'products' },
   { name: 'Customers', href: '/customers', icon: Users, tourId: 'customers' },
+  { name: 'Returns', href: '/returns', icon: RotateCcw, tourId: 'returns' },
   { name: 'Inventory', href: '/inventory', icon: BarChart3, tourId: 'inventory' },
   { name: 'Expenses', href: '/expenses', icon: Receipt, tourId: 'expenses' },
   { name: 'Reports', href: '/reports', icon: TrendingUp, tourId: 'reports' },

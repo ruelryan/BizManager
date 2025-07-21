@@ -841,52 +841,182 @@ export const useStore = create<StoreState>()(
       // Return actions
       addReturn: async (returnData) => {
         try {
-          const { user, returns, products, sales } = get();
+          const { user, returns, products, sales, inventoryTransactions } = get();
           if (!user) throw new Error('User not authenticated');
           
-          // Update product stock for returned items
-          const updatedProducts = [...products];
-          for (const item of returnData.items) {
-            const productIndex = updatedProducts.findIndex(p => p.id === item.productId);
-            if (productIndex !== -1) {
-              updatedProducts[productIndex] = {
-                ...updatedProducts[productIndex],
-                currentStock: updatedProducts[productIndex].currentStock + item.quantity,
-                updatedAt: new Date()
-              };
-            }
-          }
-          
-          // Add return to state
+          // Generate unique return ID
+          const returnId = generateId('RET');
           const newReturn: Return = {
-            id: `return-${Date.now()}`,
+            id: returnId,
             ...returnData,
             date: new Date(),
           };
           
-          set({ 
-            returns: [...returns, newReturn],
-            products: updatedProducts
-          });
+          // Update product stock and create inventory transactions
+          const updatedProducts = [...products];
+          const newInventoryTransactions = [...inventoryTransactions];
           
-          // Update original sale status if needed
-          if (returnData.originalSaleId) {
-            const originalSale = sales.find(s => s.id === returnData.originalSaleId);
-            if (originalSale) {
-              // Check if all items were returned
-              const allItemsReturned = originalSale.items.every(item => {
-                const returnedItem = returnData.items.find(ri => ri.productId === item.productId);
-                return returnedItem && returnedItem.quantity >= item.quantity;
-              });
+          for (const item of returnData.items) {
+            const productIndex = updatedProducts.findIndex(p => p.id === item.productId);
+            if (productIndex !== -1) {
+              const product = updatedProducts[productIndex];
               
-              if (allItemsReturned) {
-                await get().updateSale(returnData.originalSaleId, { status: 'refunded' });
+              // Only add to sellable stock if item is not defective
+              if (!item.isDefective) {
+                product.currentStock += item.quantity;
               }
+              
+              product.updatedAt = new Date();
+              updatedProducts[productIndex] = product;
+              
+              // Create inventory transaction for the return
+              const inventoryTransaction: InventoryTransaction = {
+                id: `inv-${returnId}-${item.productId}`,
+                productId: item.productId,
+                productName: item.productName,
+                type: item.isDefective ? 'return_defective' : 'return',
+                quantity: item.quantity,
+                previousStock: product.currentStock - (item.isDefective ? 0 : item.quantity),
+                newStock: product.currentStock,
+                reason: `Return: ${item.reason}${item.isDefective ? ' (Defective)' : ''}`,
+                date: new Date(),
+                userId: user.id,
+                referenceId: returnId,
+                referenceType: 'return'
+              };
+              
+              newInventoryTransactions.push(inventoryTransaction);
             }
           }
+          
+          // Update state with all changes
+          set({ 
+            returns: [...returns, newReturn],
+            products: updatedProducts,
+            inventoryTransactions: newInventoryTransactions
+          });
+          
+          // Handle original sale status updates
+          if (returnData.originalSaleId) {
+            await get().processOriginalSaleUpdate(returnData.originalSaleId, returnData.items);
+          }
+          
+          // Save to database if not demo user
+          if (user.id !== 'demo-user-id') {
+            await get().saveReturnToDatabase(newReturn, newInventoryTransactions.slice(-returnData.items.length));
+          }
+          
+          console.log(`Return ${returnId} processed successfully`);
+          return returnId;
+          
         } catch (error) {
           console.error('Add return error:', error);
           throw error;
+        }
+      },
+
+      // Helper method to process original sale updates
+      processOriginalSaleUpdate: async (originalSaleId: string, returnItems: any[]) => {
+        const { sales } = get();
+        const originalSale = sales.find(s => s.id === originalSaleId);
+        
+        if (!originalSale) return;
+        
+        // Calculate total returned quantities for each product
+        const returnedQuantities: Record<string, number> = {};
+        
+        // Get all previous returns for this sale
+        const existingReturns = get().returns.filter(r => r.originalSaleId === originalSaleId);
+        existingReturns.forEach(ret => {
+          ret.items.forEach(item => {
+            returnedQuantities[item.productId] = (returnedQuantities[item.productId] || 0) + item.quantity;
+          });
+        });
+        
+        // Add current return quantities
+        returnItems.forEach(item => {
+          returnedQuantities[item.productId] = (returnedQuantities[item.productId] || 0) + item.quantity;
+        });
+        
+        // Check if all items were returned
+        const allItemsReturned = originalSale.items.every(item => {
+          const totalReturned = returnedQuantities[item.productId] || 0;
+          return totalReturned >= item.quantity;
+        });
+        
+        // Check if any items were returned (partial return)
+        const anyItemsReturned = originalSale.items.some(item => {
+          const totalReturned = returnedQuantities[item.productId] || 0;
+          return totalReturned > 0;
+        });
+        
+        // Update sale status accordingly
+        let newStatus: 'paid' | 'pending' | 'overdue' | 'refunded' | 'partially_refunded' = originalSale.status;
+        
+        if (allItemsReturned) {
+          newStatus = 'refunded';
+        } else if (anyItemsReturned) {
+          newStatus = 'partially_refunded';
+        }
+        
+        if (newStatus !== originalSale.status) {
+          await get().updateSale(originalSaleId, { status: newStatus });
+        }
+      },
+
+      // Helper method to save return to database
+      saveReturnToDatabase: async (returnData: Return, inventoryTransactions: InventoryTransaction[]) => {
+        try {
+          // Save return record
+          const { error: returnError } = await supabase.from('returns').insert({
+            id: returnData.id,
+            user_id: get().user?.id,
+            original_sale_id: returnData.originalSaleId,
+            total: returnData.total,
+            refund_method: returnData.refundMethod,
+            status: returnData.status,
+            reason: returnData.reason,
+            items: returnData.items,
+            date: returnData.date.toISOString()
+          });
+          
+          if (returnError) throw returnError;
+          
+          // Save inventory transactions
+          const inventoryRecords = inventoryTransactions.map(transaction => ({
+            id: transaction.id,
+            user_id: get().user?.id,
+            product_id: transaction.productId,
+            type: transaction.type,
+            quantity: transaction.quantity,
+            previous_stock: transaction.previousStock,
+            new_stock: transaction.newStock,
+            reason: transaction.reason,
+            date: transaction.date.toISOString(),
+            reference_id: transaction.referenceId,
+            reference_type: transaction.referenceType
+          }));
+          
+          const { error: inventoryError } = await supabase.from('inventory_transactions').insert(inventoryRecords);
+          if (inventoryError) throw inventoryError;
+          
+          // Update product stocks in database
+          for (const transaction of inventoryTransactions) {
+            const { error: productError } = await supabase
+              .from('products')
+              .update({ 
+                current_stock: transaction.newStock,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', transaction.productId)
+              .eq('user_id', get().user?.id);
+            
+            if (productError) throw productError;
+          }
+          
+        } catch (error) {
+          console.error('Error saving return to database:', error);
+          // Don't throw - allow return to be processed locally even if DB save fails
         }
       },
 
