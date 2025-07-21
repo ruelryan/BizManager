@@ -28,6 +28,7 @@ export function Upgrade() {
   const [paypalPlanId, setPaypalPlanId] = React.useState<string | null>(null);
   const [loadingPlanId, setLoadingPlanId] = React.useState(true);
   const [isSettingUpPayPal, setIsSettingUpPayPal] = React.useState(false);
+  const [isProcessingSubscription, setIsProcessingSubscription] = React.useState(false);
 
   const plan = plans.find(p => p.id === selectedPlan);
 
@@ -89,14 +90,108 @@ export function Upgrade() {
   const handlePayPalSubscriptionSuccess = async (subscriptionId: string) => {
     console.log('Subscription created successfully:', subscriptionId);
     
-    // Navigate to success page - webhook will handle the actual subscription activation
-    navigate('/profile', { 
-      state: { 
-        subscriptionCreated: true, 
-        subscriptionId: subscriptionId,
-        planName: plan?.name 
-      } 
-    });
+    // Set processing state to show loading indicator
+    setIsProcessingSubscription(true);
+    
+    try {
+      // Wait for webhook to process (with timeout)
+      let attempts = 0;
+      const maxAttempts = 15; // 15 seconds max wait
+      
+      while (attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+        
+        // Check if subscription was processed
+        const { supabase } = await import('../lib/supabase');
+        const { data: subscription } = await supabase
+          .from('subscriptions')
+          .select('plan_type, status')
+          .eq('paypal_subscription_id', subscriptionId)
+          .single();
+        
+        if (subscription && subscription.status === 'ACTIVE') {
+          console.log('✅ Subscription processed! Plan:', subscription.plan_type);
+          
+          // Force refresh user data in the store by fetching fresh data
+          try {
+            // Refresh user settings
+            const { supabase } = await import('../lib/supabase');
+            const { data: userSettings } = await supabase
+              .from('user_settings')
+              .select('*')
+              .eq('user_id', user?.id)
+              .single();
+            
+            if (userSettings) {
+              // Update the user in the store with fresh data
+              setUser({
+                ...user,
+                subscription: {
+                  plan_type: subscription.plan_type,
+                  status: subscription.status,
+                  paypal_subscription_id: subscriptionId
+                },
+                plan: subscription.plan_type
+              });
+            }
+          } catch (refreshError) {
+            console.error('Error refreshing user data:', refreshError);
+            // Still update basic subscription info
+            if (user) {
+              setUser({
+                ...user,
+                subscription: {
+                  ...user.subscription,
+                  plan_type: subscription.plan_type,
+                  status: subscription.status
+                }
+              });
+            }
+          }
+          
+          setIsProcessingSubscription(false);
+          
+          // Navigate to profile with success state
+          navigate('/profile', { 
+            state: { 
+              subscriptionCreated: true, 
+              subscriptionId: subscriptionId,
+              planName: subscription.plan_type === 'pro' ? 'Pro' : 'Starter',
+              justUpgraded: true
+            } 
+          });
+          return;
+        }
+        
+        attempts++;
+      }
+      
+      // If we reach here, webhook didn't process in time - still navigate but let user know
+      console.log('⏰ Webhook processing timeout - navigating anyway');
+      setIsProcessingSubscription(false);
+      
+      navigate('/profile', { 
+        state: { 
+          subscriptionCreated: true, 
+          subscriptionId: subscriptionId,
+          planName: plan?.name,
+          processingDelay: true
+        } 
+      });
+      
+    } catch (error) {
+      console.error('Error waiting for subscription processing:', error);
+      setIsProcessingSubscription(false);
+      
+      // Navigate anyway - the webhook will eventually process
+      navigate('/profile', { 
+        state: { 
+          subscriptionCreated: true, 
+          subscriptionId: subscriptionId,
+          planName: plan?.name 
+        } 
+      });
+    }
   };
 
   const handlePayPalError = (error: Error | unknown) => {
@@ -142,7 +237,22 @@ export function Upgrade() {
   // PHP pricing only - no USD conversion needed
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200 relative">
+      {/* Processing Overlay */}
+      {isProcessingSubscription && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-8 max-w-md mx-4 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              Processing Your Subscription
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400">
+              Please wait while we activate your {selectedPlan} plan...
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Theme Toggle */}
       <div className="absolute top-6 right-6 z-10">
         <ThemeToggle />
