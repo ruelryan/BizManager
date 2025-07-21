@@ -339,7 +339,7 @@ export function POSInterface({ onClose, onSaleComplete }: POSInterfaceProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-40 bg-white dark:bg-gray-900 flex flex-col lg:flex-row">
+    <div className="fixed top-0 left-0 right-0 bottom-0 lg:left-64 lg:bottom-0 bottom-16 z-40 bg-white dark:bg-gray-900 flex flex-col lg:flex-row">
       {/* Main POS Interface */}
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         {/* Product Section */}
@@ -358,7 +358,7 @@ export function POSInterface({ onClose, onSaleComplete }: POSInterfaceProps) {
                 </button>
                 <button
                   onClick={onClose}
-                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 lg:hidden"
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -398,7 +398,7 @@ export function POSInterface({ onClose, onSaleComplete }: POSInterfaceProps) {
           </div>
 
           {/* Products Grid */}
-          <div className="flex-1 p-3 lg:p-4 overflow-y-auto pb-20 lg:pb-4">
+          <div className="flex-1 p-3 lg:p-4 overflow-y-auto pb-96 lg:pb-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 lg:gap-4">
               {filteredProducts.map(product => {
                 const specialPrice = selectedCustomer?.specialPricing?.[product.id];
@@ -452,9 +452,9 @@ export function POSInterface({ onClose, onSaleComplete }: POSInterfaceProps) {
         {/* Cart Section - Mobile: Bottom sheet, Desktop: Right sidebar */}
         <div className={`
           lg:w-80 lg:bg-gray-50 lg:dark:bg-gray-900 lg:border-l lg:border-gray-200 lg:dark:border-gray-700 lg:flex lg:flex-col
-          fixed lg:relative bottom-0 lg:bottom-auto left-0 lg:left-auto right-0 lg:right-auto
+          fixed lg:relative bottom-16 lg:bottom-auto left-0 lg:left-auto right-0 lg:right-auto
           bg-white dark:bg-gray-800 border-t lg:border-t-0 border-gray-200 dark:border-gray-700
-          max-h-96 lg:max-h-none z-50 lg:z-auto
+          max-h-80 lg:max-h-none z-50 lg:z-auto
           flex flex-col
         `}>
           {/* Cart Header */}
