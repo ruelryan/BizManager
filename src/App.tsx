@@ -19,6 +19,7 @@ import { Demo } from './pages/Demo';
 import { Integrations } from './pages/Integrations';
 import { ProductLabelDemo } from './pages/ProductLabelDemo';
 import { Customers } from './pages/Customers';
+import { ResetPassword } from './pages/ResetPassword';
 import { useStore } from './store/useStore';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ProductTour } from './components/ProductTour';
@@ -95,6 +96,7 @@ function App() {
           <Route path="/landing" element={<Landing />} />
           <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <Login />} />
           <Route path="/signup" element={user ? <Navigate to="/dashboard" /> : <Login />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />

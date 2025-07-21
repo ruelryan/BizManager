@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { BarChart3, Mail, Lock, Eye, EyeOff, AlertCircle, UserPlus } from 'lucide-react';
+import { BarChart3, Mail, Lock, Eye, EyeOff, AlertCircle, UserPlus, X } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { useTheme } from '../contexts/ThemeContext';
@@ -8,7 +8,7 @@ import { useTheme } from '../contexts/ThemeContext';
 export function Login() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { signIn, signInWithGoogle, signUp, isLoading, user } = useStore();
+  const { signIn, signInWithGoogle, signUp, sendPasswordReset, isLoading, user } = useStore();
   const { theme } = useTheme();
   
   // Check if we're on the signup page
@@ -20,6 +20,8 @@ export function Login() {
   const [showPassword, setShowPassword] = React.useState(false);
   const [showSignUp, setShowSignUp] = React.useState(isSignupPage);
   const [error, setError] = React.useState('');
+  const [showForgotPassword, setShowForgotPassword] = React.useState(false);
+  const [resetSuccess, setResetSuccess] = React.useState(false);
   const [formData, setFormData] = React.useState({
     name: '',
     email: '',
@@ -63,6 +65,23 @@ export function Login() {
       navigate(from);
     } catch (err: any) {
       setError(err.message || 'Failed to sign in with Google');
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    
+    if (!formData.email) {
+      setError('Please enter your email address');
+      return;
+    }
+    
+    try {
+      await sendPasswordReset(formData.email);
+      setResetSuccess(true);
+    } catch (err: any) {
+      setError(err.message || 'Failed to send password reset email');
     }
   };
 
@@ -205,9 +224,20 @@ export function Login() {
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
+              
+              {/* Forgot Password Link - only show for sign in */}
+              {!showSignUp && (
+                <div className="text-right mt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotPassword(true)}
+                    className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+                  >
+                    Forgot your password?
+                  </button>
+                </div>
+              )}
             </div>
-
-
 
             <button
               type="submit"
@@ -226,6 +256,97 @@ export function Login() {
               )}
             </button>
           </form>
+
+          {/* Forgot Password Modal */}
+          {showForgotPassword && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6 relative">
+                <button
+                  onClick={() => {
+                    setShowForgotPassword(false);
+                    setResetSuccess(false);
+                    setError('');
+                  }}
+                  className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                  Reset Password
+                </h2>
+
+                {resetSuccess ? (
+                  <div className="text-center">
+                    <div className="w-12 h-12 mx-auto mb-4 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center">
+                      <AlertCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                      Check your email
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-400 mb-4">
+                      We've sent a password reset link to <strong>{formData.email}</strong>
+                    </p>
+                    <button
+                      onClick={() => {
+                        setShowForgotPassword(false);
+                        setResetSuccess(false);
+                      }}
+                      className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Close
+                    </button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleForgotPassword}>
+                    <p className="text-gray-600 dark:text-gray-400 mb-4">
+                      Enter your email address and we'll send you a link to reset your password.
+                    </p>
+
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Email Address
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        value={formData.email}
+                        onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        placeholder="Enter your email"
+                      />
+                    </div>
+
+                    {error && (
+                      <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                        <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                      </div>
+                    )}
+
+                    <div className="flex space-x-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowForgotPassword(false);
+                          setError('');
+                        }}
+                        className="flex-1 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 py-2 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isLoading}
+                        className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                      >
+                        {isLoading ? 'Sending...' : 'Send Reset Link'}
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Toggle between sign in and sign up */}
           <div className="mt-6 text-center">

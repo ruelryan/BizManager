@@ -106,6 +106,8 @@ interface StoreState {
   signUp: (email: string, password: string, name: string) => Promise<void>;
   signOut: () => Promise<void>;
   setUser: (user: User | null) => void;
+  sendPasswordReset: (email: string) => Promise<void>;
+  resetPassword: (token: string, newPassword: string) => Promise<void>;
 
   // Product actions
   addProduct: (product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
@@ -349,6 +351,36 @@ export const useStore = create<StoreState>()(
 
       setUser: (user) => {
         set({ user });
+      },
+
+      sendPasswordReset: async (email) => {
+        try {
+          set({ isLoading: true });
+          const { error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: `${window.location.origin}/reset-password`,
+          });
+          if (error) throw error;
+        } catch (error) {
+          console.error('Send password reset error:', error);
+          throw error;
+        } finally {
+          set({ isLoading: false });
+        }
+      },
+
+      resetPassword: async (token, newPassword) => {
+        try {
+          set({ isLoading: true });
+          const { error } = await supabase.auth.updateUser({
+            password: newPassword,
+          });
+          if (error) throw error;
+        } catch (error) {
+          console.error('Reset password error:', error);
+          throw error;
+        } finally {
+          set({ isLoading: false });
+        }
       },
 
       // Product actions
