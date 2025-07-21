@@ -81,15 +81,34 @@ export function ProductTour() {
     
     if (missingElements.length > 0) {
       console.warn('Tour elements missing:', missingElements);
-      // Wait a bit more for elements to render
-      setTimeout(() => startTour(), 1000);
+      // Don't retry if we're not on the dashboard
+      if (location.pathname !== '/dashboard') {
+        return;
+      }
+      // Wait a bit more for elements to render, but limit retries
+      const retryCount = (startTour as any).retryCount || 0;
+      if (retryCount < 3) {
+        (startTour as any).retryCount = retryCount + 1;
+        setTimeout(() => startTour(), 1000);
+      }
+      return;
+    }
+
+    // Filter steps to only include elements that actually exist
+    const availableSteps = dashboardTour.filter(step => {
+      const element = document.querySelector(step.element);
+      return element !== null;
+    });
+
+    if (availableSteps.length === 0) {
+      console.warn('No tour elements found on current page');
       return;
     }
 
     const intro = introJs();
     
     intro.setOptions({
-      steps: dashboardTour,
+      steps: availableSteps,
       showProgress: true,
       showBullets: true,
       exitOnOverlayClick: true,
@@ -118,12 +137,17 @@ export function ProductTour() {
       updateUserSettings({ hasCompletedTour: true });
     });
 
-    intro.onerror(() => {
-      console.error('Tour error - marking as completed');
+    intro.onerror((element) => {
+      console.error('Tour error on element:', element, '- marking as completed');
       updateUserSettings({ hasCompletedTour: true });
     });
 
-    intro.start();
+    try {
+      intro.start();
+    } catch (error) {
+      console.error('Failed to start tour:', error);
+      updateUserSettings({ hasCompletedTour: true });
+    }
   };
 
   if (!showTourButton) return null;

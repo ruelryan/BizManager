@@ -36,6 +36,8 @@ export function PayPalSubscriptionButton({
     intent: "subscription" as const,
     vault: true, // Required for subscriptions
     'data-sdk-integration-source': 'button-factory',
+    'disable-funding': 'paylater,venmo,card', // Simplify payment options to reduce errors
+    'enable-funding': 'paypal',
   };
 
   const createSubscription = (data: any, actions: any) => {
@@ -78,7 +80,10 @@ export function PayPalSubscriptionButton({
   };
 
   return (
-    <PayPalScriptProvider options={initialOptions}>
+    <PayPalScriptProvider 
+      options={initialOptions}
+      deferLoading={false}
+    >
       <div className="paypal-subscription-container">
         {/* Add custom CSS for dark mode compatibility */}
         <style>{`
