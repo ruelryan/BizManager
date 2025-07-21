@@ -204,7 +204,7 @@ export function SubscriptionManagement({ onClose }: SubscriptionManagementProps)
                   {currentPlan?.name || 'Unknown'} Plan
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  ${subscription.last_payment_amount || currentPlan?.price || 0}/month
+                  ₱{subscription.last_payment_amount || currentPlan?.price || 0}/month
                 </p>
               </div>
 
@@ -329,7 +329,7 @@ export function SubscriptionManagement({ onClose }: SubscriptionManagementProps)
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-400">Monthly Cost:</span>
                     <span className="font-medium text-gray-900 dark:text-white">
-                      ${subscription.last_payment_amount || currentPlan?.price || 0}
+                      ₱{subscription.last_payment_amount || currentPlan?.price || 0}
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -458,7 +458,7 @@ export function SubscriptionManagement({ onClose }: SubscriptionManagementProps)
                             {transaction.transaction_type.replace('_', ' ')}
                           </td>
                           <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                            ${transaction.amount}
+                            ₱{transaction.amount}
                           </td>
                           <td className="px-4 py-4 whitespace-nowrap">
                             <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${

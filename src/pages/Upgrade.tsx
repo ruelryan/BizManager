@@ -2,7 +2,7 @@ import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Check, Shield, AlertCircle, Sun, Moon, Star, Zap, Crown, CreditCard, Lock, CheckCircle } from 'lucide-react';
 import { plans } from '../utils/plans';
-import { useStore } from '../store/useStore';
+import { useStore, getEffectivePlan } from '../store/useStore';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { PayPalSubscriptionButton } from '../components/PayPalSubscriptionButton';
 import { useTheme } from '../contexts/ThemeContext';
@@ -12,7 +12,18 @@ export function Upgrade() {
   const navigate = useNavigate();
   const { user, setUser } = useStore();
   const { theme, toggleTheme } = useTheme();
-  const [selectedPlan, setSelectedPlan] = React.useState(location.state?.planId || 'starter');
+  
+  // Get user's current plan
+  const currentUserPlan = getEffectivePlan(user);
+  
+  // Smart default selection: if user is on starter, default to pro (upgrade path)
+  const getDefaultPlan = () => {
+    if (location.state?.planId) return location.state.planId;
+    if (currentUserPlan === 'starter') return 'pro';
+    return 'starter';
+  };
+  
+  const [selectedPlan, setSelectedPlan] = React.useState(getDefaultPlan());
   const [paymentError, setPaymentError] = React.useState<string | null>(null);
   const [paypalPlanId, setPaypalPlanId] = React.useState<string | null>(null);
   const [loadingPlanId, setLoadingPlanId] = React.useState(true);
@@ -128,11 +139,10 @@ export function Upgrade() {
     return <div>Plan not found</div>;
   }
 
-  // Convert PHP to USD for PayPal display
-  const usdPrice = (plan.price / 56).toFixed(2);
+  // PHP pricing only - no USD conversion needed
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900 transition-colors duration-500">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
       {/* Theme Toggle */}
       <div className="absolute top-6 right-6 z-10">
         <ThemeToggle />
@@ -150,7 +160,7 @@ export function Upgrade() {
           </button>
           
           {/* Plan Icon */}
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl mb-6">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-6">
             {plan.id === 'starter' ? (
               <Zap className="h-8 w-8 text-white" />
             ) : (
@@ -158,12 +168,58 @@ export function Upgrade() {
             )}
           </div>
           
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
-            Upgrade to {plan.name}
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+            {currentUserPlan === 'starter' ? 'Upgrade to Pro' : 'Choose Your Plan'}
           </h1>
-          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed">
-            Transform your business management experience with premium features and unlimited access.
+          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed mb-8">
+            {currentUserPlan === 'starter' 
+              ? 'Unlock advanced features like PDF invoices, cash flow analysis, and enhanced reporting.'
+              : 'Transform your business management experience with premium features and unlimited access.'
+            }
           </p>
+
+          {/* Plan Selection */}
+          <div className="flex justify-center mb-8">
+            <div className="inline-flex items-center rounded-lg bg-gray-100 dark:bg-gray-800 p-1">
+              <button
+                className={`px-6 py-3 rounded-md text-sm font-medium transition-colors relative ${
+                  selectedPlan === 'starter'
+                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300'
+                }`}
+                onClick={() => setSelectedPlan('starter')}
+              >
+                <Zap className="w-4 h-4 mr-2 inline" />
+                Starter - ₱199/month
+                {currentUserPlan === 'starter' && (
+                  <span className="absolute -top-1 -right-1 bg-green-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+                    Current
+                  </span>
+                )}
+              </button>
+              <button
+                className={`px-6 py-3 rounded-md text-sm font-medium transition-colors relative ${
+                  selectedPlan === 'pro'
+                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300'
+                }`}
+                onClick={() => setSelectedPlan('pro')}
+              >
+                <Crown className="w-4 h-4 mr-2 inline" />
+                Pro - ₱499/month
+                {currentUserPlan === 'pro' && (
+                  <span className="absolute -top-1 -right-1 bg-green-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+                    Current
+                  </span>
+                )}
+                {currentUserPlan === 'starter' && selectedPlan === 'pro' && (
+                  <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+                    Upgrade
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
 
         <div className="grid gap-8 xl:grid-cols-5 lg:grid-cols-3">
@@ -172,7 +228,7 @@ export function Upgrade() {
             <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-gray-800 p-8 shadow-xl border border-gray-200 dark:border-gray-700 h-full">
               {/* Premium Badge */}
               <div className="absolute top-4 right-4">
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-600 text-white">
                   <Star className="w-3 h-3 mr-1" />
                   Popular
                 </span>
@@ -184,11 +240,11 @@ export function Upgrade() {
               <div className="mb-8">
                 <div className="flex items-center mb-4">
                   {plan.id === 'starter' ? (
-                    <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mr-4">
+                    <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mr-4">
                       <Zap className="h-6 w-6 text-white" />
                     </div>
                   ) : (
-                    <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mr-4">
+                    <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mr-4">
                       <Crown className="h-6 w-6 text-white" />
                     </div>
                   )}
@@ -199,13 +255,12 @@ export function Upgrade() {
                 </div>
                 
                 {/* Pricing Display */}
-                <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl p-6 border border-blue-200 dark:border-blue-800">
+                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-6 border border-blue-200 dark:border-blue-800">
                   <div className="text-center">
                     <div className="flex items-baseline justify-center mb-2">
                       <span className="text-4xl font-bold text-gray-900 dark:text-white">₱{plan.price}</span>
                       <span className="text-lg text-gray-600 dark:text-gray-400 ml-1">/month</span>
                     </div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400 mb-3">≈ ${usdPrice} USD monthly</div>
                     <div className="inline-flex items-center px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 text-xs font-medium rounded-full">
                       <CheckCircle className="w-3 h-3 mr-1" />
                       Auto-renewing
@@ -260,8 +315,8 @@ export function Upgrade() {
                   )}
                   {plan.id === 'pro' && (
                     <>
-                      <div className="flex items-center p-3 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
-                        <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center mr-3">
+                      <div className="flex items-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
                           <Check className="h-4 w-4 text-white" />
                         </div>
                         <div>
@@ -269,8 +324,8 @@ export function Upgrade() {
                           <p className="text-xs text-gray-600 dark:text-gray-400">All starter features included</p>
                         </div>
                       </div>
-                      <div className="flex items-center p-3 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
-                        <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center mr-3">
+                      <div className="flex items-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
                           <Check className="h-4 w-4 text-white" />
                         </div>
                         <div>
@@ -278,8 +333,8 @@ export function Upgrade() {
                           <p className="text-xs text-gray-600 dark:text-gray-400">Professional invoices for clients</p>
                         </div>
                       </div>
-                      <div className="flex items-center p-3 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
-                        <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center mr-3">
+                      <div className="flex items-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
                           <Check className="h-4 w-4 text-white" />
                         </div>
                         <div>
@@ -287,8 +342,8 @@ export function Upgrade() {
                           <p className="text-xs text-gray-600 dark:text-gray-400">Detailed business analytics</p>
                         </div>
                       </div>
-                      <div className="flex items-center p-3 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
-                        <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center mr-3">
+                      <div className="flex items-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
                           <Check className="h-4 w-4 text-white" />
                         </div>
                         <div>
@@ -296,8 +351,8 @@ export function Upgrade() {
                           <p className="text-xs text-gray-600 dark:text-gray-400">Understand your money flow</p>
                         </div>
                       </div>
-                      <div className="flex items-center p-3 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
-                        <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center mr-3">
+                      <div className="flex items-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
                           <Check className="h-4 w-4 text-white" />
                         </div>
                         <div>
@@ -327,7 +382,7 @@ export function Upgrade() {
           <div className="xl:col-span-3 lg:col-span-2">
             <div className="rounded-2xl bg-white dark:bg-gray-800 p-8 shadow-xl border border-gray-200 dark:border-gray-700 h-full">
               <div className="flex items-center mb-8">
-                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center mr-4">
+                <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mr-4">
                   <CreditCard className="h-6 w-6 text-white" />
                 </div>
                 <div>
@@ -379,9 +434,9 @@ export function Upgrade() {
 
               {/* PayPal Information - Enhanced */}
               <div className="space-y-6 mb-8">
-                <div className="bg-gradient-to-r from-blue-50 via-purple-50 to-blue-50 dark:from-blue-900/20 dark:via-purple-900/20 dark:to-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6">
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6">
                   <div className="flex items-center mb-6">
-                    <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center mr-4">
+                    <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mr-4">
                       <span className="text-white text-sm font-bold">PP</span>
                     </div>
                     <div>
@@ -394,8 +449,8 @@ export function Upgrade() {
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-lg font-semibold text-gray-900 dark:text-white">Amount:</span>
                       <div className="text-right">
-                        <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">${usdPrice} USD</span>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">(≈ ₱{plan.price})</div>
+                        <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">₱{plan.price}</span>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">per month</div>
                       </div>
                     </div>
                   </div>
@@ -416,7 +471,7 @@ export function Upgrade() {
                         <span className="text-sm font-medium text-gray-900 dark:text-white">Credit cards</span>
                       </div>
                       <div className="flex items-center p-3 bg-white dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-blue-700">
-                        <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center mr-3">
+                        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
                           <CreditCard className="h-4 w-4 text-white" />
                         </div>
                         <span className="text-sm font-medium text-gray-900 dark:text-white">Debit cards</span>
@@ -472,7 +527,7 @@ export function Upgrade() {
                         <button
                           onClick={setupPayPalProducts}
                           disabled={isSettingUpPayPal}
-                          className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-lg font-semibold rounded-xl hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl"
+                          className="inline-flex items-center px-6 py-3 bg-blue-600 text-white text-lg font-semibold rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl"
                         >
                           {isSettingUpPayPal ? (
                             <>
@@ -503,9 +558,9 @@ export function Upgrade() {
                     <p className="text-sm text-gray-600 dark:text-gray-400">Billed monthly, cancel anytime</p>
                   </div>
                   <div className="text-right">
-                    <span className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">₱{plan.price}</span>
+                    <span className="text-3xl font-bold text-blue-600 dark:text-blue-400">₱{plan.price}</span>
                     <span className="text-xl text-gray-600 dark:text-gray-400">/month</span>
-                    <div className="text-sm text-gray-500 dark:text-gray-400 font-medium">${usdPrice} USD recurring</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400 font-medium">₱{plan.price} PHP recurring</div>
                   </div>
                 </div>
               </div>
@@ -513,9 +568,9 @@ export function Upgrade() {
               {/* Important Notices - Enhanced */}
               <div className="space-y-4">
                 {/* Auto-Renewal Notice */}
-                <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6">
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6">
                   <div className="flex items-start">
-                    <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center mr-4">
+                    <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center mr-4">
                       <CheckCircle className="h-5 w-5 text-white" />
                     </div>
                     <div>
@@ -554,7 +609,7 @@ export function Upgrade() {
         </div>
 
         {/* PayPal Benefits - Enhanced */}
-        <div className="mt-12 rounded-2xl bg-gradient-to-r from-white to-blue-50 dark:from-gray-800 dark:to-blue-900/20 p-8 shadow-xl border border-gray-200 dark:border-gray-700">
+        <div className="mt-12 rounded-2xl bg-white dark:bg-gray-800 p-8 shadow-xl border border-gray-200 dark:border-gray-700">
           <div className="text-center mb-8">
             <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Why PayPal?</h3>
             <p className="text-lg text-gray-600 dark:text-gray-300">Trusted by millions of businesses worldwide</p>
@@ -562,7 +617,7 @@ export function Upgrade() {
           
           <div className="grid gap-8 md:grid-cols-3">
             <div className="text-center group hover:transform hover:scale-105 transition-all duration-300">
-              <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg group-hover:shadow-xl">
+              <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg group-hover:shadow-xl">
                 <Shield className="h-8 w-8 text-white" />
               </div>
               <h4 className="text-xl font-bold text-gray-900 dark:text-white mb-3">Secure & Trusted</h4>
@@ -582,14 +637,14 @@ export function Upgrade() {
             </div>
             
             <div className="text-center group hover:transform hover:scale-105 transition-all duration-300">
-              <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg group-hover:shadow-xl">
+              <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg group-hover:shadow-xl">
                 <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
-                  <span className="text-purple-600 text-lg font-bold">₱$</span>
+                  <span className="text-blue-600 text-lg font-bold">₱$</span>
                 </div>
               </div>
               <h4 className="text-xl font-bold text-gray-900 dark:text-white mb-3">Global Currency Support</h4>
               <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
-                Seamless automatic currency conversion from PHP to USD with competitive exchange rates
+                Secure payment processing for Philippine businesses
               </p>
             </div>
           </div>
