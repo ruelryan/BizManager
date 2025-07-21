@@ -25,10 +25,23 @@ export function Upgrade() {
     const fetchPayPalPlanId = async () => {
       try {
         setLoadingPlanId(true);
+        setPaymentError(null); // Clear previous errors
         const { supabase } = await import('../lib/supabase');
         
         // Map our plan IDs to PayPal product IDs
         const paypalProductId = selectedPlan === 'starter' ? 'BIZMANAGER_STARTER' : 'BIZMANAGER_PRO';
+        console.log('Fetching PayPal plan for product:', paypalProductId);
+        
+        // First check if any billing plans exist
+        const { data: allPlans, error: allPlansError } = await supabase
+          .from('paypal_billing_plans')
+          .select('*');
+          
+        if (allPlansError) {
+          console.error('Error checking billing plans table:', allPlansError);
+        } else {
+          console.log('Available billing plans:', allPlans);
+        }
         
         const { data, error } = await supabase
           .from('paypal_billing_plans')
@@ -39,8 +52,16 @@ export function Upgrade() {
           
         if (error) {
           console.error('Error fetching PayPal plan ID:', error);
-          setPaymentError('Unable to load payment options. Please try again.');
+          console.log('Query details - Product ID:', paypalProductId, 'Status: ACTIVE');
+          
+          // Check if no data found vs other error
+          if (error.code === 'PGRST116') {
+            setPaymentError('PayPal billing plan not found. Please run setup first.');
+          } else {
+            setPaymentError('Unable to load payment options. Please try again.');
+          }
         } else {
+          console.log('Found PayPal plan:', data);
           setPaypalPlanId(data.paypal_plan_id);
         }
       } catch (error) {
