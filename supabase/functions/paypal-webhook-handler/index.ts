@@ -626,14 +626,14 @@ async function handleSubscriptionActivated(supabase, event) {
       console.log('✅ Trial terminated and subscription activated');
     }
     
-    // Record successful payment transaction
-    const amount = planType === 'pro' ? 9.99 : 3.99;
+    // Record successful payment transaction with correct PHP amounts
+    const amount = planType === 'pro' ? 499 : 199;
     const { error: transactionError } = await supabase.from('payment_transactions').insert({
       user_id: customId,
       paypal_transaction_id: subscriptionId,
       transaction_type: 'subscription_activation',
       amount: amount,
-      currency: 'USD',
+      currency: 'PHP',
       status: 'completed',
       plan_id: planType,
       payment_method: 'paypal_subscription',
