@@ -1600,11 +1600,21 @@ export const useStore = create<StoreState>()(
             throw handleSupabaseError(settingsError);
           }
           
+          // Load inventory transactions
+          const { data: inventoryData, error: inventoryError } = await supabase
+            .from('inventory_transactions')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('date', { ascending: false });
+            
+          if (inventoryError) throw handleSupabaseError(inventoryError);
+          
           // Transform data
           const products = productsData.map(transformSupabaseData.product);
           const sales = salesData.map(transformSupabaseData.sale);
           const customers = customersData.map(transformSupabaseData.customer);
           const expenses = expensesData.map(transformSupabaseData.expense);
+          const inventoryTransactions = inventoryData.map(transformSupabaseData.inventoryTransaction);
           const userSettings = settingsData ? transformSupabaseData.userSettings(settingsData) : null;
           
           // Update state
@@ -1613,6 +1623,7 @@ export const useStore = create<StoreState>()(
             sales,
             customers,
             expenses,
+            inventoryTransactions,
             userSettings,
             monthlyGoal: userSettings?.monthlyGoal || 50000
           });

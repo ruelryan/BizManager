@@ -98,6 +98,17 @@ export const transformSupabaseData = {
     updatedAt: safeDate(data.updated_at),
     plan: data.plan || 'free',
     subscriptionExpiry: data.subscription_expiry ? safeDate(data.subscription_expiry) : undefined
+  }),
+
+  inventoryTransaction: (data: any) => ({
+    ...data,
+    date: safeDate(data.date),
+    productId: data.product_id,
+    previousStock: Number(data.previous_stock) || 0,
+    newStock: Number(data.new_stock) || 0,
+    quantity: Number(data.quantity) || 0,
+    referenceId: data.reference_id,
+    referenceType: data.reference_type
   })
 };
 

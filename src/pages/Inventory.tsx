@@ -320,12 +320,16 @@ export function Inventory() {
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
                 {inventoryTransactions
-                  .sort((a, b) => b.date.getTime() - a.date.getTime())
+                  .sort((a, b) => {
+                    const dateA = a.date instanceof Date ? a.date : new Date(a.date);
+                    const dateB = b.date instanceof Date ? b.date : new Date(b.date);
+                    return dateB.getTime() - dateA.getTime();
+                  })
                   .slice(0, 20)
                   .map((transaction) => (
                     <tr key={transaction.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
-                        {format(transaction.date, 'MMM dd, yyyy HH:mm')}
+                        {format(transaction.date instanceof Date ? transaction.date : new Date(transaction.date), 'MMM dd, yyyy HH:mm')}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                         {transaction.productName}
