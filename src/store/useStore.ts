@@ -992,16 +992,28 @@ export const useStore = create<StoreState>()(
           const { error: returnError } = await supabase.from('returns').insert({
             id: returnData.id,
             user_id: get().user?.id,
-            original_sale_id: returnData.originalSaleId,
-            total: returnData.total,
+            sale_id: returnData.originalSaleId,
+            refund_amount: returnData.total,
             refund_method: returnData.refundMethod,
             status: returnData.status,
             reason: returnData.reason,
-            items: returnData.items,
-            date: returnData.date.toISOString()
+            return_date: returnData.date.toISOString().split('T')[0]
           });
           
           if (returnError) throw returnError;
+          
+          // Save return items to return_items table
+          const returnItems = returnData.items.map(item => ({
+            return_id: returnData.id,
+            product_id: item.productId,
+            quantity: item.quantity,
+            unit_price: item.unitPrice || 0,
+            reason: item.reason || returnData.reason,
+            condition: item.isDefective ? 'defective' : 'used'
+          }));
+          
+          const { error: returnItemsError } = await supabase.from('return_items').insert(returnItems);
+          if (returnItemsError) throw returnItemsError;
           
           // Save inventory transactions
           const inventoryRecords = inventoryTransactions.map(transaction => ({
@@ -1026,7 +1038,7 @@ export const useStore = create<StoreState>()(
             const { error: productError } = await supabase
               .from('products')
               .update({ 
-                current_stock: transaction.newStock,
+                stock: transaction.newStock,
                 updated_at: new Date().toISOString()
               })
               .eq('id', transaction.productId)
