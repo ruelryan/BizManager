@@ -102,13 +102,14 @@ export const transformSupabaseData = {
 
   inventoryTransaction: (data: any) => ({
     ...data,
-    date: safeDate(data.date),
+    date: safeDate(data.created_at),
     productId: data.product_id,
-    previousStock: Number(data.previous_stock) || 0,
-    newStock: Number(data.new_stock) || 0,
+    transactionType: data.transaction_type,
+    unitCost: Number(data.unit_cost) || 0,
     quantity: Number(data.quantity) || 0,
     referenceId: data.reference_id,
-    referenceType: data.reference_type
+    referenceType: data.reference_type,
+    notes: data.notes
   })
 };
 

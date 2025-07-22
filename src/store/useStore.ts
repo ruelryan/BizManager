@@ -1020,14 +1020,12 @@ export const useStore = create<StoreState>()(
             id: transaction.id,
             user_id: get().user?.id,
             product_id: transaction.productId,
-            type: transaction.type,
+            transaction_type: transaction.type,
             quantity: transaction.quantity,
-            previous_stock: transaction.previousStock,
-            new_stock: transaction.newStock,
-            reason: transaction.reason,
-            date: transaction.date.toISOString(),
+            unit_cost: transaction.unitCost || 0,
             reference_id: transaction.referenceId,
-            reference_type: transaction.referenceType
+            reference_type: transaction.referenceType,
+            notes: transaction.reason
           }));
           
           const { error: inventoryError } = await supabase.from('inventory_transactions').insert(inventoryRecords);
@@ -1605,7 +1603,7 @@ export const useStore = create<StoreState>()(
             .from('inventory_transactions')
             .select('*')
             .eq('user_id', user.id)
-            .order('date', { ascending: false });
+            .order('created_at', { ascending: false });
             
           if (inventoryError) throw handleSupabaseError(inventoryError);
           
