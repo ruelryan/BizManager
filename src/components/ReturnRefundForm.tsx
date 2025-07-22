@@ -111,7 +111,7 @@ export function ReturnRefundForm({ onClose, onComplete }: ReturnRefundFormProps)
       refundMethod,
       total: totalRefund,
       date: new Date(),
-      status: 'completed',
+      status: 'processed',
       reason: returnItems.map(item => item.reason).join(', ')
     };
     

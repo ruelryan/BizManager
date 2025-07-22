@@ -118,7 +118,7 @@ export interface Return {
   items: ReturnItem[];
   total: number;
   refundMethod: 'original' | 'store_credit' | 'cash';
-  status: 'completed' | 'pending';
+  status: 'pending' | 'approved' | 'rejected' | 'processed';
   reason: string;
 }
 
