@@ -850,8 +850,6 @@ export const useStore = create<StoreState>()(
       // Return actions
       addReturn: async (returnData) => {
         try {
-          console.log('Processing return with data:', returnData);
-          
           if (!returnData.items || !Array.isArray(returnData.items)) {
             throw new Error('Return data must include an array of items.');
           }
@@ -946,15 +944,13 @@ export const useStore = create<StoreState>()(
         
         // Get all previous returns for this sale
         const existingReturns = get().returns.filter(r => r.originalSaleId === originalSaleId);
-        console.log('Existing returns for this sale:', existingReturns);
-
+        
         existingReturns.forEach(ret => {
+          // The migration should prevent invalid items, but as a safeguard:
           if (ret.items && Array.isArray(ret.items)) {
             ret.items.forEach(item => {
               returnedQuantities[item.productId] = (returnedQuantities[item.productId] || 0) + item.quantity;
             });
-          } else {
-            console.warn('Found a return with invalid items:', ret);
           }
         });
         
@@ -1628,6 +1624,31 @@ export const useStore = create<StoreState>()(
         monthlyGoal: state.monthlyGoal,
         paymentTypes: state.paymentTypes,
       }),
+      version: 1, // Start with version 1 for migration
+      migrate: (persistedState: any, version: number) => {
+        if (version === 0) {
+          // Migration from version 0 to 1: Fix malformed return items
+          if (persistedState && persistedState.returns) {
+            persistedState.returns = persistedState.returns.map((r: any) => {
+              if (!r) return null; // Remove null entries
+
+              // Rename `returnItems` to `items`
+              if (r.returnItems && !r.items) {
+                r.items = r.returnItems;
+                delete r.returnItems;
+              }
+
+              // Ensure `items` is an array
+              if (!Array.isArray(r.items)) {
+                r.items = [];
+              }
+              
+              return r;
+            }).filter(Boolean); // Filter out any null entries
+          }
+        }
+        return persistedState;
+      },
     }
   )
 );
