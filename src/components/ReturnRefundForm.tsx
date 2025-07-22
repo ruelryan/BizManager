@@ -98,7 +98,7 @@ export function ReturnRefundForm({ onClose, onComplete }: ReturnRefundFormProps)
     const returnData = {
       originalSaleId: selectedSale.id,
       originalSale: selectedSale,
-      returnItems: returnItems.map(item => ({
+      items: returnItems.map(item => ({
         productId: item.item.productId,
         productName: item.item.productName,
         quantity: item.quantity,
