@@ -850,6 +850,12 @@ export const useStore = create<StoreState>()(
       // Return actions
       addReturn: async (returnData) => {
         try {
+          console.log('Processing return with data:', returnData);
+          
+          if (!returnData.items || !Array.isArray(returnData.items)) {
+            throw new Error('Return data must include an array of items.');
+          }
+
           const { user, returns, products, sales, inventoryTransactions } = get();
           if (!user) throw new Error('User not authenticated');
           
@@ -940,10 +946,16 @@ export const useStore = create<StoreState>()(
         
         // Get all previous returns for this sale
         const existingReturns = get().returns.filter(r => r.originalSaleId === originalSaleId);
+        console.log('Existing returns for this sale:', existingReturns);
+
         existingReturns.forEach(ret => {
-          ret.items.forEach(item => {
-            returnedQuantities[item.productId] = (returnedQuantities[item.productId] || 0) + item.quantity;
-          });
+          if (ret.items && Array.isArray(ret.items)) {
+            ret.items.forEach(item => {
+              returnedQuantities[item.productId] = (returnedQuantities[item.productId] || 0) + item.quantity;
+            });
+          } else {
+            console.warn('Found a return with invalid items:', ret);
+          }
         });
         
         // Add current return quantities
