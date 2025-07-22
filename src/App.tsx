@@ -24,6 +24,7 @@ import { useStore } from './store/useStore';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ProductTour } from './components/ProductTour';
 import { POSProvider } from './contexts/POSContext';
+import { ErrorBoundary } from './components/ErrorBoundary';
  
  function App() {
    const { user, isLoading, isInitialized } = useStore();
@@ -89,9 +90,10 @@ import { POSProvider } from './contexts/POSContext';
   console.log('Rendering main app');
 
   return (
-    <ThemeProvider>
-      <POSProvider>
-        <Router>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <POSProvider>
+          <Router>
           {showTour && <ProductTour />}
           <Routes>
             {/* Public Routes */}
@@ -159,9 +161,10 @@ import { POSProvider } from './contexts/POSContext';
           {/* Protected Payment Routes - Require authentication */}
           <Route path="/upgrade" element={user ? <Upgrade /> : <Navigate to="/login" state={{ from: '/upgrade' }} />} />
         </Routes>
-        </Router>
-      </POSProvider>
-    </ThemeProvider>
+          </Router>
+        </POSProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 

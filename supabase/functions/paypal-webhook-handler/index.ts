@@ -109,20 +109,25 @@ Deno.serve(async (req)=>{
       if (!isValid) {
         console.error('❌ Invalid webhook signature');
         await updateWebhookProcessingError(supabase, webhookEvent.id, 'Invalid webhook signature');
-        // For development/testing, we'll continue processing even with invalid signature
-        // but log it as a warning
-        console.log('⚠️ CONTINUING ANYWAY FOR DEVELOPMENT - This should be fixed for production!');
-        isValid = true; // Override for development
+        return new Response('Invalid webhook signature', { 
+          status: 401, 
+          headers: corsHeaders 
+        });
       } else {
         console.log('✅ Webhook signature verified successfully');
       }
     } else {
-      console.log('⚠️ Skipping signature verification - missing PayPal credentials');
+      console.error('❌ Missing PayPal credentials for webhook verification');
       console.log('Missing credentials:');
       if (!PAYPAL_CLIENT_ID) console.log('  - PAYPAL_CLIENT_ID');
       if (!PAYPAL_CLIENT_SECRET) console.log('  - PAYPAL_CLIENT_SECRET');
       if (!PAYPAL_WEBHOOK_ID) console.log('  - PAYPAL_WEBHOOK_ID');
-      console.log('This is NOT recommended for production!');
+      
+      // In production, reject webhooks without proper credentials
+      return new Response('Webhook verification failed - missing credentials', { 
+        status: 500, 
+        headers: corsHeaders 
+      });
     }
     // Process the webhook event based on type
     console.log('=== PROCESSING WEBHOOK EVENT ===');
