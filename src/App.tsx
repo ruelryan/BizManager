@@ -24,9 +24,10 @@ import { ResetPassword } from './pages/ResetPassword';
 import { useStore } from './store/useStore';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ProductTour } from './components/ProductTour';
-
-function App() {
-  const { user, isLoading, isInitialized } = useStore();
+import { POSProvider } from './contexts/POSContext';
+ 
+ function App() {
+   const { user, isLoading, isInitialized } = useStore();
   const [showTour, setShowTour] = useState(false);
   const [forceShow, setForceShow] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
@@ -90,10 +91,11 @@ function App() {
 
   return (
     <ThemeProvider>
-      <Router>
-        {showTour && <ProductTour />}
-        <Routes>
-          {/* Public Routes */}
+      <POSProvider>
+        <Router>
+          {showTour && <ProductTour />}
+          <Routes>
+            {/* Public Routes */}
           <Route path="/landing" element={<Landing />} />
           <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <Login />} />
           <Route path="/signup" element={user ? <Navigate to="/dashboard" /> : <Login />} />
@@ -161,7 +163,8 @@ function App() {
           {/* Protected Payment Routes - Require authentication */}
           <Route path="/upgrade" element={user ? <Upgrade /> : <Navigate to="/login" state={{ from: '/upgrade' }} />} />
         </Routes>
-      </Router>
+        </Router>
+      </POSProvider>
     </ThemeProvider>
   );
 }

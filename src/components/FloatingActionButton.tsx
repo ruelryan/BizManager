@@ -2,20 +2,21 @@ import React, { useState } from 'react';
 import { Plus, ShoppingCart, Package, Users, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { POSInterface } from './POSInterface';
-
-export function FloatingActionButton() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [showPOSInterface, setShowPOSInterface] = useState(false);
-  const navigate = useNavigate();
-
-  const actions = [
-    {
-      icon: ShoppingCart,
-      label: 'Quick Sale',
-      color: 'bg-blue-600 hover:bg-blue-700',
-      action: () => setShowPOSInterface(true),
-    },
-    {
+import { usePOS } from '../contexts/POSContext';
+ 
+ export function FloatingActionButton() {
+   const [isOpen, setIsOpen] = useState(false);
+   const { isPOSActive, setPOSActive } = usePOS();
+   const navigate = useNavigate();
+ 
+   const actions = [
+     {
+       icon: ShoppingCart,
+       label: 'Quick Sale',
+       color: 'bg-blue-600 hover:bg-blue-700',
+       action: () => setPOSActive(true),
+     },
+     {
       icon: Package,
       label: 'Add Product',
       color: 'bg-green-600 hover:bg-green-700',
@@ -73,23 +74,11 @@ export function FloatingActionButton() {
       </div>
 
       {/* POS Interface Modal */}
-      {showPOSInterface && (
-        <POSInterface onClose={() => setShowPOSInterface(false)} />
+      {isPOSActive && (
+        <POSInterface onClose={() => setPOSActive(false)} />
       )}
 
-      {/* Animation Styles */}
-      <style jsx>{`
-        @keyframes slideUp {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-      `}</style>
+      {/* Animation Styles can be moved to a CSS file if needed */}
     </>
   );
 }

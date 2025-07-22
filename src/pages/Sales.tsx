@@ -10,13 +10,14 @@ import { PaymentTypeManager } from '../components/PaymentTypeManager';
 import { CurrencyDisplay } from '../components/CurrencyDisplay';
 import { POSInterface } from '../components/POSInterface';
 import { useReactToPrint } from 'react-to-print';
-
-export function Sales() {
-  const { sales, products, customers, addSale, updateSale, deleteSale, addReturn, paymentTypes } = useStore();
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [showPOSInterface, setShowPOSInterface] = useState(false);
-  const [editingSale, setEditingSale] = useState<Sale | null>(null);
-  const [viewingSale, setViewingSale] = useState<Sale | null>(null);
+import { usePOS } from '../contexts/POSContext';
+ 
+ export function Sales() {
+   const { sales, products, customers, addSale, updateSale, deleteSale, addReturn, paymentTypes } = useStore();
+   const { isPOSActive, setPOSActive } = usePOS();
+   const [showAddForm, setShowAddForm] = useState(false);
+   const [editingSale, setEditingSale] = useState<Sale | null>(null);
+   const [viewingSale, setViewingSale] = useState<Sale | null>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'paid' | 'pending' | 'overdue'>('all');
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleteCountdown, setDeleteCountdown] = useState<number>(0);
@@ -279,7 +280,7 @@ export function Sales() {
                               <CurrencyDisplay amount={product.price} />
                             </span>
                             <span className="text-green-600 dark:text-green-400 ml-1 block">
-                              <CurrencyDisplay amount={specialPrice} />
+                              <CurrencyDisplay amount={specialPrice || 0} />
                             </span>
                           </div>
                         ) : (
@@ -863,7 +864,7 @@ export function Sales() {
             <span>Return/Refund</span>
           </button>
           <button
-            onClick={() => setShowPOSInterface(true)}
+            onClick={() => setPOSActive(true)}
             data-tour="pos-interface"
             className="flex items-center space-x-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 transition-colors"
           >
@@ -1043,11 +1044,11 @@ export function Sales() {
           onClose={() => setShowPaymentTypeManager(false)}
         />
       )}
-      {showPOSInterface && (
+      {isPOSActive && (
         <POSInterface
-          onClose={() => setShowPOSInterface(false)}
+          onClose={() => setPOSActive(false)}
           onSaleComplete={(sale) => {
-            setShowPOSInterface(false);
+            setPOSActive(false);
             // Optional: Show the completed sale
             setViewingSale(sale);
           }}

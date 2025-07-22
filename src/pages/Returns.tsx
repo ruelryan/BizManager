@@ -69,11 +69,12 @@ export function Returns() {
 
   const handleReturnComplete = async (returnData: any) => {
     try {
-      await addReturn(returnData);
+      const returnId = await addReturn(returnData);
       setShowNewReturnForm(false);
-    } catch (error) {
+      alert(`Return ${returnId} processed successfully!`);
+    } catch (error: any) {
       console.error('Failed to process return:', error);
-      alert('Failed to process return. Please try again.');
+      alert(`Failed to process return: ${error.message}`);
     }
   };
 

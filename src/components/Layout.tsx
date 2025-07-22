@@ -25,10 +25,11 @@ import { GlobalSearch } from './GlobalSearch';
 import { FloatingActionButton } from './FloatingActionButton';
 import { Tooltip } from './Tooltip';
 import { useTheme } from '../contexts/ThemeContext';
+import { usePOS } from '../contexts/POSContext';
 import { SubscriptionMonitor } from './SubscriptionMonitor';
-
-const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: Home, tourId: 'dashboard' },
+ 
+ const navigation = [
+   { name: 'Dashboard', href: '/dashboard', icon: Home, tourId: 'dashboard' },
   { name: 'Sales', href: '/sales', icon: ShoppingCart, tourId: 'sales' },
   { name: 'Products', href: '/products', icon: Package, tourId: 'products' },
   { name: 'Customers', href: '/customers', icon: Users, tourId: 'customers' },
@@ -45,6 +46,7 @@ export function Layout() {
   const navigate = useNavigate();
   const { user, signOut, isOnline } = useStore();
   const { theme } = useTheme();
+  const { isPOSActive } = usePOS();
 
   if (!user) {
     return <Navigate to="/landing" replace />;
@@ -84,13 +86,13 @@ export function Layout() {
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black bg-opacity-50 lg:hidden"
+          className="fixed inset-0 z-[55] bg-black bg-opacity-50 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-64 transform bg-white dark:bg-gray-800 shadow-lg transition-all duration-300 ease-in-out lg:static lg:translate-x-0 ${
+      <div className={`fixed inset-y-0 left-0 z-[60] w-64 transform bg-white dark:bg-gray-800 shadow-lg transition-all duration-300 ease-in-out lg:static lg:translate-x-0 ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         <div className="flex h-full flex-col">
@@ -300,7 +302,7 @@ export function Layout() {
       <MobileBottomNav />
 
       {/* Floating Action Button */}
-      <FloatingActionButton />
+      {!isPOSActive && <FloatingActionButton />}
 
       {/* Click outside to close user menu */}
       {showUserMenu && (

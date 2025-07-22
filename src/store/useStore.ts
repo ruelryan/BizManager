@@ -11,6 +11,13 @@ const generateInvoiceNumber = () => {
   return `${prefix}-${timestamp}-${random}`;
 };
 
+// Helper function to generate a unique ID for various records
+const generateId = (prefix: string) => {
+  const timestamp = Date.now().toString(36);
+  const random = Math.random().toString(36).substring(2, 7);
+  return `${prefix}-${timestamp}-${random}`;
+};
+
 // Default payment types
 const defaultPaymentTypes: PaymentType[] = [
   { id: 'cash', name: 'Cash', isDefault: true },
@@ -137,8 +144,10 @@ interface StoreState {
   addInventoryTransaction: (transaction: Omit<InventoryTransaction, 'id'>) => Promise<void>;
 
   // Return actions
-  addReturn: (returnData: Omit<Return, 'id'>) => Promise<void>;
-
+  addReturn: (returnData: Omit<Return, 'id'>) => Promise<string>;
+  processOriginalSaleUpdate: (originalSaleId: string, returnItems: any[]) => Promise<void>;
+  saveReturnToDatabase: (returnData: Return, inventoryTransactions: InventoryTransaction[]) => Promise<void>;
+ 
   // Payment type actions
   addPaymentType: (name: string) => Promise<void>;
   updatePaymentType: (id: string, name: string) => Promise<void>;
@@ -911,12 +920,16 @@ export const useStore = create<StoreState>()(
           
         } catch (error) {
           console.error('Add return error:', error);
-          throw error;
+          // Re-throw the original error to be caught by the UI
+          if (error instanceof Error) {
+            throw new Error(`Failed to process return: ${error.message}`);
+          }
+          throw new Error('An unknown error occurred while processing the return.');
         }
       },
-
+      
       // Helper method to process original sale updates
-      processOriginalSaleUpdate: async (originalSaleId: string, returnItems: any[]) => {
+      processOriginalSaleUpdate: async (originalSaleId, returnItems) => {
         const { sales } = get();
         const originalSale = sales.find(s => s.id === originalSaleId);
         
@@ -963,9 +976,9 @@ export const useStore = create<StoreState>()(
           await get().updateSale(originalSaleId, { status: newStatus });
         }
       },
-
+      
       // Helper method to save return to database
-      saveReturnToDatabase: async (returnData: Return, inventoryTransactions: InventoryTransaction[]) => {
+      saveReturnToDatabase: async (returnData, inventoryTransactions) => {
         try {
           // Save return record
           const { error: returnError } = await supabase.from('returns').insert({
@@ -1016,7 +1029,8 @@ export const useStore = create<StoreState>()(
           
         } catch (error) {
           console.error('Error saving return to database:', error);
-          // Don't throw - allow return to be processed locally even if DB save fails
+          // Throw the error so the UI can catch it
+          throw error;
         }
       },
 
@@ -1200,21 +1214,16 @@ export const useStore = create<StoreState>()(
         }
 
         try {
-          // Call the cancel subscription API
-          const response = await fetch(`${supabase.supabaseUrl}/functions/v1/cancel-subscription`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
-            },
-            body: JSON.stringify({
+          // Call the cancel subscription edge function
+          const { error } = await supabase.functions.invoke('cancel-subscription', {
+            body: {
               subscriptionId: user.subscription.paypal_subscription_id,
-              reason: reason || 'User requested cancellation'
-            })
+              reason: reason || 'User requested cancellation',
+            },
           });
-
-          if (!response.ok) {
-            throw new Error(`Failed to cancel subscription: ${response.statusText}`);
+ 
+          if (error) {
+            throw new Error(`Failed to cancel subscription: ${error.message}`);
           }
 
           // Update local state
@@ -1246,20 +1255,15 @@ export const useStore = create<StoreState>()(
         }
 
         try {
-          // Call the reactivate subscription API
-          const response = await fetch(`${supabase.supabaseUrl}/functions/v1/reactivate-subscription`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+          // Call the reactivate subscription edge function
+          const { error } = await supabase.functions.invoke('reactivate-subscription', {
+            body: {
+              subscriptionId: user.subscription.paypal_subscription_id,
             },
-            body: JSON.stringify({
-              subscriptionId: user.subscription.paypal_subscription_id
-            })
           });
-
-          if (!response.ok) {
-            throw new Error(`Failed to reactivate subscription: ${response.statusText}`);
+ 
+          if (error) {
+            throw new Error(`Failed to reactivate subscription: ${error.message}`);
           }
 
           // Update local state
