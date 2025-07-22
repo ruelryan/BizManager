@@ -20,7 +20,6 @@ import {
   Calendar,
   FileText,
   Download,
-  RotateCcw
 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { FeatureGate } from '../components/FeatureGate';
@@ -419,7 +418,7 @@ export function Reports() {
         </div>
 
         {/* Summary Stats */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           <StatCard
             title="Total Revenue"
             value={<CurrencyDisplay amount={currentData.totalRevenue} />}
@@ -428,9 +427,9 @@ export function Reports() {
             color="green"
           />
           <StatCard
-            title="Returns"
-            value={<CurrencyDisplay amount={currentData.totalReturns} />}
-            icon={RotateCcw}
+            title="Expenses"
+            value={<CurrencyDisplay amount={currentData.totalExpenses} />}
+            icon={FileText}
             color="red"
           />
           <StatCard
