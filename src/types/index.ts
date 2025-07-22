@@ -65,7 +65,7 @@ export interface Sale {
   items: SaleItem[];
   total: number;
   paymentType: string;
-  status: 'paid' | 'pending' | 'overdue' | 'refunded' | 'partially_refunded';
+  status: 'paid' | 'pending' | 'overdue';
   date: Date;
   dueDate?: Date;
   invoiceNumber?: string;
@@ -77,7 +77,7 @@ export interface InventoryTransaction {
   id: string;
   productId: string;
   productName: string;
-  type: 'stock-in' | 'stock-out' | 'return' | 'return_defective';
+  type: 'stock-in' | 'stock-out';
   quantity: number;
   previousStock: number;
   newStock: number;
@@ -85,7 +85,7 @@ export interface InventoryTransaction {
   date: Date;
   userId: string;
   referenceId?: string;
-  referenceType?: 'sale' | 'return' | 'adjustment';
+  referenceType?: 'sale' | 'adjustment';
 }
 
 export interface Expense {
@@ -110,27 +110,6 @@ export interface Customer {
   specialPricing?: Record<string, number>; // productId -> special price
 }
 
-export interface Return {
-  id: string;
-  originalSaleId: string;
-  originalSale?: Sale;
-  date: Date;
-  items: ReturnItem[];
-  total: number;
-  refundMethod: 'original' | 'store_credit' | 'cash';
-  status: 'pending' | 'approved' | 'rejected' | 'processed';
-  reason: string;
-}
-
-interface ReturnItem {
-  productId: string;
-  productName: string;
-  quantity: number;
-  price: number;
-  total: number;
-  reason: string;
-  isDefective: boolean;
-}
 
 export interface UserSettings {
   id?: string;

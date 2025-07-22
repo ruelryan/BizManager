@@ -30,7 +30,7 @@ import { useCurrency } from '../hooks/useCurrency';
 type TimePeriod = 'month' | 'year' | 'all-time';
 
 export function Reports() {
-  const { sales, products, expenses, returns, exportReportData } = useStore();
+  const { sales, products, expenses, exportReportData } = useStore();
   const [selectedMonth, setSelectedMonth] = React.useState(new Date());
   const [selectedYear, setSelectedYear] = React.useState(new Date());
   const [timePeriod, setTimePeriod] = React.useState<TimePeriod>('month');
@@ -93,13 +93,9 @@ export function Reports() {
       expense.date >= startDate && expense.date <= endDate
     );
     
-    const periodReturns = returns.filter(returnItem =>
-      returnItem.date >= startDate && returnItem.date <= endDate
-    );
-    
     const totalRevenue = periodSales.reduce((sum, sale) => sum + (sale.total || 0), 0);
-    const totalReturns = periodReturns.reduce((sum, returnItem) => sum + returnItem.total, 0);
-    const netRevenue = totalRevenue - totalReturns;
+    const totalReturns = 0;
+    const netRevenue = totalRevenue;
     
     const totalCostOfSales = periodSales.reduce((sum, sale) => 
       sum + sale.items.reduce((itemSum, item) => {
@@ -120,14 +116,10 @@ export function Reports() {
       totalCashOutflow,
       netIncome: netRevenue - totalCashOutflow,
       salesCount: periodSales.length,
-      returnsCount: periodReturns.length,
-      returnRate: totalRevenue > 0 ? (totalReturns / totalRevenue) * 100 : 0,
-      defectiveReturns: periodReturns.filter(ret => ret.items.some(item => item.isDefective)).length,
       sales: periodSales,
       expenses: periodExpenses,
-      returns: periodReturns,
     };
-  }, [sales, expenses, products, returns]);
+  }, [sales, expenses, products]);
 
   const currentData = getDataForPeriod(timePeriod, timePeriod === 'year' ? selectedYear : selectedMonth);
   const previousData = React.useMemo(() => {
@@ -453,12 +445,6 @@ export function Reports() {
             change={timePeriod === 'all-time' ? undefined : profitChange}
             icon={TrendingUp}
             color="purple"
-          />
-          <StatCard
-            title="Return Rate"
-            value={`${currentData.returnRate.toFixed(1)}%`}
-            icon={FileText}
-            color="orange"
           />
         </div>
 

@@ -40,7 +40,6 @@ export function Features() {
         'Multiple payment methods',
         'Digital receipts',
         'Sales history and search',
-        'Return and refund handling',
         'Daily sales summaries'
       ]
     },

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase, handleSupabaseError, transformSupabaseData, transformToSupabaseData } from '../lib/supabase';
-import { User, Product, Sale, Customer, Expense, InventoryTransaction, UserSettings, Return, PaymentType, Subscription } from '../types';
+import { User, Product, Sale, Customer, Expense, InventoryTransaction, UserSettings, PaymentType, Subscription } from '../types';
 
 // Helper function to generate a unique invoice number
 const generateInvoiceNumber = () => {
@@ -102,7 +102,6 @@ interface StoreState {
   customers: Customer[];
   expenses: Expense[];
   inventoryTransactions: InventoryTransaction[];
-  returns: Return[];
   userSettings: UserSettings | null;
   monthlyGoal: number;
   paymentTypes: PaymentType[];
@@ -143,10 +142,6 @@ interface StoreState {
   // Inventory actions
   addInventoryTransaction: (transaction: Omit<InventoryTransaction, 'id'>) => Promise<void>;
 
-  // Return actions
-  addReturn: (returnData: Omit<Return, 'id'>) => Promise<string>;
-  processOriginalSaleUpdate: (originalSaleId: string, returnItems: any[]) => Promise<void>;
-  saveReturnToDatabase: (returnData: Return, inventoryTransactions: InventoryTransaction[]) => Promise<void>;
  
   // Payment type actions
   addPaymentType: (name: string) => Promise<void>;
@@ -190,7 +185,6 @@ export const useStore = create<StoreState>()(
       customers: [],
       expenses: [],
       inventoryTransactions: [],
-      returns: [],
       userSettings: null,
       monthlyGoal: 50000,
       paymentTypes: [...defaultPaymentTypes],
@@ -347,8 +341,7 @@ export const useStore = create<StoreState>()(
             customers: [],
             expenses: [],
             inventoryTransactions: [],
-            returns: [],
-            userSettings: null
+                  userSettings: null
           });
         } catch (error) {
           console.error('Sign out error:', error);
@@ -847,210 +840,6 @@ export const useStore = create<StoreState>()(
         }
       },
 
-      // Return actions
-      addReturn: async (returnData) => {
-        try {
-          if (!returnData.items || !Array.isArray(returnData.items)) {
-            throw new Error('Return data must include an array of items.');
-          }
-
-          const { user, returns, products, sales, inventoryTransactions } = get();
-          if (!user) throw new Error('User not authenticated');
-          
-          // Generate unique return ID
-          const returnId = generateId('RET');
-          const newReturn: Return = {
-            id: returnId,
-            ...returnData,
-            date: new Date(),
-          };
-          
-          // Update product stock and create inventory transactions
-          const updatedProducts = [...products];
-          const newInventoryTransactions = [...inventoryTransactions];
-          
-          for (const item of returnData.items) {
-            const productIndex = updatedProducts.findIndex(p => p.id === item.productId);
-            if (productIndex !== -1) {
-              const product = updatedProducts[productIndex];
-              
-              // Only add to sellable stock if item is not defective
-              if (!item.isDefective) {
-                product.currentStock += item.quantity;
-              }
-              
-              product.updatedAt = new Date();
-              updatedProducts[productIndex] = product;
-              
-              // Create inventory transaction for the return
-              const inventoryTransaction: InventoryTransaction = {
-                id: `inv-${returnId}-${item.productId}`,
-                productId: item.productId,
-                productName: item.productName,
-                type: item.isDefective ? 'return_defective' : 'return',
-                quantity: item.quantity,
-                previousStock: product.currentStock - (item.isDefective ? 0 : item.quantity),
-                newStock: product.currentStock,
-                reason: `Return: ${item.reason}${item.isDefective ? ' (Defective)' : ''}`,
-                date: new Date(),
-                userId: user.id,
-                referenceId: returnId,
-                referenceType: 'return'
-              };
-              
-              newInventoryTransactions.push(inventoryTransaction);
-            }
-          }
-          
-          // Update state with all changes
-          set({ 
-            returns: [...returns, newReturn],
-            products: updatedProducts,
-            inventoryTransactions: newInventoryTransactions
-          });
-          
-          // Handle original sale status updates
-          if (returnData.originalSaleId) {
-            await get().processOriginalSaleUpdate(returnData.originalSaleId, returnData.items);
-          }
-          
-          // Save to database if not demo user
-          if (user.id !== 'demo-user-id') {
-            await get().saveReturnToDatabase(newReturn, newInventoryTransactions.slice(-returnData.items.length));
-          }
-          
-          console.log(`Return ${returnId} processed successfully`);
-          return returnId;
-          
-        } catch (error) {
-          console.error('Add return error:', error);
-          // Re-throw the original error to be caught by the UI
-          if (error instanceof Error) {
-            throw new Error(`Failed to process return: ${error.message}`);
-          }
-          throw new Error('An unknown error occurred while processing the return.');
-        }
-      },
-      
-      // Helper method to process original sale updates
-      processOriginalSaleUpdate: async (originalSaleId, returnItems) => {
-        const { sales } = get();
-        const originalSale = sales.find(s => s.id === originalSaleId);
-        
-        if (!originalSale) return;
-        
-        // Calculate total returned quantities for each product
-        const returnedQuantities: Record<string, number> = {};
-        
-        // Get all previous returns for this sale
-        const existingReturns = get().returns.filter(r => r.originalSaleId === originalSaleId);
-        
-        existingReturns.forEach(ret => {
-          // The migration should prevent invalid items, but as a safeguard:
-          if (ret.items && Array.isArray(ret.items)) {
-            ret.items.forEach(item => {
-              returnedQuantities[item.productId] = (returnedQuantities[item.productId] || 0) + item.quantity;
-            });
-          }
-        });
-        
-        // Add current return quantities
-        returnItems.forEach(item => {
-          returnedQuantities[item.productId] = (returnedQuantities[item.productId] || 0) + item.quantity;
-        });
-        
-        // Check if all items were returned
-        const allItemsReturned = originalSale.items.every(item => {
-          const totalReturned = returnedQuantities[item.productId] || 0;
-          return totalReturned >= item.quantity;
-        });
-        
-        // Check if any items were returned (partial return)
-        const anyItemsReturned = originalSale.items.some(item => {
-          const totalReturned = returnedQuantities[item.productId] || 0;
-          return totalReturned > 0;
-        });
-        
-        // Update sale status accordingly
-        let newStatus: 'paid' | 'pending' | 'overdue' | 'refunded' | 'partially_refunded' = originalSale.status;
-        
-        if (allItemsReturned) {
-          newStatus = 'refunded';
-        } else if (anyItemsReturned) {
-          newStatus = 'partially_refunded';
-        }
-        
-        if (newStatus !== originalSale.status) {
-          await get().updateSale(originalSaleId, { status: newStatus });
-        }
-      },
-      
-      // Helper method to save return to database
-      saveReturnToDatabase: async (returnData, inventoryTransactions) => {
-        try {
-          // Save return record
-          const { error: returnError } = await supabase.from('returns').insert({
-            id: returnData.id,
-            user_id: get().user?.id,
-            sale_id: returnData.originalSaleId,
-            refund_amount: returnData.total,
-            refund_method: returnData.refundMethod,
-            status: returnData.status,
-            reason: returnData.reason,
-            return_date: returnData.date.toISOString().split('T')[0]
-          });
-          
-          if (returnError) throw returnError;
-          
-          // Save return items to return_items table
-          const returnItems = returnData.items.map(item => ({
-            return_id: returnData.id,
-            product_id: item.productId,
-            quantity: item.quantity,
-            unit_price: item.unitPrice || 0,
-            reason: item.reason || returnData.reason,
-            condition: item.isDefective ? 'defective' : 'used'
-          }));
-          
-          const { error: returnItemsError } = await supabase.from('return_items').insert(returnItems);
-          if (returnItemsError) throw returnItemsError;
-          
-          // Save inventory transactions
-          const inventoryRecords = inventoryTransactions.map(transaction => ({
-            id: transaction.id,
-            user_id: get().user?.id,
-            product_id: transaction.productId,
-            transaction_type: transaction.type,
-            quantity: transaction.quantity,
-            unit_cost: transaction.unitCost || 0,
-            reference_id: transaction.referenceId,
-            reference_type: transaction.referenceType,
-            notes: transaction.reason
-          }));
-          
-          const { error: inventoryError } = await supabase.from('inventory_transactions').insert(inventoryRecords);
-          if (inventoryError) throw inventoryError;
-          
-          // Update product stocks in database
-          for (const transaction of inventoryTransactions) {
-            const { error: productError } = await supabase
-              .from('products')
-              .update({ 
-                stock: transaction.newStock,
-                updated_at: new Date().toISOString()
-              })
-              .eq('id', transaction.productId)
-              .eq('user_id', get().user?.id);
-            
-            if (productError) throw productError;
-          }
-          
-        } catch (error) {
-          console.error('Error saving return to database:', error);
-          // Throw the error so the UI can catch it
-          throw error;
-        }
-      },
 
       // Payment type actions
       addPaymentType: async (name) => {
@@ -1640,34 +1429,13 @@ export const useStore = create<StoreState>()(
         customers: state.customers,
         expenses: state.expenses,
         inventoryTransactions: state.inventoryTransactions,
-        returns: state.returns,
         userSettings: state.userSettings,
         monthlyGoal: state.monthlyGoal,
         paymentTypes: state.paymentTypes,
       }),
       version: 1, // Start with version 1 for migration
       migrate: (persistedState: any, version: number) => {
-        if (version === 0) {
-          // Migration from version 0 to 1: Fix malformed return items
-          if (persistedState && persistedState.returns) {
-            persistedState.returns = persistedState.returns.map((r: any) => {
-              if (!r) return null; // Remove null entries
-
-              // Rename `returnItems` to `items`
-              if (r.returnItems && !r.items) {
-                r.items = r.returnItems;
-                delete r.returnItems;
-              }
-
-              // Ensure `items` is an array
-              if (!Array.isArray(r.items)) {
-                r.items = [];
-              }
-              
-              return r;
-            }).filter(Boolean); // Filter out any null entries
-          }
-        }
+        // No migrations needed currently
         return persistedState;
       },
     }

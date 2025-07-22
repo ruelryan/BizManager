@@ -19,7 +19,6 @@ import { Demo } from './pages/Demo';
 import { Integrations } from './pages/Integrations';
 import { ProductLabelDemo } from './pages/ProductLabelDemo';
 import { Customers } from './pages/Customers';
-import { Returns } from './pages/Returns';
 import { ResetPassword } from './pages/ResetPassword';
 import { useStore } from './store/useStore';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -140,9 +139,6 @@ import { POSProvider } from './contexts/POSContext';
           </Route>
           <Route path="/customers" element={user ? <Layout /> : <Navigate to="/login" />}>
             <Route index element={<Customers />} />
-          </Route>
-          <Route path="/returns" element={user ? <Layout /> : <Navigate to="/login" />}>
-            <Route index element={<Returns />} />
           </Route>
           <Route path="/inventory" element={user ? <Layout /> : <Navigate to="/login" />}>
             <Route index element={<Inventory />} />

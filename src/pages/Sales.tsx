@@ -1,11 +1,10 @@
 import React, { useState, useRef } from 'react';
 import { format } from 'date-fns';
-import { Plus, Filter, Eye, Edit, Trash2, ChevronDown, X, AlertTriangle, Tag, FileText, RotateCcw, Settings, Send, Download, DollarSign, Calendar, CreditCard, Monitor } from 'lucide-react';
+import { Plus, Filter, Eye, Edit, Trash2, ChevronDown, X, AlertTriangle, Tag, FileText, Settings, Send, Download, DollarSign, Calendar, CreditCard, Monitor } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { Sale, SaleItem } from '../types';
 import { BarcodeScanner } from '../components/BarcodeScanner';
 import { DigitalReceipt } from '../components/DigitalReceipt';
-import { ReturnRefundForm } from '../components/ReturnRefundForm';
 import { PaymentTypeManager } from '../components/PaymentTypeManager';
 import { CurrencyDisplay } from '../components/CurrencyDisplay';
 import { POSInterface } from '../components/POSInterface';
@@ -13,7 +12,7 @@ import { useReactToPrint } from 'react-to-print';
 import { usePOS } from '../contexts/POSContext';
  
  export function Sales() {
-   const { sales, products, customers, addSale, updateSale, deleteSale, addReturn, paymentTypes } = useStore();
+   const { sales, products, customers, addSale, updateSale, deleteSale, paymentTypes } = useStore();
    const { isPOSActive, setPOSActive } = usePOS();
    const [showAddForm, setShowAddForm] = useState(false);
    const [editingSale, setEditingSale] = useState<Sale | null>(null);
@@ -23,8 +22,7 @@ import { usePOS } from '../contexts/POSContext';
   const [deleteCountdown, setDeleteCountdown] = useState<number>(0);
   const [showCodeScanner, setShowCodeScanner] = useState(false);
   const [showDigitalReceipt, setShowDigitalReceipt] = useState(false);
-  const [showReturnForm, setShowReturnForm] = useState(false);
-  const [showPaymentTypeManager, setShowPaymentTypeManager] = useState(false);
+    const [showPaymentTypeManager, setShowPaymentTypeManager] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'sales' | 'invoices'>('sales');
   const [paymentAmount, setPaymentAmount] = useState('');
@@ -51,8 +49,6 @@ import { usePOS } from '../contexts/POSContext';
       case 'paid': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
       case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
       case 'overdue': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
-      case 'refunded': return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300';
-      case 'partially_refunded': return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300';
       default: return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
     }
   };
@@ -123,16 +119,6 @@ import { usePOS } from '../contexts/POSContext';
     setShowDigitalReceipt(false);
   };
 
-  const handleReturnComplete = async (returnData: any) => {
-    try {
-      const returnId = await addReturn(returnData);
-      alert(`Return ${returnId} processed successfully! Inventory has been updated and refund recorded.`);
-      setShowReturnForm(false);
-    } catch (error: any) {
-      console.error('Return processing error:', error);
-      alert(`Failed to process return: ${error.message}`);
-    }
-  };
 
   const SearchableProductSelect = ({ 
     value, 
@@ -818,16 +804,6 @@ import { usePOS } from '../contexts/POSContext';
           {/* Action Buttons */}
           <div className="flex justify-between p-6 pt-0">
             <button
-              onClick={() => {
-                onClose();
-                setShowReturnForm(true);
-              }}
-              className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors flex items-center"
-            >
-              <RotateCcw className="h-4 w-4 mr-1" />
-              Process Return
-            </button>
-            <button
               onClick={() => handleShowDigitalReceipt(sale)}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
             >
@@ -855,13 +831,6 @@ import { usePOS } from '../contexts/POSContext';
           >
             <Tag className="h-5 w-5" />
             <span>Enter Code</span>
-          </button>
-          <button
-            onClick={() => setShowReturnForm(true)}
-            className="flex items-center space-x-2 rounded-lg bg-yellow-600 px-4 py-2 text-white hover:bg-yellow-700 transition-colors"
-          >
-            <RotateCcw className="h-5 w-5" />
-            <span>Return/Refund</span>
           </button>
           <button
             onClick={() => setPOSActive(true)}
@@ -1031,12 +1000,6 @@ import { usePOS } from '../contexts/POSContext';
           sale={viewingSale} 
           onClose={() => setShowDigitalReceipt(false)}
           onSendEmail={handleSendReceiptEmail}
-        />
-      )}
-      {showReturnForm && (
-        <ReturnRefundForm 
-          onClose={() => setShowReturnForm(false)}
-          onComplete={handleReturnComplete}
         />
       )}
       {showPaymentTypeManager && (
