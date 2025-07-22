@@ -246,6 +246,20 @@ export const useStore = create<StoreState>()(
             await get().loadUserData();
             await get().loadSubscriptionData();
             
+            // After loading subscription data, update user plan if needed
+            const updatedState = get();
+            if (updatedState.user?.subscription) {
+              const effectivePlan = getEffectivePlan(updatedState.user);
+              if (effectivePlan !== updatedState.user.plan) {
+                set(state => ({
+                  user: state.user ? {
+                    ...state.user,
+                    plan: effectivePlan
+                  } : null
+                }));
+              }
+            }
+            
             // Check if trial has expired
             await get().checkTrialExpiry();
           }
@@ -1124,11 +1138,15 @@ export const useStore = create<StoreState>()(
             updated_at: new Date(subscriptionData.updated_at)
           } : undefined;
 
-          // Update user with subscription data
+          // Update user with subscription data and correct plan
           set(state => ({
             user: state.user ? {
               ...state.user,
-              subscription
+              subscription,
+              // Update plan based on effective plan calculation
+              plan: subscription && subscription.status === 'ACTIVE' && !subscription.cancel_at_period_end 
+                ? subscription.plan_type 
+                : state.user.plan
             } : null
           }));
 
@@ -1330,6 +1348,20 @@ export const useStore = create<StoreState>()(
             // Load user data and subscription data
             await get().loadUserData();
             await get().loadSubscriptionData();
+            
+            // After loading subscription data, update user plan if needed
+            const updatedState = get();
+            if (updatedState.user?.subscription) {
+              const effectivePlan = getEffectivePlan(updatedState.user);
+              if (effectivePlan !== updatedState.user.plan) {
+                set(state => ({
+                  user: state.user ? {
+                    ...state.user,
+                    plan: effectivePlan
+                  } : null
+                }));
+              }
+            }
           }
         } catch (error) {
           console.error('Auth initialization error:', error);

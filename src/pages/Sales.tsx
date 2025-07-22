@@ -113,11 +113,6 @@ import { usePOS } from '../contexts/POSContext';
     setShowDigitalReceipt(true);
   };
 
-  const handleSendReceiptEmail = () => {
-    // In a real implementation, this would send an email
-    alert('Receipt sent to customer email');
-    setShowDigitalReceipt(false);
-  };
 
 
   const SearchableProductSelect = ({ 
@@ -674,6 +669,7 @@ import { usePOS } from '../contexts/POSContext';
   const SaleViewModal = ({ sale, onClose }: { sale: Sale; onClose: () => void }) => {
     // Find the payment type name
     const paymentTypeName = paymentTypes.find(pt => pt.id === sale.paymentType)?.name || sale.paymentType;
+    const { user, userSettings } = useStore();
     
     return (
       <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
@@ -711,62 +707,91 @@ import { usePOS } from '../contexts/POSContext';
             </div>
           </div>
           {/* Wrap only the invoice content in this ref */}
-          <div ref={invoicePrintRef} className="p-6 space-y-6">
-            {/* Sale Header */}
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Customer:</h3>
-                <p className="text-gray-900 dark:text-white font-medium">{sale.customerName || 'Walk-in Customer'}</p>
-                {sale.customerEmail && (
-                  <p className="text-gray-600 dark:text-gray-400">{sale.customerEmail}</p>
-                )}
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Date: {format(sale.date, 'MMM dd, yyyy')}
-                </p>
-                {sale.dueDate && (
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Due: {format(sale.dueDate, 'MMM dd, yyyy')}
-                  </p>
-                )}
-                <span className={`inline-flex rounded-full px-2 py-1 text-xs font-medium mt-2 ${getStatusColor(getCalculatedStatus(sale))}`}>
-                  {getCalculatedStatus(sale)}
-                </span>
+          <div ref={invoicePrintRef} className="p-6 space-y-6 bg-white">
+            {/* Business Header */}
+            <div className="border-b-2 border-gray-200 pb-6 mb-6">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                    {userSettings?.businessName || user?.businessName || 'Business Name'}
+                  </h1>
+                  <div className="text-gray-600 space-y-1">
+                    {(userSettings?.businessAddress || user?.businessAddress) && (
+                      <p>{userSettings?.businessAddress || user?.businessAddress}</p>
+                    )}
+                    {(userSettings?.businessPhone || user?.businessPhone) && (
+                      <p>Phone: {userSettings?.businessPhone || user?.businessPhone}</p>
+                    )}
+                    {(userSettings?.businessEmail || user?.businessEmail) && (
+                      <p>Email: {userSettings?.businessEmail || user?.businessEmail}</p>
+                    )}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-4">INVOICE</h2>
+                  <div className="text-gray-600 space-y-1">
+                    <p className="font-medium">Invoice #: {sale.invoiceNumber}</p>
+                    <p>Date: {format(sale.date, 'MMMM dd, yyyy')}</p>
+                    {sale.dueDate && (
+                      <p>Due Date: {format(sale.dueDate, 'MMMM dd, yyyy')}</p>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
-            {/* Items */}
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-700/50">
+
+            {/* Bill To Section */}
+            <div className="grid gap-4 md:grid-cols-2 mb-8">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2 border-b border-gray-200 pb-1">Bill To:</h3>
+                <div className="text-gray-900 space-y-1">
+                  <p className="font-medium">{sale.customerName || 'Walk-in Customer'}</p>
+                  {sale.customerEmail && (
+                    <p className="text-gray-600">{sale.customerEmail}</p>
+                  )}
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="inline-flex items-center">
+                  <span className="text-sm font-medium text-gray-600 mr-2">Status:</span>
+                  <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${getStatusColor(getCalculatedStatus(sale))}`}>
+                    {getCalculatedStatus(sale).toUpperCase()}
+                  </span>
+                </div>
+              </div>
+            </div>
+            {/* Items Table */}
+            <div className="mb-8">
+              <table className="min-w-full border border-gray-300">
+                <thead className="bg-gray-100">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                      Item
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900 border-b border-gray-300">
+                      Description
                     </th>
-                    <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    <th className="px-4 py-3 text-center text-sm font-semibold text-gray-900 border-b border-gray-300">
                       Qty
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                      Price
+                    <th className="px-4 py-3 text-right text-sm font-semibold text-gray-900 border-b border-gray-300">
+                      Unit Price
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                      Total
+                    <th className="px-4 py-3 text-right text-sm font-semibold text-gray-900 border-b border-gray-300">
+                      Amount
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
+                <tbody>
                   {sale.items.map((item, index) => (
-                    <tr key={index}>
-                      <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
+                    <tr key={index} className="border-b border-gray-200">
+                      <td className="px-4 py-3 text-sm text-gray-900">
                         {item.productName}
                       </td>
-                      <td className="px-4 py-3 text-sm text-center text-gray-900 dark:text-gray-300">
+                      <td className="px-4 py-3 text-sm text-center text-gray-900">
                         {item.quantity}
                       </td>
-                      <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-300">
+                      <td className="px-4 py-3 text-sm text-right text-gray-900">
                         <CurrencyDisplay amount={item.price} />
                       </td>
-                      <td className="px-4 py-3 text-sm text-right font-medium text-gray-900 dark:text-white">
+                      <td className="px-4 py-3 text-sm text-right font-medium text-gray-900">
                         <CurrencyDisplay amount={item.total} />
                       </td>
                     </tr>
@@ -774,30 +799,62 @@ import { usePOS } from '../contexts/POSContext';
                 </tbody>
               </table>
             </div>
-            {/* Total */}
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-              <div className="flex justify-end">
-                <div className="w-64">
-                  <div className="flex justify-between text-lg font-semibold">
-                    <span className="text-gray-900 dark:text-white">Total:</span>
-                    <span className="text-gray-900 dark:text-white">
-                      <CurrencyDisplay amount={sale.total} />
-                    </span>
+
+            {/* Totals Section */}
+            <div className="flex justify-end mb-8">
+              <div className="w-80">
+                <div className="border border-gray-300 bg-gray-50">
+                  <div className="px-4 py-3 border-b border-gray-300">
+                    <div className="flex justify-between">
+                      <span className="text-sm font-medium text-gray-900">Subtotal:</span>
+                      <span className="text-sm text-gray-900">
+                        <CurrencyDisplay amount={sale.total} />
+                      </span>
+                    </div>
+                  </div>
+                  <div className="px-4 py-3 border-b border-gray-300">
+                    <div className="flex justify-between">
+                      <span className="text-sm font-medium text-gray-900">Tax:</span>
+                      <span className="text-sm text-gray-900">₱0.00</span>
+                    </div>
+                  </div>
+                  <div className="px-4 py-3 bg-gray-100">
+                    <div className="flex justify-between">
+                      <span className="text-lg font-bold text-gray-900">TOTAL:</span>
+                      <span className="text-lg font-bold text-gray-900">
+                        <CurrencyDisplay amount={sale.total} />
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-            {/* Payment Info */}
-            <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-              <div className="grid gap-2 md:grid-cols-2">
-                <div>
-                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Payment Method:</span>
-                  <p className="text-gray-900 dark:text-white capitalize">{paymentTypeName}</p>
+
+            {/* Payment Information */}
+            <div className="grid gap-4 md:grid-cols-2 mb-8">
+              <div>
+                <h4 className="text-sm font-semibold text-gray-900 mb-2 border-b border-gray-200 pb-1">Payment Information</h4>
+                <div className="text-sm text-gray-700 space-y-1">
+                  <p><span className="font-medium">Method:</span> {paymentTypeName}</p>
+                  <p><span className="font-medium">Status:</span> <span className="capitalize">{getCalculatedStatus(sale)}</span></p>
+                  {sale.dueDate && getCalculatedStatus(sale) !== 'paid' && (
+                    <p><span className="font-medium">Due Date:</span> {format(sale.dueDate, 'MMMM dd, yyyy')}</p>
+                  )}
                 </div>
-                <div>
-                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Status:</span>
-                  <p className="text-gray-900 dark:text-white capitalize">{getCalculatedStatus(sale)}</p>
-                </div>
+              </div>
+              <div>
+                <h4 className="text-sm font-semibold text-gray-900 mb-2 border-b border-gray-200 pb-1">Notes</h4>
+                <p className="text-sm text-gray-700">
+                  Thank you for your business! If you have any questions about this invoice, please contact us.
+                </p>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="border-t-2 border-gray-200 pt-4 mt-8">
+              <div className="text-center text-xs text-gray-500">
+                <p>This is a computer-generated invoice.</p>
+                <p className="mt-1">Generated on {format(new Date(), 'MMMM dd, yyyy HH:mm')}</p>
               </div>
             </div>
           </div>
@@ -983,6 +1040,12 @@ import { usePOS } from '../contexts/POSContext';
       )}
 
       {/* Modals */}
+      {editingSale && (
+        <AddSaleForm 
+          sale={editingSale} 
+          onClose={() => setEditingSale(null)} 
+        />
+      )}
       {viewingSale && (
         <SaleViewModal 
           sale={viewingSale} 
@@ -999,7 +1062,6 @@ import { usePOS } from '../contexts/POSContext';
         <DigitalReceipt 
           sale={viewingSale} 
           onClose={() => setShowDigitalReceipt(false)}
-          onSendEmail={handleSendReceiptEmail}
         />
       )}
       {showPaymentTypeManager && (

@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { format } from 'date-fns';
-import { Download, Mail, Share, Printer, Tag, Check } from 'lucide-react';
+import { Download, Share, Printer, Tag, Check } from 'lucide-react';
 import { Sale } from '../types';
 import { useStore } from '../store/useStore';
 import QRCode from 'react-qr-code';
@@ -9,10 +9,9 @@ import { useReactToPrint } from 'react-to-print';
 interface DigitalReceiptProps {
   sale: Sale;
   onClose: () => void;
-  onSendEmail?: () => void;
 }
 
-export function DigitalReceipt({ sale, onClose, onSendEmail }: DigitalReceiptProps) {
+export function DigitalReceipt({ sale, onClose }: DigitalReceiptProps) {
   const { userSettings } = useStore();
   const receiptRef = useRef<HTMLDivElement>(null);
   
@@ -33,25 +32,89 @@ export function DigitalReceipt({ sale, onClose, onSendEmail }: DigitalReceiptPro
     removeAfterPrint: true,
   });
 
-  const handleDownload = () => {
-    // In a real implementation, this would generate a PDF
-    handlePrint();
+  const generateReceiptText = () => {
+    const items = sale.items.map(item => 
+      `${item.productName} x${item.quantity} @ ${currencySymbol}${item.price.toFixed(2)} = ${currencySymbol}${item.total.toFixed(2)}`
+    ).join('\n');
+
+    return `
+${businessName}
+${businessAddress}
+${businessPhone ? `Phone: ${businessPhone}` : ''}
+${businessEmail ? `Email: ${businessEmail}` : ''}
+
+RECEIPT
+=====================================
+Receipt #: ${sale.invoiceNumber}
+Date: ${format(sale.date, 'MMM dd, yyyy')}
+Time: ${format(sale.date, 'hh:mm a')}
+
+Customer: ${sale.customerName || 'Walk-in Customer'}
+${sale.customerEmail ? `Email: ${sale.customerEmail}` : ''}
+
+ITEMS
+=====================================
+${items}
+
+=====================================
+Subtotal: ${currencySymbol}${sale.total.toFixed(2)}
+Tax: ${currencySymbol}0.00
+TOTAL: ${currencySymbol}${sale.total.toFixed(2)}
+
+Payment Method: ${sale.paymentType}
+Status: PAID
+
+Thank you for your business!
+Generated: ${format(new Date(), 'yyyy-MM-dd HH:mm:ss')}
+    `.trim();
   };
 
-  const handleShare = () => {
-    // In a real implementation, this would use the Web Share API
+  const handleDownload = () => {
+    // Create a downloadable text file with receipt content
+    const receiptText = generateReceiptText();
+    const blob = new Blob([receiptText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Receipt-${sale.invoiceNumber}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleShare = async () => {
+    const receiptText = generateReceiptText();
+    
+    // Try Web Share API first
     if (navigator.share) {
-      navigator.share({
-        title: `Receipt #${sale.invoiceNumber}`,
-        text: `Your receipt from ${businessName}`,
-        url: window.location.href,
-      }).catch(err => {
-        console.error('Error sharing:', err);
-      });
+      try {
+        await navigator.share({
+          title: `Receipt #${sale.invoiceNumber}`,
+          text: receiptText,
+        });
+        return;
+      } catch (err) {
+        console.error('Error sharing with Web Share API:', err);
+      }
+    }
+    
+    // Fallback: Copy to clipboard
+    if (navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(receiptText);
+        alert('Receipt text copied to clipboard!');
+      } catch (err) {
+        console.error('Error copying to clipboard:', err);
+        // Final fallback: Show text in alert
+        alert(`Receipt content:\n\n${receiptText}`);
+      }
     } else {
-      alert('Sharing is not supported on this browser');
+      // Final fallback: Show text in alert
+      alert(`Receipt content:\n\n${receiptText}`);
     }
   };
+
 
   return (
     <div className="fixed inset-0 z-50 bg-black bg-opacity-75 flex items-center justify-center p-4">
@@ -207,10 +270,10 @@ export function DigitalReceipt({ sale, onClose, onSendEmail }: DigitalReceiptPro
         </div>
         
         {/* Action Buttons */}
-        <div className="p-4 bg-gray-50 dark:bg-gray-700 flex justify-between">
+        <div className="p-4 bg-gray-50 dark:bg-gray-700 flex justify-around">
           <button
             onClick={handlePrint}
-            className="flex items-center px-3 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+            className="flex items-center px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
           >
             <Printer className="h-4 w-4 mr-1" />
             <span className="text-sm">Print</span>
@@ -218,23 +281,15 @@ export function DigitalReceipt({ sale, onClose, onSendEmail }: DigitalReceiptPro
           
           <button
             onClick={handleDownload}
-            className="flex items-center px-3 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+            className="flex items-center px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
           >
             <Download className="h-4 w-4 mr-1" />
             <span className="text-sm">Download</span>
           </button>
           
           <button
-            onClick={onSendEmail}
-            className="flex items-center px-3 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
-          >
-            <Mail className="h-4 w-4 mr-1" />
-            <span className="text-sm">Email</span>
-          </button>
-          
-          <button
             onClick={handleShare}
-            className="flex items-center px-3 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+            className="flex items-center px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
           >
             <Share className="h-4 w-4 mr-1" />
             <span className="text-sm">Share</span>
