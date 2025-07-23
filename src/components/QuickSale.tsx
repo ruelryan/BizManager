@@ -81,6 +81,22 @@ export function QuickSale({ onClose }: QuickSaleProps) {
   const processSale = async () => {
     if (selectedItems.length === 0) return;
 
+    // Final stock validation
+    const overstocked = selectedItems.filter(item => {
+      const product = products.find(p => p.id === item.productId);
+      return product && item.quantity > product.currentStock;
+    });
+    if (overstocked.length > 0) {
+      alert(
+        'Stock error: The following items exceed available stock:\n' +
+        overstocked.map(item => {
+          const product = products.find(p => p.id === item.productId);
+          return `${item.productName}: ${item.quantity} in cart, only ${product?.currentStock ?? 0} in stock`;
+        }).join('\n')
+      );
+      return;
+    }
+
     setIsProcessing(true);
     
     try {
@@ -146,39 +162,43 @@ export function QuickSale({ onClose }: QuickSaleProps) {
 
             {/* Products Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 h-full overflow-y-auto">
-              {filteredProducts.map((product) => (
-                <button
-                  key={product.id}
-                  onClick={() => addProduct(product)}
-                  disabled={product.currentStock === 0}
-                  className={`p-4 rounded-lg border transition-all text-left ${
-                    product.currentStock === 0
-                      ? 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 opacity-50 cursor-not-allowed'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20'
-                  }`}
-                >
-                  <div className="font-medium text-gray-900 dark:text-white truncate">
-                    {product.name}
-                  </div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    {product.category}
-                  </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <div className="font-bold text-blue-600 dark:text-blue-400">
-                      <CurrencyDisplay amount={product.price} />
+              {filteredProducts.map((product) => {
+                const cartItem = selectedItems.find(item => item.productId === product.id);
+                const atMaxStock = cartItem && cartItem.quantity >= product.currentStock;
+                return (
+                  <button
+                    key={product.id}
+                    onClick={() => addProduct(product)}
+                    disabled={product.currentStock === 0 || atMaxStock}
+                    className={`p-4 rounded-lg border transition-all text-left ${
+                      product.currentStock === 0 || atMaxStock
+                        ? 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 opacity-50 cursor-not-allowed'
+                        : 'border-gray-200 dark:border-gray-700 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                    }`}
+                  >
+                    <div className="font-medium text-gray-900 dark:text-white truncate">
+                      {product.name}
                     </div>
-                    <div className={`text-xs px-2 py-1 rounded-full ${
-                      product.currentStock > product.minStock
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                        : product.currentStock > 0
-                        ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
-                        : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
-                    }`}>
-                      {product.currentStock === 0 ? 'Out of Stock' : `${product.currentStock} left`}
+                    <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                      {product.category}
                     </div>
-                  </div>
-                </button>
-              ))}
+                    <div className="flex items-center justify-between mt-2">
+                      <div className="font-bold text-blue-600 dark:text-blue-400">
+                        <CurrencyDisplay amount={product.price} />
+                      </div>
+                      <div className={`text-xs px-2 py-1 rounded-full ${
+                        product.currentStock > product.minStock
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                          : product.currentStock > 0
+                          ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                          : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                      }`}>
+                        {product.currentStock === 0 ? 'Out of Stock' : `${product.currentStock} left`}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -190,48 +210,55 @@ export function QuickSale({ onClose }: QuickSaleProps) {
 
             {/* Cart Items */}
             <div className="space-y-3 mb-6 max-h-64 overflow-y-auto">
-              {selectedItems.map((item) => (
-                <div key={item.productId} className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg">
-                  <div className="flex-1">
-                    <div className="font-medium text-gray-900 dark:text-white text-sm">
-                      {item.productName}
+              {selectedItems.map((item) => {
+                const product = products.find(p => p.id === item.productId);
+                const atMaxStock = product && item.quantity >= product.currentStock;
+                return (
+                  <div key={item.productId} className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg">
+                    <div className="flex-1">
+                      <div className="font-medium text-gray-900 dark:text-white text-sm">
+                        {item.productName}
+                      </div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">
+                        <CurrencyDisplay amount={item.price} /> each
+                      </div>
                     </div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
-                      <CurrencyDisplay amount={item.price} /> each
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => updateQuantity(item.productId, item.quantity - 1)}
+                        className="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600"
+                      >
+                        -
+                      </button>
+                      <input
+                        type="number"
+                        min={1}
+                        max={product?.currentStock || 1}
+                        value={item.quantity}
+                        onChange={e => {
+                          let val = parseInt(e.target.value) || 1;
+                          if (product && val > product.currentStock) {
+                            val = product.currentStock;
+                          }
+                          updateQuantity(item.productId, val);
+                        }}
+                        className="w-14 text-center rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      />
+                      <button
+                        onClick={() => updateQuantity(item.productId, item.quantity + 1)}
+                        disabled={atMaxStock}
+                        className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                          atMaxStock
+                            ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-600 cursor-not-allowed'
+                            : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600'
+                        }`}
+                      >
+                        +
+                      </button>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => updateQuantity(item.productId, item.quantity - 1)}
-                      className="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600"
-                    >
-                      -
-                    </button>
-                    <input
-                      type="number"
-                      min={1}
-                      max={products.find(p => p.id === item.productId)?.currentStock || 1}
-                      value={item.quantity}
-                      onChange={e => {
-                        const product = products.find(p => p.id === item.productId);
-                        let val = parseInt(e.target.value) || 1;
-                        if (product && val > product.currentStock) {
-                          alert(`Cannot add more. Only ${product.currentStock} in stock.`);
-                          val = product.currentStock;
-                        }
-                        updateQuantity(item.productId, val);
-                      }}
-                      className="w-14 text-center rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    />
-                    <button
-                      onClick={() => updateQuantity(item.productId, item.quantity + 1)}
-                      className="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600"
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Customer Selection */}
