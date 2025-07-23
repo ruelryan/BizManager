@@ -164,14 +164,16 @@ export function QuickSale({ onClose }: QuickSaleProps) {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 h-full overflow-y-auto">
               {filteredProducts.map((product) => {
                 const cartItem = selectedItems.find(item => item.productId === product.id);
-                const atMaxStock = cartItem && cartItem.quantity >= product.currentStock;
+                const stock = typeof product.currentStock === 'number' && !isNaN(product.currentStock) ? product.currentStock : 0;
+                const atMaxStock = cartItem && cartItem.quantity >= stock;
+                const disableAdd = stock === 0 || atMaxStock;
                 return (
                   <button
                     key={product.id}
                     onClick={() => addProduct(product)}
-                    disabled={product.currentStock === 0 || atMaxStock}
+                    disabled={disableAdd}
                     className={`p-4 rounded-lg border transition-all text-left ${
-                      product.currentStock === 0 || atMaxStock
+                      disableAdd
                         ? 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 opacity-50 cursor-not-allowed'
                         : 'border-gray-200 dark:border-gray-700 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20'
                     }`}
@@ -187,11 +189,10 @@ export function QuickSale({ onClose }: QuickSaleProps) {
                         <CurrencyDisplay amount={product.price} />
                       </div>
                       <div className={`text-xs px-2 py-1 rounded-full ${
-                        product.currentStock > product.minStock
+                        product.currentStock === 0 ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                          : product.currentStock > product.minStock
                           ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                          : product.currentStock > 0
-                          ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
-                          : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                          : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
                       }`}>
                         {product.currentStock === 0 ? 'Out of Stock' : `${product.currentStock} left`}
                       </div>
@@ -212,7 +213,8 @@ export function QuickSale({ onClose }: QuickSaleProps) {
             <div className="space-y-3 mb-6 max-h-64 overflow-y-auto">
               {selectedItems.map((item) => {
                 const product = products.find(p => p.id === item.productId);
-                const atMaxStock = product && item.quantity >= product.currentStock;
+                const stock = product && typeof product.currentStock === 'number' && !isNaN(product.currentStock) ? product.currentStock : 0;
+                const atMaxStock = product && item.quantity >= stock;
                 return (
                   <div key={item.productId} className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg">
                     <div className="flex-1">
@@ -233,12 +235,12 @@ export function QuickSale({ onClose }: QuickSaleProps) {
                       <input
                         type="number"
                         min={1}
-                        max={product?.currentStock || 1}
+                        max={stock || 1}
                         value={item.quantity}
                         onChange={e => {
                           let val = parseInt(e.target.value) || 1;
-                          if (product && val > product.currentStock) {
-                            val = product.currentStock;
+                          if (val > stock) {
+                            val = stock;
                           }
                           updateQuantity(item.productId, val);
                         }}
