@@ -444,17 +444,9 @@ export function Landing() {
                 <blockquote className="text-gray-700 dark:text-gray-300 mb-6 italic">
                   "{testimonial.quote}"
                 </blockquote>
-                <div className="flex items-center">
-                  <img 
-                    src={testimonial.avatar} 
-                    alt={`${testimonial.name}'s avatar`}
-                    className="w-12 h-12 rounded-full object-cover mr-4"
-                    loading="lazy"
-                  />
-                  <div>
-                    <div className="font-bold text-gray-900 dark:text-white">{testimonial.name}</div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">{testimonial.role}, {testimonial.company}</div>
-                  </div>
+                <div>
+                  <div className="font-bold text-gray-900 dark:text-white">{testimonial.name}</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">{testimonial.role}, {testimonial.company}</div>
                 </div>
               </div>
             ))}
