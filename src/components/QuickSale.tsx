@@ -207,9 +207,22 @@ export function QuickSale({ onClose }: QuickSaleProps) {
                     >
                       -
                     </button>
-                    <span className="w-8 text-center font-medium text-gray-900 dark:text-white">
-                      {item.quantity}
-                    </span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={products.find(p => p.id === item.productId)?.currentStock || 1}
+                      value={item.quantity}
+                      onChange={e => {
+                        const product = products.find(p => p.id === item.productId);
+                        let val = parseInt(e.target.value) || 1;
+                        if (product && val > product.currentStock) {
+                          alert(`Cannot add more. Only ${product.currentStock} in stock.`);
+                          val = product.currentStock;
+                        }
+                        updateQuantity(item.productId, val);
+                      }}
+                      className="w-14 text-center rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    />
                     <button
                       onClick={() => updateQuantity(item.productId, item.quantity + 1)}
                       className="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600"
