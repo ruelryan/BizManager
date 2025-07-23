@@ -516,93 +516,27 @@ export function Upgrade() {
                 </div>
               )}
 
-              {/* Dark Mode Notice for PayPal */}
-              {theme === 'dark' && (
-                <div className="mb-8 rounded-xl bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border border-yellow-200 dark:border-yellow-800 p-6">
-                  <div className="flex items-start">
-                    <div className="w-10 h-10 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-lg flex items-center justify-center mr-4">
-                      <Sun className="h-5 w-5 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-yellow-800 dark:text-yellow-300 mb-2">
-                        PayPal Dark Mode Notice
-                      </h3>
-                      <p className="text-sm text-yellow-700 dark:text-yellow-400 mb-4 leading-relaxed">
-                        PayPal's payment forms may appear with dark text on dark backgrounds. For the best experience, you can temporarily switch to light mode during payment.
-                      </p>
-                      <button
-                        onClick={toggleTheme}
-                        className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-sm font-medium rounded-lg hover:from-yellow-600 hover:to-orange-600 transition-all duration-200 shadow-md hover:shadow-lg"
-                      >
-                        <Sun className="mr-2 h-4 w-4" />
-                        Switch to Light Mode
-                      </button>
+              {/* PayPal Information - Simplified */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6 mb-8">
+                <div className="flex items-center mb-4">
+                  <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mr-4">
+                    <span className="text-white text-sm font-bold">PP</span>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-300">Secure payment with PayPal</h3>
+                  </div>
+                </div>
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-4 mb-4 border border-blue-200 dark:border-blue-700">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-lg font-semibold text-gray-900 dark:text-white">Amount:</span>
+                    <div className="text-right">
+                      <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">₱{plan.price}</span>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">per month</div>
                     </div>
                   </div>
                 </div>
-              )}
-
-              {/* PayPal Information - Enhanced */}
-              <div className="space-y-6 mb-8">
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6">
-                  <div className="flex items-center mb-6">
-                    <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mr-4">
-                      <span className="text-white text-sm font-bold">PP</span>
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-300">PayPal Secure Payment</h3>
-                      <p className="text-sm text-blue-600 dark:text-blue-400">Trusted by millions worldwide</p>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-white dark:bg-gray-800 rounded-lg p-4 mb-4 border border-blue-200 dark:border-blue-700">
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-lg font-semibold text-gray-900 dark:text-white">Amount:</span>
-                      <div className="text-right">
-                        <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">₱{plan.price}</span>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">per month</div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <h4 className="font-semibold text-blue-800 dark:text-blue-300">PayPal accepts:</h4>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="flex items-center p-3 bg-white dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-blue-700">
-                        <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center mr-3">
-                          <CheckCircle className="h-4 w-4 text-white" />
-                        </div>
-                        <span className="text-sm font-medium text-gray-900 dark:text-white">PayPal balance</span>
-                      </div>
-                      <div className="flex items-center p-3 bg-white dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-blue-700">
-                        <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center mr-3">
-                          <CreditCard className="h-4 w-4 text-white" />
-                        </div>
-                        <span className="text-sm font-medium text-gray-900 dark:text-white">Credit cards</span>
-                      </div>
-                      <div className="flex items-center p-3 bg-white dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-blue-700">
-                        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
-                          <CreditCard className="h-4 w-4 text-white" />
-                        </div>
-                        <span className="text-sm font-medium text-gray-900 dark:text-white">Debit cards</span>
-                      </div>
-                      <div className="flex items-center p-3 bg-white dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-blue-700">
-                        <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center mr-3">
-                          <CheckCircle className="h-4 w-4 text-white" />
-                        </div>
-                        <span className="text-sm font-medium text-gray-900 dark:text-white">Bank accounts</span>
-                      </div>
-                    </div>
-                    <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 border border-green-200 dark:border-green-800">
-                      <p className="text-sm font-semibold text-green-800 dark:text-green-300 text-center">
-                        💡 You don't need a PayPal account to pay with your card
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              
-                {/* PayPal Subscription Button - Enhanced */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+                {/* PayPal Subscribe Button - Main Focus */}
+                <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 text-center">
                   {loadingPlanId ? (
                     <div className="flex flex-col items-center justify-center py-12">
                       <div className="relative">
@@ -615,15 +549,12 @@ export function Upgrade() {
                       <span className="text-sm text-gray-500 dark:text-gray-400">Preparing your secure payment</span>
                     </div>
                   ) : paypalPlanId ? (
-                    <div className="text-center">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Ready to upgrade?</h3>
-                      <PayPalSubscriptionButton
-                        planId={paypalPlanId}
-                        planName={plan?.name || selectedPlan}
-                        onSuccess={handlePayPalSubscriptionSuccess}
-                        onError={handlePayPalError}
-                      />
-                    </div>
+                    <PayPalSubscriptionButton
+                      planId={paypalPlanId}
+                      planName={plan?.name || selectedPlan}
+                      onSuccess={handlePayPalSubscriptionSuccess}
+                      onError={handlePayPalError}
+                    />
                   ) : (
                     <div className="p-6 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl">
                       <div className="text-center">
@@ -651,9 +582,6 @@ export function Upgrade() {
                             </>
                           )}
                         </button>
-                        <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-3">
-                          This is a one-time setup process
-                        </p>
                       </div>
                     </div>
                   )}

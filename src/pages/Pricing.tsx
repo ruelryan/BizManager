@@ -217,6 +217,7 @@ export function Pricing() {
                     <li>Automatic currency conversion from PHP to USD</li>
                     <li>No PayPal account required - pay directly with your card</li>
                     <li>Instant plan activation upon successful payment</li>
+                    <li>A PayPal account is required for subscription payments</li>
                   </ul>
                   <p className="font-medium mt-3">
                     PayPal handles all payment methods securely, so you can pay however you prefer.
