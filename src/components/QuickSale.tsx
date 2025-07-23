@@ -59,6 +59,11 @@ export function QuickSale({ onClose }: QuickSaleProps) {
 
   // Update item quantity
   const updateQuantity = (productId: string, newQuantity: number) => {
+    const product = products.find(p => p.id === productId);
+    if (product && newQuantity > product.currentStock) {
+      alert(`Cannot add more. Only ${product.currentStock} in stock.`);
+      return;
+    }
     if (newQuantity === 0) {
       setSelectedItems(items => items.filter(item => item.productId !== productId));
     } else {
