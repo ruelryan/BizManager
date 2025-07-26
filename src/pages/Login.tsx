@@ -5,6 +5,7 @@ import { useStore } from '../store/useStore';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { useTheme } from '../contexts/ThemeContext';
 import { trackFacebookClickId, trackEmailConfirmationSent } from '../utils/facebookPixel';
+import { trackSignupAttempt, trackSignupSuccess } from '../utils/googleAnalytics';
 import { SignupAnalytics } from '../components/SignupAnalytics';
 
 export function Login() {
@@ -73,6 +74,10 @@ export function Login() {
     try {
       if (showSignUp) {
         console.log('🔄 Starting signup process...');
+        
+        // Track signup attempt in Google Analytics
+        trackSignupAttempt('email');
+        
         const result = await signUp(formData.email, formData.password, formData.name);
         
         if (result && result.status === 'email_confirmation_required') {
@@ -84,6 +89,10 @@ export function Login() {
           trackEmailConfirmationSent(formData.email);
         } else {
           console.log('✅ Signup successful, navigating to:', from);
+          
+          // Track successful signup in Google Analytics
+          trackSignupSuccess('email');
+          
           navigate(from);
         }
       } else {

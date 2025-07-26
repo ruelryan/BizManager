@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import { supabase, handleSupabaseError, transformSupabaseData, transformToSupabaseData } from '../lib/supabase';
 import { User, Product, Sale, Customer, Expense, InventoryTransaction, UserSettings, PaymentType, Subscription } from '../types';
 import { trackSignup, trackTrialStart, trackSubscription, getStoredFacebookClickId } from '../utils/facebookPixel';
+import { trackSignupSuccess } from '../utils/googleAnalytics';
 
 // Helper function to generate a unique invoice number
 const generateInvoiceNumber = () => {
@@ -383,6 +384,9 @@ export const useStore = create<StoreState>()(
               fbclid: fbclid,
               timestamp: new Date().toISOString()
             });
+            
+            // Track successful signup in Google Analytics
+            trackSignupSuccess('email');
             
             // Start the free trial
             await get().startFreeTrial();

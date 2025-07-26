@@ -192,3 +192,19 @@ If you encounter issues:
 ---
 
 **Note**: Make sure to replace `YOUR_PIXEL_ID_HERE` with your actual Facebook Pixel ID in both the HTML file and the configuration file before deploying to production.
+
+## 🔍 **Current Google Analytics Setup**
+
+I can see you already have Google Analytics configured in your `index.html`:
+
+```html
+<!-- Google tag (gtag.js) -->
+<script
+  async
+  src="https://www.googletagmanager.com/gtag/js?id=G-Q4HGSF4YEY"
+></script>
+```
+
+## 📊 **Setting Up Signup Tracking in Google Analytics**
+
+Let me add comprehensive Google Analytics tracking for your signup funnel:
