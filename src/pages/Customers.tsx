@@ -3,8 +3,7 @@ import { Plus, Search, Edit, Trash2, Users, AlertTriangle, Tag } from 'lucide-re
 import { useStore } from '../store/useStore';
 import { Customer } from '../types';
 import { CustomerPricing } from '../components/CustomerPricing';
-import { CurrencyDisplay } from '../components/CurrencyDisplay';
-import { CurrencyInput } from '../components/CurrencyInput';
+
 
 export function Customers() {
   const { customers, addCustomer, updateCustomer, deleteCustomer } = useStore();

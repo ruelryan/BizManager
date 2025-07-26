@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase, handleSupabaseError, transformSupabaseData, transformToSupabaseData } from '../lib/supabase';
 import { User, Product, Sale, Customer, Expense, InventoryTransaction, UserSettings, PaymentType, Subscription } from '../types';
+import { trackSignup, trackTrialStart, trackSubscription, getStoredFacebookClickId } from '../utils/facebookPixel';
 
 // Helper function to generate a unique invoice number
 const generateInvoiceNumber = () => {
@@ -109,7 +110,7 @@ interface StoreState {
   // Auth actions
   signIn: (email: string, password: string, plan?: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
-  signUp: (email: string, password: string, name: string) => Promise<void>;
+  signUp: (email: string, password: string, name: string) => Promise<{ status: string; user: any; message?: string } | void>;
   signOut: () => Promise<void>;
   setUser: (user: User | null) => void;
   sendPasswordReset: (email: string) => Promise<void>;
@@ -289,6 +290,8 @@ export const useStore = create<StoreState>()(
       signUp: async (email, password, name) => {
         try {
           set({ isLoading: true });
+          console.log('🔄 Starting Supabase signup process...');
+          
           const { data, error } = await supabase.auth.signUp({
             email,
             password,
@@ -296,12 +299,50 @@ export const useStore = create<StoreState>()(
               data: {
                 full_name: name,
               },
+              emailRedirectTo: `${window.location.origin}/dashboard`,
             },
           });
 
-          if (error) throw error;
+          if (error) {
+            console.error('❌ Supabase signup error:', error);
+            throw error;
+          }
+
+          console.log('📧 Supabase signup response:', {
+            user: data.user?.id,
+            session: !!data.session,
+            emailConfirmed: data.user?.email_confirmed_at,
+            confirmationSent: data.user && !data.session
+          });
 
           if (data.user) {
+            // Check if email confirmation is required
+            if (!data.session && !data.user.email_confirmed_at) {
+              console.log('📧 Email confirmation required');
+              
+              // Track signup event with Facebook Pixel (pending confirmation)
+              const fbclid = getStoredFacebookClickId();
+              trackSignup('email', 'free');
+              
+              // Log signup pending confirmation
+              console.log('⏳ User signup pending email confirmation:', {
+                userId: data.user.id,
+                email: data.user.email,
+                fbclid: fbclid,
+                timestamp: new Date().toISOString()
+              });
+              
+              // Return special status for email confirmation
+              return { 
+                status: 'email_confirmation_required',
+                user: data.user,
+                message: 'Please check your email to confirm your account'
+              };
+            }
+
+            // User is confirmed and has session
+            console.log('✅ User confirmed and authenticated');
+            
             // Try to create profile, but don't fail if table doesn't exist
             try {
               await supabase
@@ -331,8 +372,22 @@ export const useStore = create<StoreState>()(
 
             set({ user });
             
+            // Track signup event with Facebook Pixel
+            const fbclid = getStoredFacebookClickId();
+            trackSignup('email', 'free');
+            
+            // Log signup success with attribution data
+            console.log('🎉 User signup successful:', {
+              userId: data.user.id,
+              email: data.user.email,
+              fbclid: fbclid,
+              timestamp: new Date().toISOString()
+            });
+            
             // Start the free trial
             await get().startFreeTrial();
+            
+            return { status: 'success', user: data.user };
           }
         } catch (error) {
           console.error('Sign up error:', error);
@@ -1205,6 +1260,9 @@ export const useStore = create<StoreState>()(
             } : null
           }));
 
+          // Track trial start with Facebook Pixel
+          trackTrialStart('free');
+
           console.log('✅ Free trial started successfully');
 
         } catch (error) {
@@ -1231,6 +1289,10 @@ export const useStore = create<StoreState>()(
               subscription: subscriptionData
             } : null
           }));
+
+          // Track subscription conversion with Facebook Pixel
+          const planValue = subscriptionData.plan_type === 'pro' ? 999 : 499; // PHP values
+          trackSubscription(subscriptionData.plan_type, planValue);
 
           console.log('✅ Trial terminated, subscription activated');
 
