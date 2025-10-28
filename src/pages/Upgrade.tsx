@@ -6,6 +6,7 @@ import { useStore, getEffectivePlan } from '../store/useStore';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { PayPalSubscriptionButton } from '../components/PayPalSubscriptionButton';
 import { useTheme } from '../contexts/ThemeContext';
+import { trackUpgradePageView, trackPlanSelect, trackUpgradeAttempt, trackSubscriptionSuccess } from '../utils/googleAnalytics';
 
 export function Upgrade() {
   const location = useLocation();
@@ -29,8 +30,14 @@ export function Upgrade() {
   const [loadingPlanId, setLoadingPlanId] = React.useState(true);
   const [isSettingUpPayPal, setIsSettingUpPayPal] = React.useState(false);
   const [isProcessingSubscription, setIsProcessingSubscription] = React.useState(false);
+  const [subscriptionSuccess, setSubscriptionSuccess] = React.useState(false);
 
   const plan = plans.find(p => p.id === selectedPlan);
+
+  // Track upgrade page view on mount
+  React.useEffect(() => {
+    trackUpgradePageView();
+  }, []);
 
   // Fetch PayPal Plan ID from database
   React.useEffect(() => {
@@ -89,18 +96,18 @@ export function Upgrade() {
 
   const handlePayPalSubscriptionSuccess = async (subscriptionId: string) => {
     console.log('Subscription created successfully:', subscriptionId);
-    
+
     // Set processing state to show loading indicator
     setIsProcessingSubscription(true);
-    
+
     try {
       // Wait for webhook to process (with timeout)
       let attempts = 0;
       const maxAttempts = 15; // 15 seconds max wait
-      
+
       while (attempts < maxAttempts) {
         await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
-        
+
         // Check if subscription was processed
         const { supabase } = await import('../lib/supabase');
         const { data: subscription } = await supabase
@@ -108,10 +115,15 @@ export function Upgrade() {
           .select('plan_type, status')
           .eq('paypal_subscription_id', subscriptionId)
           .single();
-        
+
         if (subscription && subscription.status === 'ACTIVE') {
           console.log('✅ Subscription processed! Plan:', subscription.plan_type);
-          
+
+          // Track successful subscription in GA
+          const planName = subscription.plan_type === 'starter' ? 'Starter' : 'Pro';
+          const price = subscription.plan_type === 'starter' ? 199 : 499;
+          trackSubscriptionSuccess(planName, price, subscriptionId);
+
           // Force refresh user data in the store by fetching fresh data
           try {
             // Refresh user settings
@@ -121,7 +133,7 @@ export function Upgrade() {
               .select('*')
               .eq('user_id', user?.id)
               .single();
-            
+
             if (userSettings) {
               // Update the user in the store with fresh data
               setUser({
@@ -297,7 +309,10 @@ export function Upgrade() {
                     ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
                     : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300'
                 }`}
-                onClick={() => setSelectedPlan('starter')}
+                onClick={() => {
+                  setSelectedPlan('starter');
+                  trackPlanSelect('Starter', 199);
+                }}
               >
                 <Zap className="w-4 h-4 mr-2 inline" />
                 Starter - ₱199/month
@@ -313,7 +328,10 @@ export function Upgrade() {
                     ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
                     : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300'
                 }`}
-                onClick={() => setSelectedPlan('pro')}
+                onClick={() => {
+                  setSelectedPlan('pro');
+                  trackPlanSelect('Pro', 499);
+                }}
               >
                 <Crown className="w-4 h-4 mr-2 inline" />
                 Pro - ₱499/month

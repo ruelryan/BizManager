@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Crown, Lock } from 'lucide-react';
 import { useStore, getEffectivePlan } from '../store/useStore';
 import { canAccessFeature } from '../utils/plans';
+import { trackFeatureGateHit } from '../utils/googleAnalytics';
 
 interface FeatureGateProps {
   feature: 'hasReports' | 'hasPdfInvoices' | 'hasGoalTracking' | 'hasCashFlowReport';
@@ -19,7 +20,14 @@ export function FeatureGate({ feature, children, fallback }: FeatureGateProps) {
 
   const effectivePlan = getEffectivePlan(user);
   const hasAccess = canAccessFeature(effectivePlan, feature);
-  
+
+  // Track when users hit feature gates
+  React.useEffect(() => {
+    if (!hasAccess) {
+      trackFeatureGateHit(feature, effectivePlan);
+    }
+  }, [hasAccess, feature, effectivePlan]);
+
   if (!hasAccess) {
     return (
       fallback || (

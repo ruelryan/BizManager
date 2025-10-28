@@ -2,6 +2,7 @@ import React from 'react';
 import { PayPalButtons, PayPalScriptProvider } from '@paypal/react-paypal-js';
 import { useStore } from '../store/useStore';
 import { useTheme } from '../contexts/ThemeContext';
+import { trackUpgradeAttempt } from '../utils/googleAnalytics';
 
 interface PayPalSubscriptionButtonProps {
   planId: string;
@@ -41,6 +42,10 @@ export function PayPalSubscriptionButton({
   };
 
   const createSubscription = (data: any, actions: any) => {
+    // Track upgrade attempt when PayPal checkout begins
+    const price = planName === 'Starter' ? 199 : 499;
+    trackUpgradeAttempt(planName, price);
+
     return actions.subscription.create({
       plan_id: planId,
       custom_id: user.id, // User ID for webhook processing

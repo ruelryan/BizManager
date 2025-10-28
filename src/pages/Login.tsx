@@ -5,7 +5,7 @@ import { useStore } from '../store/useStore';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { useTheme } from '../contexts/ThemeContext';
 import { trackFacebookClickId, trackEmailConfirmationSent } from '../utils/facebookPixel';
-import { trackSignupAttempt, trackSignupSuccess } from '../utils/googleAnalytics';
+import { trackSignupAttempt, trackSignupSuccess, trackLoginAttempt, trackLoginSuccess, trackLoginError, trackPasswordReset } from '../utils/googleAnalytics';
 import { SignupAnalytics } from '../components/SignupAnalytics';
 
 export function Login() {
@@ -18,8 +18,9 @@ export function Login() {
   const isSignupPage = location.pathname === '/signup';
   
   // Get the redirect path from location state (if any)
-  const from = location.state?.from || '/dashboard';
+  const from = location.state?.from || (planId ? `/upgrade?plan=${planId}` : '/dashboard');
   
+  const { planId } = location.state || {};
   const [showPassword, setShowPassword] = React.useState(false);
   const [showSignUp, setShowSignUp] = React.useState(isSignupPage);
   const [error, setError] = React.useState('');
@@ -29,7 +30,7 @@ export function Login() {
     name: '',
     email: '',
     password: '',
-    plan: user?.plan || 'free' as 'free' | 'starter' | 'pro',
+    plan: planId || user?.plan || 'free' as 'free' | 'starter' | 'pro',
   });
 
   // Update form state when route changes
@@ -96,14 +97,26 @@ export function Login() {
           navigate(from);
         }
       } else {
+        // Track login attempt
+        trackLoginAttempt('email');
+
         await signIn(formData.email, formData.password, formData.plan);
+
+        // Track successful login
+        trackLoginSuccess('email');
+
         navigate(from);
       }
     } catch (err: any) {
       console.error('❌ Auth error:', err);
       const errorMessage = err.message || `Failed to ${showSignUp ? 'create account' : 'sign in'}`;
       setError(errorMessage);
-      
+
+      // Track login error in GA
+      if (!showSignUp) {
+        trackLoginError(errorMessage);
+      }
+
       // Track failed signup attempt
       if (showSignUp && typeof window !== 'undefined' && window.fbq) {
         try {
@@ -123,10 +136,13 @@ export function Login() {
   const handleGoogleSignIn = async () => {
     setError('');
     try {
+      trackLoginAttempt('google');
       await signInWithGoogle();
+      trackLoginSuccess('google');
       // Navigate to intended destination after successful Google sign-in
       navigate(from);
     } catch (err: any) {
+      trackLoginError('google_signin_failed');
       setError(err.message || 'Failed to sign in with Google');
     }
   };
@@ -134,13 +150,14 @@ export function Login() {
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
+
     if (!formData.email) {
       setError('Please enter your email address');
       return;
     }
-    
+
     try {
+      trackPasswordReset('request');
       await sendPasswordReset(formData.email);
       setResetSuccess(true);
     } catch (err: any) {
