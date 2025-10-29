@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   BarChart3, 
@@ -188,12 +189,30 @@ export function Landing() {
     if (user) {
       navigate('/upgrade', { state: { planId } });
     } else {
-      navigate('/login', { state: { from: '/upgrade' } });
+      navigate('/signup', { state: { planId } });
     }
   };
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-200">
+      <Helmet>
+        <title>BizManager - Business Management Solution for SMEs in the Philippines</title>
+        <meta name="description" content="BizManager is a complete business management solution for modern entrepreneurs in the Philippines. Manage inventory, sales, customers, and more with ease." />
+        <meta name="keywords" content="business management, inventory, sales, CRM, POS, Philippines, SME, entrepreneur, small business" />
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://bizmanager.com/" />
+        <meta property="og:title" content="BizManager - Business Management Solution for SMEs in the Philippines" />
+        <meta property="og:description" content="BizManager is a complete business management solution for modern entrepreneurs in the Philippines. Manage inventory, sales, customers, and more with ease." />
+        <meta property="og:image" content="https://bizmanager.com/og-image.png" />
+
+        {/* Twitter */}
+        <meta property="twitter:card" content="summary_large_image" />
+        <meta property="twitter:url" content="https://bizmanager.com/" />
+        <meta property="twitter:title" content="BizManager - Business Management Solution for SMEs in the Philippines" />
+        <meta property="twitter:description" content="BizManager is a complete business management solution for modern entrepreneurs in the Philippines. Manage inventory, sales, customers, and more with ease." />
+        <meta property="twitter:image" content="https://bizmanager.com/og-image.png" />
+      </Helmet>
       {/* Header */}
       <header className={`sticky top-0 z-50 transition-all duration-300 ${
         isScrolled 
@@ -229,7 +248,7 @@ export function Landing() {
                 to="/signup" 
                 className="bg-blue-600 dark:bg-blue-500 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-blue-700 dark:hover:bg-blue-600 transition-all duration-200 shadow-md opacity-0 animate-[fadeIn_0.5s_ease-out_0.7s_forwards]"
               >
-                Get Started Free
+                Sign Up
               </Link>
               <button
                 onClick={toggleTheme}
@@ -511,7 +530,7 @@ export function Landing() {
                         : 'border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800'
                     }`}
                   >
-                    {user ? 'Upgrade Now' : 'Start Free'}
+                    {tier.name === 'Free' ? 'Sign Up' : 'Start Free Trial'}
                   </button>
                 </div>
               </div>

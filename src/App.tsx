@@ -20,6 +20,8 @@ import { Integrations } from './pages/Integrations';
 import { ProductLabelDemo } from './pages/ProductLabelDemo';
 import { Customers } from './pages/Customers';
 import { ResetPassword } from './pages/ResetPassword';
+import { Blog } from './pages/Blog';
+import { BlogPost } from './pages/blog/FirstPost';
 import { useStore } from './store/useStore';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ProductTour } from './components/ProductTour';
@@ -107,6 +109,8 @@ import { ErrorBoundary } from './components/ErrorBoundary';
           <Route path="/features" element={<Features />} />
           <Route path="/demo" element={<Demo />} />
           <Route path="/integrations" element={<Integrations />} />
+          <Route path="/blog" element={<Blog />} />
+          <Route path="/blog/first-post" element={<BlogPost />} />
           
           {/* Redirect root to landing if not authenticated, dashboard if authenticated */}
           <Route path="/" element={user ? <Navigate to="/dashboard" /> : <Navigate to="/landing" />} />
