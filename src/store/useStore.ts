@@ -76,7 +76,15 @@ export const getEffectivePlan = (user: User | null) => {
 // Helper function to check if subscription is active
 export const isSubscriptionActive = (user: User | null) => {
   if (!user?.subscription) return false;
-  return user.subscription.status === 'ACTIVE' && !user.subscription.cancel_at_period_end;
+
+  // Check if status is ACTIVE and not set to cancel at period end
+  const hasActiveStatus = user.subscription.status === 'ACTIVE' && !user.subscription.cancel_at_period_end;
+
+  // Also check if subscription period hasn't expired
+  const currentPeriodEnd = user.subscription.current_period_end;
+  const isNotExpired = !currentPeriodEnd || currentPeriodEnd > new Date();
+
+  return hasActiveStatus && isNotExpired;
 };
 
 // Helper function to check if subscription will cancel at period end
@@ -1197,14 +1205,42 @@ export const useStore = create<StoreState>()(
             updated_at: new Date(subscriptionData.updated_at)
           } : undefined;
 
+          // Check if subscription has expired based on current_period_end
+          if (subscription && subscription.current_period_end && subscription.current_period_end <= new Date()) {
+            console.log('⚠️ Subscription has expired, updating status to EXPIRED');
+
+            // Update subscription status in database
+            await supabase
+              .from('subscriptions')
+              .update({ status: 'EXPIRED' })
+              .eq('id', subscription.id);
+
+            // Update user settings to free plan
+            await supabase
+              .from('user_settings')
+              .update({ plan: 'free' })
+              .eq('user_id', user.id);
+
+            // Set subscription to undefined since it's expired
+            set(state => ({
+              user: state.user ? {
+                ...state.user,
+                subscription: undefined,
+                plan: 'free'
+              } : null
+            }));
+
+            return;
+          }
+
           // Update user with subscription data and correct plan
           set(state => ({
             user: state.user ? {
               ...state.user,
               subscription,
               // Update plan based on effective plan calculation
-              plan: subscription && subscription.status === 'ACTIVE' && !subscription.cancel_at_period_end 
-                ? subscription.plan_type 
+              plan: subscription && subscription.status === 'ACTIVE' && !subscription.cancel_at_period_end
+                ? subscription.plan_type
                 : state.user.plan
             } : null
           }));
