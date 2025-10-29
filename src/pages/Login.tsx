@@ -16,11 +16,12 @@ export function Login() {
   
   // Check if we're on the signup page
   const isSignupPage = location.pathname === '/signup';
-  
+
+  // Extract planId from location state first
+  const { planId } = location.state || {};
+
   // Get the redirect path from location state (if any)
   const from = location.state?.from || (planId ? `/upgrade?plan=${planId}` : '/dashboard');
-  
-  const { planId } = location.state || {};
   const [showPassword, setShowPassword] = React.useState(false);
   const [showSignUp, setShowSignUp] = React.useState(isSignupPage);
   const [error, setError] = React.useState('');
