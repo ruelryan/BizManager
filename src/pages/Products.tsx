@@ -176,11 +176,17 @@ export function Products() {
                   required
                   min="0"
                   step="0.01"
-                  value={formData.price}
+                  value={formData.price || ''}
                   onChange={(e) => {
                     const value = parseFloat(e.target.value);
                     setFormData(prev => ({ ...prev, price: isNaN(value) ? 0 : value }));
                   }}
+                  onFocus={(e) => {
+                    if (e.target.value === '0') {
+                      e.target.select();
+                    }
+                  }}
+                  placeholder="0.00"
                   className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
@@ -193,11 +199,17 @@ export function Products() {
                   required
                   min="0"
                   step="0.01"
-                  value={formData.cost}
+                  value={formData.cost || ''}
                   onChange={(e) => {
                     const value = parseFloat(e.target.value);
                     setFormData(prev => ({ ...prev, cost: isNaN(value) ? 0 : value }));
                   }}
+                  onFocus={(e) => {
+                    if (e.target.value === '0') {
+                      e.target.select();
+                    }
+                  }}
+                  placeholder="0.00"
                   className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
@@ -211,11 +223,17 @@ export function Products() {
                 <input
                   type="number"
                   min="0"
-                  value={formData.currentStock}
+                  value={formData.currentStock || ''}
                   onChange={(e) => {
                     const value = parseInt(e.target.value);
                     setFormData(prev => ({ ...prev, currentStock: isNaN(value) ? 0 : value }));
                   }}
+                  onFocus={(e) => {
+                    if (e.target.value === '0') {
+                      e.target.select();
+                    }
+                  }}
+                  placeholder="0"
                   className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
@@ -226,11 +244,17 @@ export function Products() {
                 <input
                   type="number"
                   min="0"
-                  value={formData.minStock}
+                  value={formData.minStock || ''}
                   onChange={(e) => {
                     const value = parseInt(e.target.value);
                     setFormData(prev => ({ ...prev, minStock: isNaN(value) ? 0 : value }));
                   }}
+                  onFocus={(e) => {
+                    if (e.target.value === '0') {
+                      e.target.select();
+                    }
+                  }}
+                  placeholder="10"
                   className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
@@ -306,7 +330,7 @@ export function Products() {
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Products</h1>
           <p className="text-gray-600 dark:text-gray-400">
@@ -318,13 +342,14 @@ export function Products() {
             )}
           </p>
         </div>
-        <div className="flex space-x-2">
+        <div className="flex flex-wrap gap-2">
           <Link
             to="/product-labels"
-            className="flex items-center space-x-2 rounded-lg bg-gray-200 dark:bg-gray-700 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+            className="flex items-center justify-center space-x-2 rounded-lg bg-gray-200 dark:bg-gray-700 px-4 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors whitespace-nowrap"
           >
             <Tag className="h-5 w-5" />
-            <span>Product Labels</span>
+            <span className="hidden sm:inline">Product Labels</span>
+            <span className="sm:hidden">Labels</span>
           </Link>
           <button
             onClick={() => {
@@ -332,17 +357,18 @@ export function Products() {
               setScanningFor('search');
               setShowCodeScanner(true);
             }}
-            className="flex items-center space-x-2 rounded-lg bg-gray-200 dark:bg-gray-700 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+            className="flex items-center justify-center space-x-2 rounded-lg bg-gray-200 dark:bg-gray-700 px-4 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors whitespace-nowrap"
           >
             <Tag className="h-5 w-5" />
-            <span>Enter Code</span>
+            <span className="hidden sm:inline">Enter Code</span>
+            <span className="sm:hidden">Code</span>
           </button>
           <button
             onClick={() => setShowAddForm(true)}
             disabled={!canAddMoreProducts}
-            className={`flex items-center space-x-2 rounded-lg px-4 py-2 text-white transition-colors ${
+            className={`flex items-center justify-center space-x-2 rounded-lg px-5 py-2.5 text-white font-medium transition-colors shadow-sm whitespace-nowrap ${
               canAddMoreProducts
-                ? 'bg-blue-600 hover:bg-blue-700'
+                ? 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800'
                 : 'bg-gray-400 cursor-not-allowed'
             }`}
           >

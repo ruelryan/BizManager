@@ -540,8 +540,13 @@ import { usePOS } from '../contexts/POSContext';
                       <input
                         type="number"
                         min="1"
-                        value={item.quantity}
+                        value={item.quantity || ''}
                         onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value))}
+                        onFocus={(e) => {
+                          if (e.target.value === '0' || e.target.value === '1') {
+                            e.target.select();
+                          }
+                        }}
                         className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                         placeholder="Qty"
                       />
@@ -551,8 +556,13 @@ import { usePOS } from '../contexts/POSContext';
                         type="number"
                         min="0"
                         step="0.01"
-                        value={item.price}
+                        value={item.price || ''}
                         onChange={(e) => updateItem(index, 'price', parseFloat(e.target.value) || 0)}
+                        onFocus={(e) => {
+                          if (e.target.value === '0') {
+                            e.target.select();
+                          }
+                        }}
                         className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                         placeholder="Price"
                       />
