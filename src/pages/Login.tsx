@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { BarChart3, Mail, Lock, Eye, EyeOff, AlertCircle, UserPlus, X } from 'lucide-react';
+import { BarChart3, Mail, Lock, Eye, EyeOff, AlertCircle, UserPlus, X, Check, Shield, Star } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { useTheme } from '../contexts/ThemeContext';
