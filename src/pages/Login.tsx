@@ -563,32 +563,6 @@ export function Login() {
         {/* Social Proof & Trust Indicators - Only for signup */}
         {showSignUp && (
           <div className="mt-6 space-y-4">
-            {/* Quick testimonial */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-md border border-gray-200 dark:border-gray-700">
-              <div className="flex items-start space-x-3">
-                <img
-                  src="https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=80&h=80&fit=crop"
-                  alt="Maria Santos"
-                  className="w-12 h-12 rounded-full"
-                />
-                <div className="flex-1">
-                  <div className="flex items-center mb-1">
-                    <div className="flex text-yellow-400">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} className="w-3 h-3 fill-current" />
-                      ))}
-                    </div>
-                  </div>
-                  <p className="text-xs text-gray-700 dark:text-gray-300 mb-1">
-                    "BizManager helped us increase revenue by 40% in 3 months!"
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    <span className="font-medium">Maria Santos</span> - Café Owner
-                  </p>
-                </div>
-              </div>
-            </div>
-
             {/* Trust badges */}
             <div className="text-center">
               <p className="text-xs text-gray-600 dark:text-gray-400 mb-3 font-medium">Trusted by 1,000+ businesses in the Philippines</p>
